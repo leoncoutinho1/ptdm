@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "6603:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: teste123
+      MYSQL_DATABASE: ptdm
+      MYSQL_USER: ptdm_admin
+      MYSQL_PASSWORD: teste123
+    volumes:
+      - ./mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 3
+
+  aspnet:
+    build: 
+      context: ./
+      dockerfile: ./WebAPI/Dockerfile
+    ports:
+      - "5215:5215"
+    command: "dotnet WebAPI.dll"
+    container_name: aspnetcore
+    depends_on:
+      mysql:
+        condition: service_healthy
