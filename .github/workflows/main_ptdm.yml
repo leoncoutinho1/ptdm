@@ -12,7 +12,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: ptdm_backend
     steps:
       - uses: actions/checkout@v4
 
