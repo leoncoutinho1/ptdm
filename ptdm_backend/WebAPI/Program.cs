@@ -43,7 +43,7 @@ try
     builder.Services.AddIdentity<IdentityUser, IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
-
+    
     builder.Services.AddControllers();
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
     builder.Services.AddSingleton(mapper);
@@ -61,9 +61,22 @@ try
                 policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
             });
     });
+
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        // Cookie settings
+        options.Cookie.HttpOnly = true;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+
+        options.LoginPath = "/Identity/Account/Login";
+        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+        options.SlidingExpiration = true;
+    });
+
+
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<IKLogger>((provider) => Logger.Factory.Get());
-
+    builder.Services.AddHealthChecks();
     builder.Services.AddLogging(logging =>
     {
         logging.AddKissLog(options =>
@@ -84,18 +97,19 @@ try
     app.MapControllers();
     app.UseSwagger();
     app.UseSwaggerUI();
-
+    app.MapHealthChecks("/healthcheck");
+    app.MapHealthChecks("/healthchecks");
     app.UseCors();
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseKissLogMiddleware(options => ConfigureKissLog(options));
-    
     
     await using var scope = app.Services.CreateAsyncScope();
     using var db = scope.ServiceProvider.GetService<AppDbContext>();
     await db.Database.MigrateAsync();
 
     Console.WriteLine("Run app");
+    
     app.Use(async (context, next) =>
     {
         Console.WriteLine($"{context.Request.Method} - {context.Request.Path}");
