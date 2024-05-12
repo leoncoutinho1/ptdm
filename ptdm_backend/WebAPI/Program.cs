@@ -17,12 +17,11 @@ using WebAPI.Repositories;
 using Microsoft.Extensions.Options;
 
 Console.WriteLine("App started");
-var config = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json").Build();
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    var config = builder.Configuration;
     builder.Host.UseSerilog(Log.Logger);
 
     var mappingConfig = new MapperConfiguration(mc =>
