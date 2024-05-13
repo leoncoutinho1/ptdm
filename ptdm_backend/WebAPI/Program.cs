@@ -87,7 +87,7 @@ try
             };
         });
     });
-    builder.WebHost.UseUrls($"https://*.{ config.GetSection("PORT").Value }");
+    builder.WebHost.UseUrls($"http://localhost:3000;https://localhost:3001");
 
     var app = builder.Build();
     app.MapControllers();
