@@ -87,7 +87,8 @@ try
             };
         });
     });
-    builder.WebHost.UseUrls($"http://localhost:3000;https://localhost:3001");
+
+    builder.WebHost.UseUrls($"https://localhost:{config.GetSection("PORT").Value}");
 
     var app = builder.Build();
     app.MapControllers();
@@ -104,7 +105,7 @@ try
     using var db = scope.ServiceProvider.GetService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    Console.WriteLine("Run app");
+    Console.WriteLine($"Listening on \"https://localhost:{config.GetSection("PORT").Value}\"");
     
     app.Use(async (context, next) =>
     {
