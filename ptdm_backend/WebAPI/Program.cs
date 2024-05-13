@@ -31,8 +31,6 @@ try
 
     IMapper mapper = mappingConfig.CreateMapper();
 
-    string connectionString = config.GetConnectionString("DefaultConnection");
-
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(config.GetConnectionString("DefaultConnection"))
     );
@@ -89,7 +87,7 @@ try
             };
         });
     });
-    builder.WebHost.UseUrls("https://*.3000");
+    builder.WebHost.UseUrls($"https://*.{ config.GetSection("PORT").Value }");
 
     var app = builder.Build();
     app.MapControllers();
