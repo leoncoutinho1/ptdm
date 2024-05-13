@@ -87,8 +87,18 @@ try
             };
         });
     });
-    var port = config.GetSection("PORT").Value;
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port};http://localhost:3000");
+    
+    if (builder.Environment.IsProduction())
+    {
+        var portVar = Environment.GetEnvironmentVariable("PORT");
+        if (portVar is { Length: > 0 } && int.TryParse(portVar, out var port))
+        {
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.ListenAnyIP(port);
+            });
+        }
+    }
 
     var app = builder.Build();
     app.MapControllers();
@@ -105,7 +115,7 @@ try
     using var db = scope.ServiceProvider.GetService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    Console.WriteLine($"Listening on \"https://localhost:{port}\"");
+    Console.WriteLine($"Listening on \"https://localhost:{Environment.GetEnvironmentVariable("PORT")}\"");
     
     app.Use(async (context, next) =>
     {
@@ -113,6 +123,7 @@ try
         await next.Invoke();
         Console.WriteLine(context.Response.StatusCode);
     });
+
     app.Run();
 
     void ConfigureKissLog(IOptionsBuilder options)
