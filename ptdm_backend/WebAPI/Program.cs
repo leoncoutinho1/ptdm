@@ -34,9 +34,7 @@ try
     string connectionString = config.GetConnectionString("DefaultConnection");
 
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseMySql(connectionString,
-            ServerVersion.AutoDetect(connectionString)
-        )
+        options.UseNpgsql(config.GetConnectionString("DefaultConnection"))
     );
 
     builder.Services.AddIdentity<IdentityUser, IdentityRole>()
