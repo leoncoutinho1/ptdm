@@ -89,7 +89,8 @@ try
             };
         });
     });
-   
+    builder.WebHost.UseUrls("https://*.3000");
+
     var app = builder.Build();
     app.MapControllers();
     app.UseSwagger();
