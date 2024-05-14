@@ -7,12 +7,14 @@ using WebAPI.Models;
 using WebAPI.Repositories;
 using AspNetCore.IQueryable.Extensions.Sort;
 using AspNetCore.IQueryable.Extensions.Pagination;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebAPI.Controllers;
 
 
 [Route("[controller]")]
 [ApiController]
+[AllowAnonymous]
 public class CashierController : ControllerBase
 {
     private readonly IUnitOfWork _uof;

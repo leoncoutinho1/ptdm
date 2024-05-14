@@ -11,12 +11,14 @@ using AspNetCore.IQueryable.Extensions;
 using WebAPI.Filters;
 using AspNetCore.IQueryable.Extensions.Sort;
 using AspNetCore.IQueryable.Extensions.Pagination;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebAPI.Controllers;
 
 [Produces("application/json")]
 [Route("[controller]")]
 [ApiController]
+[AllowAnonymous]
 public class SaleController : ControllerBase
 {
     private readonly IUnitOfWork _uof;

@@ -4,6 +4,7 @@ using AspNetCore.IQueryable.Extensions.Pagination;
 using AspNetCore.IQueryable.Extensions.Sort;
 using AutoMapper;
 using CsvHelper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
@@ -19,6 +20,7 @@ namespace WebAPI.Controllers;
 [Produces("application/json")]
 [Route("[controller]")]
 [ApiController]
+[AllowAnonymous]
 public class ProductController : ControllerBase
 {
     private readonly IUnitOfWork _uof;
