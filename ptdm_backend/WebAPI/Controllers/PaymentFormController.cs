@@ -51,13 +51,17 @@ public class PaymentFormController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult Post([FromBody] PaymentForm paymentForm)
+    public ActionResult Post([FromBody] string paymentForm)
     {
-        _uof.PaymentFormRepository.Add(paymentForm);
+        PaymentForm pf = new PaymentForm()
+        {
+            Description = paymentForm
+        };
+        _uof.PaymentFormRepository.Add(pf);
         _uof.Commit();
 
         return new CreatedAtRouteResult("GetPaymentFormById",
-            new { id = paymentForm.Id }, paymentForm);
+            new { id = pf.Id }, pf);
     }
     
     [HttpPut("{id}")]

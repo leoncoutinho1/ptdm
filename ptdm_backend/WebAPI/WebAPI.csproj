@@ -13,6 +13,7 @@
         <PackageReference Include="AspNetCore.IQueryable.Extensions" Version="8.0.0" />
         <PackageReference Include="AutoMapper" Version="13.0.1" />
         <PackageReference Include="CsvHelper" Version="32.0.3" />
+        <PackageReference Include="Devart.Data.PostgreSql.EFCore" Version="8.0.0" />
         <PackageReference Include="KissLog.AspNet.WebApi" Version="5.2.0" />
         <PackageReference Include="KissLog.AspNetCore" Version="5.2.0" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.29" />

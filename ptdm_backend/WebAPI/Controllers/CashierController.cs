@@ -47,13 +47,17 @@ public class CashierController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult Post([FromBody] Cashier cashier)
+    public ActionResult Post([FromBody] string cashier)
     {
-        _uof.CashierRepository.Add((Cashier)cashier);
+        Cashier c = new Cashier()
+        {
+            Name = cashier
+        };
+        _uof.CashierRepository.Add(c);
         _uof.Commit();
         
          return new CreatedAtRouteResult("GetCashierById",
-             new { id = cashier.Id }, cashier);
+             new { id = c.Id }, c);
     }
     
     [HttpPut("{id}")]

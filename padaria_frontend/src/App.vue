@@ -1,12 +1,15 @@
 <script>
     import { RouterLink, RouterView } from 'vue-router'
     import 'primeflex/primeflex.css';
+import Button from 'primevue/button';
     
     export default {
         name: 'AppPadaria',
         components: {
             RouterLink,
             RouterView            
+        },
+        methods: {
         }
     }
 </script>
@@ -17,7 +20,7 @@
           <RouterLink to="/"><font-awesome-icon icon="fa-solid fa-home"/></RouterLink>
           <RouterLink to="/checkout"><font-awesome-icon icon="fa-solid fa-cart-shopping"/></RouterLink>
           <RouterLink to="/stock"><font-awesome-icon icon="fa-solid fa-boxes"/></RouterLink>
-          <RouterLink to="/about"><font-awesome-icon icon="fa-solid fa-info-circle"/></RouterLink>
+          <RouterLink to="/logout"><font-awesome-icon icon="fa-solid fa-right-from-bracket" /></RouterLink>
         </nav>
     </header>
     <div class="wrapper">

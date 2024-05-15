@@ -6,10 +6,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace WebAPI.Migrations
 {
-    /// <inheritdoc />
     public partial class InitialMigration : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -56,7 +54,8 @@ namespace WebAPI.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false)
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -68,7 +67,8 @@ namespace WebAPI.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false)
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -80,7 +80,8 @@ namespace WebAPI.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Description = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
+                    Description = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -96,7 +97,7 @@ namespace WebAPI.Migrations
                     Cost = table.Column<double>(type: "double precision", nullable: false),
                     Price = table.Column<double>(type: "double precision", nullable: false),
                     Quantity = table.Column<double>(type: "double precision", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -216,12 +217,12 @@ namespace WebAPI.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     CheckoutId = table.Column<Guid>(type: "uuid", nullable: false),
                     CashierId = table.Column<Guid>(type: "uuid", nullable: false),
-                    TotalValue = table.Column<double>(type: "double precision", nullable: false),
-                    PaidValue = table.Column<double>(type: "double precision", nullable: false),
-                    ChangeValue = table.Column<double>(type: "double precision", nullable: false),
-                    OverallDiscount = table.Column<double>(type: "double precision", nullable: false),
+                    TotalValue = table.Column<double>(type: "double precision", nullable: false, defaultValue: 0.0),
+                    PaidValue = table.Column<double>(type: "double precision", nullable: false, defaultValue: 0.0),
+                    ChangeValue = table.Column<double>(type: "double precision", nullable: false, defaultValue: 0.0),
+                    OverallDiscount = table.Column<double>(type: "double precision", nullable: false, defaultValue: 0.0),
                     PaymentFormId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -268,15 +269,14 @@ namespace WebAPI.Migrations
                 name: "sale_product",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SaleId = table.Column<Guid>(type: "uuid", nullable: false),
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
                     Quantity = table.Column<double>(type: "double precision", nullable: false),
-                    Discount = table.Column<double>(type: "double precision", nullable: false),
-                    SaleId = table.Column<Guid>(type: "uuid", nullable: true)
+                    Discount = table.Column<double>(type: "double precision", nullable: false, defaultValue: 0.0)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_sale_product", x => x.Id);
+                    table.PrimaryKey("PK_sale_product", x => new { x.SaleId, x.ProductId });
                     table.ForeignKey(
                         name: "FK_sale_product_product_ProductId",
                         column: x => x.ProductId,
@@ -287,7 +287,8 @@ namespace WebAPI.Migrations
                         name: "FK_sale_product_sale_SaleId",
                         column: x => x.SaleId,
                         principalTable: "sale",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -351,14 +352,8 @@ namespace WebAPI.Migrations
                 name: "IX_sale_product_ProductId",
                 table: "sale_product",
                 column: "ProductId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_sale_product_SaleId",
-                table: "sale_product",
-                column: "SaleId");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

@@ -6,7 +6,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faHome } from '@fortawesome/free-solid-svg-icons'
 import { faBoxes } from '@fortawesome/free-solid-svg-icons'
-import { faInfoCircle } from '@fortawesome/free-solid-svg-icons'
+import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { faCartShopping } from '@fortawesome/free-solid-svg-icons'
 import ConfirmationService from 'primevue/confirmationservice';
 
@@ -16,9 +16,9 @@ import 'primevue/resources/themes/saga-blue/theme.css'
 import 'primevue/resources/primevue.min.css'
 import 'primeicons/primeicons.css' 
 
-library.add(faHome, faBoxes, faCartShopping, faInfoCircle)
 import './assets/main.css'
 
+library.add(faHome, faBoxes, faCartShopping, faRightFromBracket)
 const app = createApp(App)
 app.component('font-awesome-icon', FontAwesomeIcon)
 app.use(PrimeVue)

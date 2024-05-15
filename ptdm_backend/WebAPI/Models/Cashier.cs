@@ -5,11 +5,9 @@ using System.Text.Json.Serialization;
 
 namespace WebAPI.Models;
 [Table("cashier")]
-public class Cashier
+public class Cashier : BaseModel
 {
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Key]
-    public Guid Id { get; set; }
-    [Required]
     public string Name { get; set; }
+    [JsonIgnore]
+    public ICollection<Sale> Sales { get; set; }
 }

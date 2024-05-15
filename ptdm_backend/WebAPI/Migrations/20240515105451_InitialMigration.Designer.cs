@@ -12,15 +12,14 @@ using WebAPI.Data;
 namespace WebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240513123354_InitialMigration")]
+    [Migration("20240515105451_InitialMigration")]
     partial class InitialMigration
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.4")
+                .HasAnnotation("ProductVersion", "6.0.29")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -233,7 +232,7 @@ namespace WebAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("barcode");
+                    b.ToTable("barcode", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI.Models.Cashier", b =>
@@ -242,13 +241,17 @@ namespace WebAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("cashier");
+                    b.ToTable("cashier", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI.Models.Checkout", b =>
@@ -257,13 +260,17 @@ namespace WebAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("checkout");
+                    b.ToTable("checkout", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI.Models.PaymentForm", b =>
@@ -272,6 +279,9 @@ namespace WebAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -279,7 +289,7 @@ namespace WebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("payment_form");
+                    b.ToTable("payment_form", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI.Models.Product", b =>
@@ -291,8 +301,7 @@ namespace WebAPI.Migrations
                     b.Property<double>("Cost")
                         .HasColumnType("double precision");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
@@ -308,7 +317,7 @@ namespace WebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("product");
+                    b.ToTable("product", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI.Models.Sale", b =>
@@ -321,26 +330,33 @@ namespace WebAPI.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<double>("ChangeValue")
-                        .HasColumnType("double precision");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.Property<Guid>("CheckoutId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<double>("OverallDiscount")
-                        .HasColumnType("double precision");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.Property<double>("PaidValue")
-                        .HasColumnType("double precision");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.Property<Guid>("PaymentFormId")
                         .HasColumnType("uuid");
 
                     b.Property<double>("TotalValue")
-                        .HasColumnType("double precision");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
 
                     b.HasKey("Id");
 
@@ -350,34 +366,30 @@ namespace WebAPI.Migrations
 
                     b.HasIndex("PaymentFormId");
 
-                    b.ToTable("sale");
+                    b.ToTable("sale", (string)null);
                 });
 
             modelBuilder.Entity("WebAPI.Models.SaleProduct", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("SaleId")
                         .HasColumnType("uuid");
-
-                    b.Property<double>("Discount")
-                        .HasColumnType("double precision");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
 
+                    b.Property<double>("Discount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("double precision")
+                        .HasDefaultValue(0.0);
+
                     b.Property<double>("Quantity")
                         .HasColumnType("double precision");
 
-                    b.Property<Guid?>("SaleId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
+                    b.HasKey("SaleId", "ProductId");
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("SaleId");
-
-                    b.ToTable("sale_product");
+                    b.ToTable("sale_product", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -443,19 +455,19 @@ namespace WebAPI.Migrations
             modelBuilder.Entity("WebAPI.Models.Sale", b =>
                 {
                     b.HasOne("WebAPI.Models.Cashier", "Cashier")
-                        .WithMany()
+                        .WithMany("Sales")
                         .HasForeignKey("CashierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("WebAPI.Models.Checkout", "Checkout")
-                        .WithMany()
+                        .WithMany("Sales")
                         .HasForeignKey("CheckoutId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("WebAPI.Models.PaymentForm", "PaymentForm")
-                        .WithMany()
+                        .WithMany("Sales")
                         .HasForeignKey("PaymentFormId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -470,21 +482,42 @@ namespace WebAPI.Migrations
             modelBuilder.Entity("WebAPI.Models.SaleProduct", b =>
                 {
                     b.HasOne("WebAPI.Models.Product", "Product")
-                        .WithMany()
+                        .WithMany("SaleProducts")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("WebAPI.Models.Sale", null)
+                    b.HasOne("WebAPI.Models.Sale", "Sale")
                         .WithMany("SaleProducts")
-                        .HasForeignKey("SaleId");
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Product");
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("WebAPI.Models.Cashier", b =>
+                {
+                    b.Navigation("Sales");
+                });
+
+            modelBuilder.Entity("WebAPI.Models.Checkout", b =>
+                {
+                    b.Navigation("Sales");
+                });
+
+            modelBuilder.Entity("WebAPI.Models.PaymentForm", b =>
+                {
+                    b.Navigation("Sales");
                 });
 
             modelBuilder.Entity("WebAPI.Models.Product", b =>
                 {
                     b.Navigation("Barcodes");
+
+                    b.Navigation("SaleProducts");
                 });
 
             modelBuilder.Entity("WebAPI.Models.Sale", b =>

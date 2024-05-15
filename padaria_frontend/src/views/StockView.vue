@@ -43,7 +43,7 @@ export default {
     },
     methods: {
         async listProducts() {
-            const response = await fetch(`${import.meta.env.VITE_TDM_API}/Product/ListProduct?limit=1000&sort=description`);
+            const response = await fetch(`${import.meta.env.VITE_TDM_API}/Product/ListProduct?limit=10&sort=description`);
             var responseJson = await response.json();
             this.products = responseJson.data;
             this.product = {};

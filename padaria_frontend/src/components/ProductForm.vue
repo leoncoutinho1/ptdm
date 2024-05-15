@@ -60,26 +60,36 @@
         props: ['stockProduct'],
         methods: {
             changeProfitMargin(event) {
-                this.$confirm.require({
-                    target: event.currentTarget,
-                    message: `Quer manter a margem de lucro de ${ this.product.profitMargin }% ?`,
-                    icon: 'pi pi-exclamation-triangle',
-                    accept: () => {
-                        this.product.profitMargin = this.product.cost + (this.product.cost * (this.product.profitMargin / 100));
-                    },
-                    reject: () => {
-                        //callback to execute when user rejects the action
-                    },
-                    onShow: () => {
-                        //callback to execute when dialog is shown
-                    },
-                    onHide: () => {
-                        //callback to execute when dialog is hidden
-                    }
-                });
+                if (this.product.profitMargin > 0 && this.product.cost > 0) {
+                    this.$confirm.require({
+                        target: event.currentTarget,
+                        message: `Quer manter a margem de lucro de ${ this.product.profitMargin }% ?`,
+                        icon: 'pi pi-exclamation-triangle',
+                        accept: () => {
+                            this.applyMargin();
+                        },
+                        reject: () => {
+                            this.adjustMargin();
+                        },
+                        onShow: () => {
+                            //callback to execute when dialog is shown
+                        },
+                        onHide: () => {
+                            //callback to execute when dialog is hidden
+                        }
+                    });
+                }
+                
             },
             applyMargin() {
-                this.product.price = this.product.cost + (this.product.cost * (this.product.profitMargin / 100));
+                if (this.product.profitMargin > 0) {
+                    this.product.price = this.product.cost + (this.product.cost * (this.product.profitMargin / 100));
+                };
+            },
+            adjustMargin() {
+                if (this.product.cost > 0 && this.product.price > 0) {
+                    this.product.profitMargin = this.product.cost * 100 / this.product.price;
+                }
             }
         },
         computed: {

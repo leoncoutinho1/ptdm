@@ -73,6 +73,7 @@ public class ProductController : ControllerBase
                 Id = p.Id,
                 Description = p.Description,
                 Cost = p.Cost,
+                ProfitMargin = p.ProfitMargin,
                 Price = p.Price,
                 Quantity = p.Quantity,
                 CreatedAt = p.CreatedAt,
@@ -123,12 +124,11 @@ public class ProductController : ControllerBase
 
         Product p = new Product
         {
-            Id = product.Id,
             Description = product.Description,
             Cost = product.Cost,
+            ProfitMargin = product.Cost * 100 / product.Price,
             Price = product.Price,
-            Quantity = product.Quantity,
-            CreatedAt = product.CreatedAt
+            Quantity = product.Quantity
         };
 
         _uof.ProductRepository.Add(p);
@@ -147,7 +147,7 @@ public class ProductController : ControllerBase
         _uof.Commit();
 
         return new CreatedAtRouteResult("GetProductById",
-            new { id = product.Id }, product);
+            new { id = p.Id }, p);
     }
     
     [HttpPut("{id}")]
@@ -164,6 +164,7 @@ public class ProductController : ControllerBase
             Id = product.Id,
             Description = product.Description,
             Cost = product.Cost,
+            ProfitMargin = product.ProfitMargin,
             Price = product.Price,
             Quantity = product.Quantity,
             CreatedAt = product.CreatedAt

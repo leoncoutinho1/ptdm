@@ -3,12 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace WebAPI.Models;
-[Table("checkout")]
-public class Checkout
+
+public class Checkout : BaseModel
 {
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Key]
-    public Guid Id { get; set; }
-    [Required]
     public string Name { get; set; }
+    [JsonIgnore]
+    public ICollection<Sale> Sales { get; set; }
 }

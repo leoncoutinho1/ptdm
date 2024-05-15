@@ -46,13 +46,17 @@ public class CheckoutController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult Post([FromBody] Checkout checkout)
+    public ActionResult Post([FromBody] string checkout)
     {
-        _uof.CheckoutRepository.Add(checkout);
+        Checkout c = new Checkout()
+        {
+            Name = checkout
+        };
+        _uof.CheckoutRepository.Add(c);
         _uof.Commit();
 
         return new CreatedAtRouteResult("GetCheckoutById",
-            new { id = checkout.Id }, checkout);
+            new { id = c.Id }, c);
     }
     
     [HttpPut("{id}")]
