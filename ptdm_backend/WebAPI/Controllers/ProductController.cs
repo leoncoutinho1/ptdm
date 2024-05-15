@@ -20,7 +20,7 @@ namespace WebAPI.Controllers;
 [Produces("application/json")]
 [Route("[controller]")]
 [ApiController]
-[AllowAnonymous]
+[Authorize]
 public class ProductController : ControllerBase
 {
     private readonly IUnitOfWork _uof;

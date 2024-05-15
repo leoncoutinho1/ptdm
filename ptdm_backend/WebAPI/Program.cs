@@ -102,8 +102,11 @@ try
 
     var app = builder.Build();
     app.MapControllers();
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    if (!builder.Environment.IsProduction())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
     app.MapHealthChecks("/healthcheck");
     app.MapHealthChecks("/healthchecks");
     app.UseCors();

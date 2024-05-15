@@ -12,6 +12,7 @@ namespace WebAPI.Controllers;
 [Produces("application/json")]
 [Route("[controller]")]
 [ApiController]
+[Authorize]
 public class LoginController : ControllerBase
 {
     private readonly UserManager<IdentityUser> _userManager;
@@ -44,7 +45,7 @@ public class LoginController : ControllerBase
         await _signInManager.SignInAsync(user, false);
         return Ok(GeraToken(model.Email));
     }
-
+    [AllowAnonymous]
     [HttpPost("authenticate")]
     public async Task<ActionResult> Authenticate([FromBody] LoginDTO userInfo) {
          if (!ModelState.IsValid){

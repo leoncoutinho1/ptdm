@@ -14,7 +14,7 @@ namespace WebAPI.Controllers;
 
 [Route("[controller]")]
 [ApiController]
-[AllowAnonymous]
+[Authorize]
 public class CashierController : ControllerBase
 {
     private readonly IUnitOfWork _uof;
