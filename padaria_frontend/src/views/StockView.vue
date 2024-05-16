@@ -22,6 +22,7 @@ import ProductTable from '../components/ProductTable.vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Message from 'primevue/message';
+import HTTP from '../helpers/http-common';
 
 export default {
     name: 'StockView',
@@ -43,11 +44,17 @@ export default {
     },
     methods: {
         async listProducts() {
-            const response = await fetch(`${import.meta.env.VITE_TDM_API}/Product/ListProduct?limit=10&sort=description`);
-            var responseJson = await response.json();
-            this.products = responseJson.data;
-            this.product = {};
-            this.productDialog = false;
+            HTTP.get(`/Product/ListProduct?limit=10&sort=description`)
+                .then(response => {
+                    this.products = response.data;
+                    this.product = {};
+                    this.productDialog = false;
+                })
+                .catch(e => {
+                    this.messages = [
+				        {severity: 'error', content: 'Erro ao buscar a lista de produtos'}
+                    ];
+                });
         },
         hideDialog() {
             this.product = {
@@ -67,20 +74,22 @@ export default {
             this.productDialog = true;
         },
         async deleteProduct(product) {
-            const response = await fetch(`${import.meta.env.VITE_TDM_API}/Product/${product.id}`, { method: 'DELETE' });
-            if (response.ok) {
-                console.log('product successfuly deleted');
-                this.statusMessage = 'Produto excluído';
-                this.showStatus = true;
-                this.severity = 'success';
-                setTimeout(() => this.showStatus = false, 5000);
-            } else {
-                console.log('product not found');
-                this.statusMessage = 'Produto não encontrado';
-                this.showStatus = true;
-                this.severity = 'error';
-                setTimeout(() => this.showStatus = false, 5000);
-            }
+            HTTP.delete(`/Product/${product.id}`)
+                .then(response => {
+                    console.log('product successfuly deleted');
+                    this.statusMessage = 'Produto excluído';
+                    this.showStatus = true;
+                    this.severity = 'success';
+                    setTimeout(() => this.showStatus = false, 5000);
+                })
+                .catch(e => {
+                    console.log('product not found');
+                    this.statusMessage = 'Produto não encontrado';
+                    this.showStatus = true;
+                    this.severity = 'error';
+                    setTimeout(() => this.showStatus = false, 5000);
+                });
+            
             this.listProducts();          
         },
         async saveProduct() {
@@ -88,32 +97,30 @@ export default {
             let url;
             if (this.product.id != undefined) {
                 method = 'PUT';
-                url = `${import.meta.env.VITE_TDM_API}/Product/${this.product.id}`
+                url = `/Product/${this.product.id}`
             } else {
                 method = 'POST';
-                url = `${import.meta.env.VITE_TDM_API}/Product`
+                url = '/Product'
             }
-            const response = await fetch(url, { 
+            HTTP.request(url, { 
                 method: method,
                 body: JSON.stringify(this.product),
-                headers: {
-                    'Content-Type': 'application/json'
-                } 
-            });
-            if (response.ok) {
+            })
+            .then(response => {
                 console.log('product successfuly created');
                 this.statusMessage = method == 'POST' ? 'Produto cadastrado' : 'Produto atualizado';
                 this.showStatus = true;
                 this.severity = 'success';
                 setTimeout(() => this.showStatus = false, 5000);
-            } else {
-                const err = await response.json();
+            })
+            .catch(e => {
                 console.log('product not created');
                 this.statusMessage = err.message;
                 this.showStatus = true;
                 this.severity = 'error';
                 setTimeout(() => this.showStatus = false, 5000);
-            }
+            });
+            
             this.listProducts();
         },
         openModal() {

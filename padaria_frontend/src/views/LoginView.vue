@@ -29,6 +29,7 @@
     import InputText from 'primevue/inputtext';
     import Button from 'primevue/button';
     import Message from 'primevue/message';
+    import HTTP from '../helpers/http-common';
 
     export default {
         name: 'LoginView',
@@ -43,28 +44,17 @@
         },        
         methods: {
             async login() {
-                const response = await fetch(`${import.meta.env.VITE_TDM_API}/Login/authenticate`, {
-                    method: "POST",
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        Email: this.email,
-                        Password: this.password
-                    })                    
-                });
-                
-                var res = await response.json();
-                console.log(response.status)
-                if (response.status == 200) {
-                    localStorage.setItem('token', res.data);
+                HTTP.post(`/Login/authenticate`, {
+                    Email: this.email,
+                    Password: this.password
+                }).then(response => {
                     this.$router.push({name: 'home'});
-                } else {
+                })
+                .catch(e => {
                     this.messages = [
 				        {severity: 'error', content: 'Login Inválido'}
                     ];
-                }
+                });
             },
         },
         components: {
