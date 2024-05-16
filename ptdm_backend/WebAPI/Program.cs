@@ -113,7 +113,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseKissLogMiddleware(options => ConfigureKissLog(options));
-    
+    app.UseHttpsRedirection();
     await using var scope = app.Services.CreateAsyncScope();
     using var db = scope.ServiceProvider.GetService<AppDbContext>();
     await db.Database.MigrateAsync();
