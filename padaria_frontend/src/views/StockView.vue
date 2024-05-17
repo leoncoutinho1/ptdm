@@ -44,7 +44,7 @@ export default {
     },
     methods: {
         async listProducts() {
-            HTTP.get(`/Product/ListProduct?limit=1000&sort=description`)
+            await HTTP.get(`/Product/ListProduct?limit=1000&sort=description`)
                 .then(response => {
                     var res = response.data
                     this.products = res.count > 0 ? res.data : [];
@@ -75,7 +75,7 @@ export default {
             this.productDialog = true;
         },
         async deleteProduct(product) {
-            HTTP.delete(`/Product/${product.id}`)
+            await HTTP.delete(`/Product/${product.id}`)
                 .then(response => {
                     console.log('product successfuly deleted');
                     this.statusMessage = 'Produto excluído';
