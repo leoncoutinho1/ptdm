@@ -7,6 +7,7 @@
     import Quagga from 'quagga';
     import Button from 'primevue/button';
     import Dialog from 'primevue/dialog';
+    import HTTP from '../helpers/http-common';
 
     export default {
         name: "BarcodeReader",
@@ -45,14 +46,14 @@
         ],
         methods: {
             async searchCode(code) {
-                const response = await fetch(`${import.meta.env.VITE_TDM_API}/Product/GetProductByBarcode?barcode=${code}`);
-                if (response.ok) {
-                    var product = await response.json();
-                    if (product != undefined) {
-                        Quagga.stop();
-                        this.$emit('editProduct', product);
-                    }
-                }
+                await HTTP.get(`/Product/GetProductByBarcode?barcode=${code}`)
+                    .then(response => {
+                        var product = response.data;
+                        if (product != undefined) {
+                            Quagga.stop();
+                            this.$emit('editProduct', product);
+                        }
+                    });
             },
             startScan() {
                 this.displayModal = true;

@@ -13,13 +13,13 @@
     </div>   
     <div class="field">
         <span class="p-float-label">
-            <InputNumber id="cost" mode="currency" currency="BRL" locale="pt-BR" v-model="this.product.cost"/>
+            <InputNumber id="cost" mode="currency" currency="BRL" locale="pt-BR" v-model="this.product.cost" @blur="changeProfitMargin"/>
             <label for="cost">Preço de Custo</label>
         </span>
     </div>
     <div class="field">
         <span class="p-float-label">
-            <InputNumber id="profitMargin" suffix="%" v-model="this.product.profitMargin" />
+            <InputNumber id="profitMargin" suffix="%" v-model="this.product.profitMargin" :maxFractionDigits="2" @blur="applyMargin"/>
             <label for="profitMargin">Margem de Lucro</label>
         </span>
     </div>
@@ -53,14 +53,16 @@
         name: "ProductForm",
         data() {
             return {
-                profitMargin: 0,
-                showConfirmationDialog: false,
+                showConfirmationDialog: false
             }
         },
         props: ['stockProduct'],
         methods: {
             changeProfitMargin(event) {
-                if (this.product.profitMargin > 0 && this.product.cost > 0) {
+                console.log(this.product.profitMargin)
+                console.log(this.product.cost)
+                console.log(this.product.price)
+                if (this.product.profitMargin > 0 && this.product.cost > 0 && this.product.price > 0) {
                     this.$confirm.require({
                         target: event.currentTarget,
                         message: `Quer manter a margem de lucro de ${ this.product.profitMargin }% ?`,
