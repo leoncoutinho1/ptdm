@@ -2,24 +2,18 @@
   <div class="home">
     <h1>Login</h1>
     <div class="card">
-        <div class="p-fluid grid">
-            <div class="col-3">
-                <span class="p-float-label">
-                    <InputText id="email" type="email" v-model="this.email" inputStyle="font-weight: 500;"/>
-                    <label for="email">Email</label>
-                </span>
-            </div>
-            <div class="col-9">
-                <span class="p-float-label">
-                    <Password id="password" v-model="this.password" :feedback="false" toggleMask></Password>
-                    <label for="password">Senha</label>
-                </span>
-            </div>
-            <Button label="Entrar" @click="login($event)" ></Button>
-            <transition-group name="p-messages" tag="div">
-                <Message v-for="msg of messages" :severity="msg.severity" :key="msg.content">{{msg.content}}</Message>
-            </transition-group>
-        </div>
+        <span class="p-float-label spanLogin">
+            <InputText inputStyle="font-weight: 500;" id="email" type="email" v-model="this.email" style="width: 100%"/>
+            <label for="email">Email</label>
+        </span>
+        <span class="p-float-label spanLogin">
+            <Password inputStyle="width: 100%" id="password" v-model="this.password" :feedback="false" toggleMask></Password>
+            <label for="password">Senha</label>
+        </span>
+        <Button class="col-12" label="Entrar" @click="login($event)" ></Button>
+        <transition-group name="p-messages" tag="div">
+            <Message v-for="msg of messages" :severity="msg.severity" :key="msg.content">{{msg.content}}</Message>
+        </transition-group>
     </div>
   </div>
 </template>
@@ -68,5 +62,20 @@
 </script>
 
 <style scoped>
-    
+    .card {
+        padding: 25px;
+        border: 1px solid lightgray;
+        border-radius: 5px;
+        max-width: 300px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .spanLogin {
+        margin-bottom: 25px;
+    }
+
+    .p-password {
+        width: 100%;
+    }
 </style>

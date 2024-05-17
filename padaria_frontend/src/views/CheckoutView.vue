@@ -29,13 +29,17 @@
                     <label for="quantity">Quantidade</label>
                 </span>
             </div>
-            <div class="col-9">
+            <div class="col-8">
                 <span class="p-float-label">
-                    <InputText id="description" type="text" v-model="this.description" @keyup.prevent="searchProduct" class="inputText" inputStyle="font-weight: 500;"/>
+                    <InputText id="description" type="text" v-model="this.description" @keyup.enter.prevent="descriptionKeyUpEnter" class="inputText" inputStyle="font-weight: 500;"/>
                     <label for="description">Descrição</label>
                 </span>
             </div>
-            
+            <div class="col-1">
+                <span class="p-float-label">
+                    <Button @click="descriptionKeyUpEnter" id="btnSearch"> + </Button>
+                </span>
+            </div>
         </div>
     </div>
     <div class="card">
@@ -182,51 +186,52 @@
                 this.paymentForms = res.count > 0 ? res.data : [];
                 this.selectedPaymentForm = this.paymentForms[0];
             },
-            async searchProduct(event) {
-                if (event.key == 'Enter' || event.key == 'NumPadEnter') {
+            async descriptionKeyUpEnter() {
+                if (this.description != null && this.description != "") {
+                    await this.searchProduct();
+                } else {
+                    if (this.quantity === 0) {
+                        this.tabTo('paidValue');
+                    }
+                }
+            },
+            async searchProduct() {
+                this.product = null;
+                await HTTP.get(`/Product/GetProductByBarcode?barcode=${this.description}`)
+                    .then(response => {
+                        this.product = response.data;
+                        this.addProduct();
+                        return;
+                    }).catch(err => {
+                        console.log(err);
+                    });
+
+                if (this.product === null) {
+                    this.description = this.description.replace(/[\d.]/g, "");
                     if (this.description != null && this.description != "") {
-                        this.product = null;
-                        await HTTP.get(`/Product/GetProductByBarcode?barcode=${this.description}`)
+                        await HTTP.get(`/Product/ListProduct?Description=${this.description.toUpperCase()}`)
                             .then(response => {
-                                this.product = response.data;
-                                this.addProduct();
-                                return;
-                            }).catch(err => {
+                                console.log(response)
+                                if (response.data.count === 1) {
+                                    this.product = response.data.data[0];
+                                    this.addProduct();
+                                    return;
+                                } else if (response.data.count > 1) {
+                                    this.productsToModal = response.data.data;
+                                    this.displayModal = true;
+                                    return;
+                                } else {
+                                    this.product = null;
+                                    this.description = "";
+                                    this.quantity = 0;
+                                    this.discount = "";
+                                    this.tabTo('quantity');
+                                }
+                            })
+                            .catch(err => {
                                 console.log(err);
                             });
-
-                        if (this.product === null) {
-                            this.description = this.description.replace(/[\d.]/g, "");
-                            if (this.description != null && this.description != "") {
-                                await HTTP.get(`/Product/ListProduct?Description=${this.description.toUpperCase()}`)
-                                    .then(response => {
-                                        console.log(response)
-                                        if (response.data.count === 1) {
-                                            this.product = response.data.data[0];
-                                            this.addProduct();
-                                            return;
-                                        } else if (response.data.count > 1) {
-                                            this.productsToModal = response.data.data;
-                                            this.displayModal = true;
-                                            return;
-                                        } else {
-                                            this.product = null;
-                                            this.description = "";
-                                            this.quantity = 0;
-                                            this.discount = "";
-                                            this.tabTo('quantity');
-                                        }
-                                    })
-                                    .catch(err => {
-                                        console.log(err);
-                                    });
-                            }
-                        }
-                    } else {
-                        if (this.quantity === 0) {
-                            this.tabTo('paidValue');
-                        }
-                    } 
+                    }
                 }
             },
             addProduct() {
@@ -284,7 +289,6 @@
                     el.focus();
                     el.select();
                 }
-                    
             },
             applyDiscount(productId) {
                 var product = this.saleProducts.find(x => x.productId == productId);
@@ -362,6 +366,9 @@
     #bottom {
         position: absolute;
         bottom: 0;
+    }
+    #btnSearch {
+        justify-content: center;
     }
 </style>
   
