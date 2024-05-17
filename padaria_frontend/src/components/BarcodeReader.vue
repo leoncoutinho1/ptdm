@@ -48,10 +48,10 @@
             async searchCode(code) {
                 await HTTP.get(`/Product/GetProductByBarcode?barcode=${code}`)
                     .then(response => {
-                        alert(response);
                         var product = response.data;
                         if (product != undefined) {
                             Quagga.stop();
+                            alert(product.ToString());
                             this.$emit('editProduct', product);
                         }
                     });
