@@ -13,13 +13,13 @@
     </div>   
     <div class="field">
         <span class="p-float-label">
-            <InputNumber id="cost" mode="currency" currency="BRL" locale="pt-BR" v-model="this.product.cost" @blur="changeProfitMargin($event)"/>
+            <InputNumber id="cost" mode="currency" currency="BRL" locale="pt-BR" v-model="this.product.cost"/>
             <label for="cost">Preço de Custo</label>
         </span>
     </div>
     <div class="field">
         <span class="p-float-label">
-            <InputNumber id="profitMargin" suffix="%" v-model="this.product.profitMargin" @blur="applyMargin" />
+            <InputNumber id="profitMargin" suffix="%" v-model="this.product.profitMargin" />
             <label for="profitMargin">Margem de Lucro</label>
         </span>
     </div>

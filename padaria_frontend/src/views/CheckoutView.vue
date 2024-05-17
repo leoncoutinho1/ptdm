@@ -122,6 +122,7 @@
     import InputNumber from 'primevue/inputnumber';
     import Button from 'primevue/button';
     import Dialog from 'primevue/dialog';
+    import HTTP from '../helpers/http-common';
 
     export default {
         name: 'CheckoutView',
@@ -164,54 +165,47 @@
         },
         methods: {
             async listCashier() {
-                const response = await fetch(`${import.meta.env.VITE_TDM_API}/Cashier/ListCashier`);
-                var responseJson = await response.json();
-                this.cashiers = responseJson.data;
+                const response = await HTTP.get('/Cashier/ListCashier');
+                var res = response.data;
+                this.cashiers = res.count > 0 ? res.data : [];
                 this.selectedCashier = this.cashiers[0];
             },
             async listCheckouts() {
-                const response = await fetch(`${import.meta.env.VITE_TDM_API}/Checkout/ListCheckout`);
-                var responseJson = await response.json();
-                this.checkouts = responseJson.data;
+                const response = await HTTP.get('/Checkout/ListCheckout');
+                var res = response.data;
+                this.checkouts = res.count > 0 ? res.data : [];
                 this.selectedCheckout = this.checkouts[0];
             },
             async listPaymentForms() {
-                const response = await fetch(`${import.meta.env.VITE_TDM_API}/PaymentForm/ListPaymentForm`);
-                var responseJson = await response.json();
-                this.paymentForms = responseJson.data;
+                const response = await HTTP.get('/PaymentForm/ListPaymentForm');
+                var res = response.data;
+                this.paymentForms = res.count > 0 ? res.data : [];
                 this.selectedPaymentForm = this.paymentForms[0];
             },
             async searchProduct() {
                 if (this.description != null && this.description != "") {
                     this.product = null;
-                
-                    try {
-                        const response = await fetch(`${import.meta.env.VITE_TDM_API}/Product/GetProductByBarcode?barcode=${this.description}`);
-                        if (response.ok) {
-                            var responseJson = await response.json();
-                            if (responseJson != null)
-                                this.product = responseJson;
-                                this.addProduct();
-                                return;
-                        }
-                    }
-                    catch (e) {
-                        console.log(e)
-                    }
+                    await HTTP.get(`/Product/GetProductByBarcode?barcode=${this.description}`)
+                        .then(response => {
+                            this.product = response.data;
+                            this.addProduct();
+                            return;
+                        }).catch(err => {
+                            console.log(err);
+                        });
 
                     if (this.product === null) {
                         this.description = this.description.replace(/[\d.]/g, "");
                         if (this.description != null && this.description != "") {
-                            try {
-                                const response = await fetch(`${import.meta.env.VITE_TDM_API}/Product/ListProduct?Description=${this.description}`);
-                                if (response.ok) {
-                                    var responseJson = await response.json();
-                                    if (responseJson.data.length === 1) {
-                                        this.product = responseJson.data[0];
+                            await HTTP.get(`/Product/ListProduct?Description=${this.description}`)
+                                .then(response => {
+                                    console.log(response)
+                                    if (response.data.count === 1) {
+                                        this.product = response.data.data[0];
                                         this.addProduct();
                                         return;
-                                    } else if (responseJson.data.length > 1) {
-                                        this.productsToModal = responseJson.data;
+                                    } else if (response.data.count > 1) {
+                                        this.productsToModal = response.data.data;
                                         this.displayModal = true;
                                         return;
                                     } else {
@@ -221,11 +215,10 @@
                                         this.discount = "";
                                         this.tabTo('quantity');
                                     }
-                                        
-                                }
-                            } catch(e) {
-                                console.log(e)
-                            }
+                                })
+                                .catch(err => {
+                                    console.log(err);
+                                });
                         }
                     }
                 } else {
@@ -233,7 +226,6 @@
                         this.tabTo('paidValue');
                     }
                 }
-                
             },
             addProduct() {
                 if (this.product != null && this.quantity > 0) {
@@ -317,24 +309,21 @@
 
                 console.log(sale);
 
-                const response = await fetch(`${import.meta.env.VITE_TDM_API}/Sale`, {
+                await HTTP.request('/Sale', {
                         method: 'POST',
-                        body: JSON.stringify(sale),
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }}
-                    );
-
-                if (response.ok) {
-                    this.product = null;
-                    this.description = "";
-                    this.quantity = 0;
-                    this.discount = "";
-                    this.saleProducts = [];
-                    this.totalValue = 0;
-                    this.paidValue = 0;
-                    this.changeValue = 0;
-                }
+                        data: sale
+                    })
+                    .then(response => {
+                        this.product = null;
+                        this.description = "";
+                        this.quantity = 0;
+                        this.discount = "";
+                        this.saleProducts = [];
+                        this.totalValue = 0;
+                        this.paidValue = 0;
+                        this.changeValue = 0;
+                    });
+                
                 this.tabTo('quantity');
             },
             onRowSelect() {

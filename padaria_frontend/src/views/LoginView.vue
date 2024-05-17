@@ -48,6 +48,7 @@
                     Email: this.email,
                     Password: this.password
                 }).then(response => {
+                    localStorage.setItem('token', response.data)
                     this.$router.push({name: 'home'});
                 })
                 .catch(e => {

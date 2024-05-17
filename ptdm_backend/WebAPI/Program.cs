@@ -15,6 +15,10 @@ using WebAPI.Data;
 using WebAPI.Repositories;
 
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using static KissLog.CloudListeners.RequestLogsListener.GenerateSearchKeywordsService;
 
 Console.WriteLine("App started");
 
@@ -38,7 +42,7 @@ try
     builder.Services.AddIdentity<IdentityUser, IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
-    
+
     builder.Services.AddControllers();
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
     builder.Services.AddSingleton(mapper);
@@ -47,6 +51,34 @@ try
         c.SwaggerDoc("v1", new OpenApiInfo { Title = "API PDV", Version = "v1" });
         var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
         c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+             Description = "Standard Authorization header using the Bearer scheme. Example: \"bearer {token}\"",
+             In = ParameterLocation.Header,
+             Name = "Authorization",
+             Type = SecuritySchemeType.ApiKey,
+             Scheme = "Bearer"
+        });
+
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+      {
+        {
+          new OpenApiSecurityScheme
+          {
+            Reference = new OpenApiReference
+              {
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer"
+              },
+              Scheme = "oauth2",
+              Name = "Bearer",
+              In = ParameterLocation.Header,
+
+            },
+            new List<string>()
+          }
+        });
     });
     builder.Services.AddCors(options =>
     {
@@ -57,14 +89,26 @@ try
             });
     });
 
-    builder.Services.ConfigureApplicationCookie(options =>
+    builder.Services.AddAuthentication(options =>
     {
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
-        options.LoginPath = "/Identity/Account/Login";
-        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
-        options.SlidingExpiration = true;
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    // Adding Jwt Bearer
+    .AddJwtBearer(options =>
+    {
+        options.SaveToken = true;
+        options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters()
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidAudience = config["JWT:Audience"],
+            ValidIssuer = config["JWT:Issuer"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JWT:Key"]))
+        };
     });
-
 
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<IKLogger>((provider) => Logger.Factory.Get());
@@ -96,7 +140,7 @@ try
             });
         }
     }
-
+    
     var app = builder.Build();
     app.MapControllers();
     if (!builder.Environment.IsProduction())
@@ -111,6 +155,7 @@ try
     app.UseAuthorization();
     app.UseKissLogMiddleware(options => ConfigureKissLog(options));
     app.UseHttpsRedirection();
+    app.UseHsts();
     await using var scope = app.Services.CreateAsyncScope();
     using var db = scope.ServiceProvider.GetService<AppDbContext>();
     await db.Database.MigrateAsync();

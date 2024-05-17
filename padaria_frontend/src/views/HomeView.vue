@@ -41,6 +41,7 @@
     import Dialog from 'primevue/dialog';
     import Invoice from '../components/Invoice.vue';
     import Message from 'primevue/message';
+    import HTTP from '../helpers/http-common';
 
     export default {
         name: 'HomeView',
@@ -59,9 +60,8 @@
         },
         methods: {
             async listSale() {
-                const response = await fetch(`${import.meta.env.VITE_TDM_API}/Sale/ListSale?Limit=100&Sort=-createdAt`);
-                var responseJson = await response.json();
-                this.sales = responseJson.data;
+                const response = await HTTP.get(`/Sale/ListSale?Limit=100&Sort=-createdAt`);
+                this.sales = response.data.data;
             },
             printSale(sale) {
                 this.selectedSale = sale;

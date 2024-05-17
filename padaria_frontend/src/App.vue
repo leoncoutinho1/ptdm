@@ -1,7 +1,6 @@
 <script>
     import { RouterLink, RouterView } from 'vue-router'
     import 'primeflex/primeflex.css';
-import Button from 'primevue/button';
     
     export default {
         name: 'AppPadaria',

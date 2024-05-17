@@ -44,9 +44,10 @@ export default {
     },
     methods: {
         async listProducts() {
-            HTTP.get(`/Product/ListProduct?limit=10&sort=description`)
+            HTTP.get(`/Product/ListProduct?limit=1000&sort=description`)
                 .then(response => {
-                    this.products = response.data;
+                    var res = response.data
+                    this.products = res.count > 0 ? res.data : [];
                     this.product = {};
                     this.productDialog = false;
                 })
@@ -102,9 +103,10 @@ export default {
                 method = 'POST';
                 url = '/Product'
             }
-            HTTP.request(url, { 
+
+            await HTTP.request(url, { 
                 method: method,
-                body: JSON.stringify(this.product),
+                data: this.product
             })
             .then(response => {
                 console.log('product successfuly created');

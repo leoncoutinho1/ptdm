@@ -12,7 +12,7 @@ namespace WebAPI.Controllers;
 [Produces("application/json")]
 [Route("[controller]")]
 [ApiController]
-[Authorize]
+[AllowAnonymous]
 public class LoginController : ControllerBase
 {
     private readonly UserManager<IdentityUser> _userManager;
