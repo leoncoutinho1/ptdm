@@ -1,7 +1,7 @@
 <template>
     <div class="field">
         <span class="p-float-label">
-            <Chips v-model="this.product.barcodes" id="barcodes" />
+            <Chips v-model="this.product.barcodes" id="barcodes" :allowDuplicates="false" :addOnBlur="true" :separator='","' />
             <label for="barcodes">Códigos</label>
         </span>
     </div>
