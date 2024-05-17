@@ -7,7 +7,7 @@
     </div>
     <div class="field">
         <span class="p-float-label">
-            <InputText id="description" type="text" v-model="this.product.description" />
+            <InputText id="description" type="text" v-model="this.product.description" @input="toUpperCase"/>
             <label for="description">Descrição</label>
         </span>
     </div>   
@@ -58,8 +58,10 @@
         },
         props: ['stockProduct'],
         methods: {
+            toUpperCase(event) {
+                this.product.description = event.target.value.toUpperCase();
+            },
             changeProfitMargin(event) {
-                
                 if (this.product.profitMargin > 0 && this.product.cost > 0 && this.product.price > 0) {
                     this.$confirm.require({
                         target: event.currentTarget,

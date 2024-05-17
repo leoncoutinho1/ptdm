@@ -197,7 +197,7 @@
                     if (this.product === null) {
                         this.description = this.description.replace(/[\d.]/g, "");
                         if (this.description != null && this.description != "") {
-                            await HTTP.get(`/Product/ListProduct?Description=${this.description}`)
+                            await HTTP.get(`/Product/ListProduct?Description=${this.description.toUpperCase()}`)
                                 .then(response => {
                                     console.log(response)
                                     if (response.data.count === 1) {

@@ -4,13 +4,12 @@
             <p style="width: 100%; text-align:center">Padaria Trem de Minas</p>
             <p style="width: 100%; text-align:center">Rua Teixeira de Melo, 64 - Parque Caju</p>
             <p style="width: 100%; text-align:center; padding-bottom: 2em;">Campos dos Goytacazes - RJ</p>
-                    
-            <p>Descrição</p>
-            <span style="display:flex; flex-direction: row; justify-content: right;">
-                <p style="text-align: right; width: 25%">Vl Unit</p>
-                <p style="text-align: right; width: 25%">Qtde</p>
-                <p style="text-align: right; width: 25%">Vl Total</p>
-            </span>
+            <div class="invoice_headers">
+                <p>Descrição</p>
+                <p>Vl Unit</p>
+                <p>Qtde</p>
+                <p>Vl Total</p>
+            </div>        
                
             <span v-for="prd in sale.saleProducts" :key=prd.id style="width: 100%;">
                 <p>{{prd.product.description}}</p>
@@ -66,5 +65,10 @@ export default {
 </script>
 
 <style>
-    
+    .invoice_headers {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        border-bottom: .1rem solid rgba(128, 128, 128, 0.5);
+    }
 </style>
