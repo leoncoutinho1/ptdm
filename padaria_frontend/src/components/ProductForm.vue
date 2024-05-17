@@ -59,9 +59,7 @@
         props: ['stockProduct'],
         methods: {
             changeProfitMargin(event) {
-                console.log(this.product.profitMargin)
-                console.log(this.product.cost)
-                console.log(this.product.price)
+                
                 if (this.product.profitMargin > 0 && this.product.cost > 0 && this.product.price > 0) {
                     this.$confirm.require({
                         target: event.currentTarget,
