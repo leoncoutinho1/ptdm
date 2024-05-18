@@ -31,8 +31,8 @@
                         var product = response.data;
                         if (product != undefined) {
                             this.$emit('editProduct', product);
-                            this.$emit('closeModal');
                         }
+                        this.$emit('closeModal');
                     });
             },
             stopScan() {
