@@ -4,12 +4,12 @@
             <p style="text-align: center">Padaria Trem de Minas</p>
             <p style="text-align: center">Rua Teixeira de Melo, 64 - Parque Caju</p>
             <p style="text-align: center; padding-bottom: 2.5em">Campos dos Goytacazes - RJ</p>
-            <div style="display: flex; flex-direction: row; justify-content: space-between; border-bottom: .1rem solid rgba(128, 128, 128, 0.5);">
+            <span style="display: flex; flex-direction: row; justify-content: space-between; border-bottom: .1rem solid rgba(128, 128, 128, 0.5);">
                 <p>Descrição</p>
                 <p>Vl Unit</p>
                 <p>Qtde</p>
                 <p>Vl Total</p>
-            </div>        
+            </span>        
                
             <span v-for="prd in sale.saleProducts" :key=prd.id style="width: 100%;">
                 <p>{{prd.product.description}}</p>
@@ -47,16 +47,16 @@ export default {
             var prtContent = document.getElementById("invoice");
             var WinPrint = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
             WinPrint.document.write('<html><head><title>Cupom</title>');
-            WinPrint.document.write('<style>@page { size: 58mm 100mm }</style>');
-            WinPrint.document.write('<style>html { size: 58mm 100mm }</style>');
+            WinPrint.document.write('<style>@page { size: 80mm 100mm }</style>');
+            WinPrint.document.write('<style>html { size: 78mm 100mm }</style>');
             WinPrint.document.write('<style>p { margin: 0 }</style>');
-            WinPrint.document.write('</head><body style="font-family: Calibri; font-size: 10px">');
+            WinPrint.document.write('</head><body style="font-size: 10px">');
             WinPrint.document.write(prtContent.innerHTML);
             WinPrint.document.write('</body></html>');
             
-            // WinPrint.focus();
-            // WinPrint.print();
-            // WinPrint.close();
+            WinPrint.focus();
+            WinPrint.print();
+            WinPrint.close();
         }
     },
     watch: {
@@ -71,7 +71,5 @@ export default {
 </script>
 
 <style>
-    .invoice_headers {
-        
-    }
+   
 </style>
