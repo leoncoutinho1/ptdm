@@ -1,24 +1,13 @@
 using System.Reflection;
-using KissLog;
-using KissLog.AspNetCore;
-using KissLog.CloudListeners.Auth;
-using KissLog.CloudListeners.RequestLogsListener;
-using KissLog.Formatters;
-using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.OpenApi.Models;
-using Serilog;
-using WebAPI;
-using WebAPI.Data;
-using WebAPI.Repositories;
-
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using static KissLog.CloudListeners.RequestLogsListener.GenerateSearchKeywordsService;
+using ptdm.Data.Context;
+using ptdm.Api.DI;
 
 Console.WriteLine("App started");
 
@@ -26,15 +15,7 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
     var config = builder.Configuration;
-    builder.Host.UseSerilog(Log.Logger);
-
-    var mappingConfig = new MapperConfiguration(mc =>
-    {
-        mc.AddProfile(new MappingProfile());
-    });
-
-    IMapper mapper = mappingConfig.CreateMapper();
-
+    
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(config.GetConnectionString("DefaultConnection"))
     );
@@ -43,9 +24,9 @@ try
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
 
+    builder.Services.RegisterEntitiesServices();
+
     builder.Services.AddControllers();
-    builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-    builder.Services.AddSingleton(mapper);
     builder.Services.AddSwaggerGen(c =>
     {
         c.SwaggerDoc("v1", new OpenApiInfo { Title = "API PDV", Version = "v1" });
@@ -104,31 +85,15 @@ try
         {
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidAudience = config["JWT:Audience"],
-            ValidIssuer = config["JWT:Issuer"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JWT:Key"]))
+            ValidAudience = config["JWT:ValidAudience"],
+            ValidIssuer = config["JWT:ValidIssuer"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JWT:SecurityKey"]))
         };
     });
 
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddScoped<IKLogger>((provider) => Logger.Factory.Get());
     builder.Services.AddHealthChecks();
-    builder.Services.AddLogging(logging =>
-    {
-        logging.AddKissLog(options =>
-        {
-            options.Formatter = (FormatterArgs args) =>
-            {
-                if (args.Exception == null)
-                    return args.DefaultValue;
-
-                string exceptionStr = new ExceptionFormatter().Format(args.Exception, args.Logger);
-
-                return string.Join(Environment.NewLine, new[] { args.DefaultValue, exceptionStr });
-            };
-        });
-    });
-    
+        
     if (builder.Environment.IsProduction())
     {
         var portVar = Environment.GetEnvironmentVariable("PORT");
@@ -153,7 +118,7 @@ try
     app.UseCors();
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseKissLogMiddleware(options => ConfigureKissLog(options));
+    
     app.UseHttpsRedirection();
     app.UseHsts();
     await using var scope = app.Services.CreateAsyncScope();
@@ -170,20 +135,10 @@ try
     });
 
     app.Run();
-
-    void ConfigureKissLog(IOptionsBuilder options)
-    {
-        KissLogConfiguration.Listeners
-                    .Add(new RequestLogsApiListener(new Application(builder.Configuration["KissLog.OrganizationId"], builder.Configuration["KissLog.ApplicationId"]))
-                    {
-                        ApiUrl = builder.Configuration["KissLog.ApiUrl"]
-                    });
-    }
 }
 catch (Exception ex)
 {
     Console.WriteLine(ex);
-    Log.Fatal(ex, "Host terminated unexpectedly");
 }
 
 

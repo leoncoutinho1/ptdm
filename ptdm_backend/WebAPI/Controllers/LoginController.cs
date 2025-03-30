@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
-using WebAPI.DTOs;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
+using ptdm.Domain.DTOs;
 
-namespace WebAPI.Controllers;
+namespace ptdm.Api.Controllers;
 
 [Produces("application/json")]
 [Route("[controller]")]
@@ -69,10 +69,10 @@ public class LoginController : ControllerBase
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        var issuer = _configuration["Jwt:Issuer"];
-        var audience = _configuration["Jwt:Audience"];
+        var issuer = _configuration["JWT:ValidIssuer"];
+        var audience = _configuration["JWT:ValidAudience"];
         var expiry = DateTime.Now.AddMinutes(120);
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SecurityKey"]));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
             issuer: issuer, 

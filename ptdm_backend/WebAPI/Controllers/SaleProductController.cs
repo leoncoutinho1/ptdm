@@ -1,17 +1,7 @@
-using AspNetCore.IQueryable.Extensions.Filter;
-using AspNetCore.IQueryable.Extensions;
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebAPI.DTOs;
-using WebAPI.Filters;
-using WebAPI.Models;
-using WebAPI.Repositories;
-using AspNetCore.IQueryable.Extensions.Sort;
-using AspNetCore.IQueryable.Extensions.Pagination;
 using Microsoft.AspNetCore.Authorization;
 
-namespace WebAPI.Controllers;
+namespace ptdm.Api.Controllers;
 
 [Produces("application/json")]
 [Route("[controller]")]
@@ -19,36 +9,36 @@ namespace WebAPI.Controllers;
 [Authorize]
 public class SaleProductController : ControllerBase
 {
-    private readonly IUnitOfWork _uof;
-    private readonly IMapper _mapper;
+    //private readonly IUnitOfWork _uof;
+    //private readonly IMapper _mapper;
 
-    public SaleProductController(IUnitOfWork uof, IMapper mapper)
-    {
-        _uof = uof;
-        _mapper = mapper;
-    }
+    //public SaleProductController(IUnitOfWork uof, IMapper mapper)
+    //{
+    //    _uof = uof;
+    //    _mapper = mapper;
+    //}
 
-    [HttpGet("ListSaleProduct")]
-    public ActionResult<IEnumerable<SaleProduct>> ListSaleProduct([FromQuery] SaleProductFilter filters)
-    {
-        var saleProducts = _uof.SaleProductRepository.Get().Filter(filters).Sort(filters);
-        var count = saleProducts.Count();
+    //[HttpGet("ListSaleProduct")]
+    //public ActionResult<IEnumerable<SaleProduct>> ListSaleProduct([FromQuery] SaleProductFilter filters)
+    //{
+    //    var saleProducts = _uof.SaleProductRepository.Get().Filter(filters).Sort(filters);
+    //    var count = saleProducts.Count();
 
-        return Ok(new
-        {
-            data = saleProducts.Paginate(filters),
-            count = count
-        });
-    }
+    //    return Ok(new
+    //    {
+    //        data = saleProducts.Paginate(filters),
+    //        count = count
+    //    });
+    //}
 
-    [HttpGet("{id}", Name = "GetSaleProductById")]
-    public ActionResult<SaleProduct> Get(Guid id)
-    {
-        var filters = new SaleProductFilter();
-        filters.Id = id;
-        var saleProduct = _uof.SaleProductRepository.Get().Apply(filters).SingleOrDefault();
-        return saleProduct != null ? saleProduct : NotFound();
-    }
+    //[HttpGet("{id}", Name = "GetSaleProductById")]
+    //public ActionResult<SaleProduct> Get(Guid id)
+    //{
+    //    var filters = new SaleProductFilter();
+    //    filters.Id = id;
+    //    var saleProduct = _uof.SaleProductRepository.Get().Apply(filters).SingleOrDefault();
+    //    return saleProduct != null ? saleProduct : NotFound();
+    //}
 
     //[HttpPost]
     //public ActionResult Post([FromBody] SaleProduct saleProduct)

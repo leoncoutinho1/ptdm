@@ -1,63 +1,49 @@
-using AspNetCore.IQueryable.Extensions.Filter;
-using AspNetCore.IQueryable.Extensions;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using WebAPI.Filters;
-using WebAPI.Models;
-using WebAPI.Repositories;
-using AspNetCore.IQueryable.Extensions.Sort;
-using AspNetCore.IQueryable.Extensions.Pagination;
+using ErrorOr;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using ptdm.Domain.Filters;
+using ptdm.Domain.Helpers;
+using ptdm.Domain.Models;
+using ptdm.Service.Services;
 
-namespace WebAPI.Controllers;
-
+namespace ptdm.Api.Controllers;
 
 [Route("[controller]")]
 [ApiController]
 [Authorize]
 public class CashierController : ControllerBase
 {
-    private readonly IUnitOfWork _uof;
+    private readonly ICashierService _service;
 
-    public CashierController(IUnitOfWork uof)
+    public CashierController(ICashierService service)
     {
-        _uof = uof;
+        _service = service;
     }
 
     [HttpGet("ListCashier")]
-    public ActionResult<IEnumerable<Cashier>> ListCashier([FromQuery] CashierFilter filters)
+    public ActionResult<ResultList<Cashier>> ListCashier([FromQuery] CashierFilter filters)
     {
-        var cashier = _uof.CashierRepository.Get().Filter(filters).Sort(filters);
-        var count = cashier.Count();
-
-        return Ok(new
-        {
-            data = cashier.Paginate(filters),
-            count = count
-        });
+        ResultList<Cashier> result = _service.ListCashier(filters);
+        return Ok(result);
     }
 
     [HttpGet("{id}", Name = "GetCashierById")]
-    public ActionResult<Cashier> Get(Guid id)
+    public ActionResult<ErrorOr<Cashier>> Get(Guid id)
     {
-        var filters = new CashierFilter();
-        filters.Id = id;
-        var cashier = _uof.CashierRepository.Get().Apply(filters).SingleOrDefault();
-        return cashier != null ? cashier : NotFound();
+        var result = _service.Get(id);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
+
     }
 
     [HttpPost]
-    public ActionResult Post([FromBody] string cashier)
+    public ActionResult<ErrorOr<Cashier>> Post([FromBody] string cashierName)
     {
-        Cashier c = new Cashier()
-        {
-            Name = cashier
-        };
-        _uof.CashierRepository.Add(c);
-        _uof.Commit();
-        
-         return new CreatedAtRouteResult("GetCashierById",
-             new { id = c.Id }, c);
+        var result = _service.Create(cashierName);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Created();
     }
     
     [HttpPut("{id}")]
@@ -65,22 +51,20 @@ public class CashierController : ControllerBase
     {
         if (id != cashier.Id)
         {
-            return BadRequest();
+            return BadRequest("Route id is different of model id");
         }
-        _uof.CashierRepository.Update(cashier);
-        _uof.Commit();
-        return Ok();
+        var result = _service.Update(cashier);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
     }
 
     [HttpDelete("{id}")]
     public ActionResult<Cashier> Delete(Guid id)
     {
-        var cashier = _uof.CashierRepository.Get().Where(p => p.Id == id).SingleOrDefault(); ;
-        if (cashier is null)
-            return NotFound();
-        
-        _uof.CashierRepository.Delete(cashier);
-        _uof.Commit();
-        return cashier;
+        var result = _service.Delete(id);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
     }
 }
