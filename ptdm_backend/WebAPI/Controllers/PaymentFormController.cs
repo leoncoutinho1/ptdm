@@ -1,5 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using ErrorOr;
+using ptdm.Domain.Filters;
+using ptdm.Domain.Helpers;
+using ptdm.Domain.Models;
+using ptdm.Service.Services;
 
 namespace ptdm.Api.Controllers;
 
@@ -9,72 +14,58 @@ namespace ptdm.Api.Controllers;
 [Authorize]
 public class PaymentFormController : ControllerBase
 {
-    //private readonly IUnitOfWork _uof;
-    //private readonly IMapper _mapper;
+    private readonly IPaymentFormService _service;
 
-    //public PaymentFormController(IUnitOfWork uof, IMapper mapper)
-    //{
-    //    _uof = uof;
-    //    _mapper = mapper;
-    //}
+    public PaymentFormController(IPaymentFormService service)
+    {
+        _service = service;
+    }
 
-    //[HttpGet("ListPaymentForm")]
-    //public ActionResult<IEnumerable<PaymentForm>> ListPaymentForm([FromQuery] PaymentFormFilter filters)
-    //{
-    //    var paymentForms = _uof.PaymentFormRepository.Get().Filter(filters).Sort(filters);
-    //    var count = paymentForms.Count();
-                
-    //    return Ok(new
-    //    {
-    //        data = paymentForms.Paginate(filters),
-    //        count = count
-    //    });
-    //}
+    [HttpGet("ListPaymentForm")]
+    public ActionResult<ResultList<PaymentForm>> ListPaymentForm([FromQuery] PaymentFormFilter filters)
+    {
+        ResultList<PaymentForm> result = _service.ListPaymentForm(filters);
+        return Ok(result);
+    }
 
-    //[HttpGet("{id}", Name = "GetPaymentFormById")]
-    //public ActionResult<PaymentForm> Get(Guid id)
-    //{
-    //    var filters = new PaymentFormFilter();
-    //    filters.Id = id;
-    //    var paymentForms = _uof.PaymentFormRepository.Get().Apply(filters).SingleOrDefault();
-    //    return paymentForms != null ? paymentForms : NotFound();
-    //}
+    [HttpGet("{id}", Name = "GetPaymentFormById")]
+    public ActionResult<ErrorOr<PaymentForm>> Get(Guid id)
+    {
+        var result = _service.Get(id);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
 
-    //[HttpPost]
-    //public ActionResult Post([FromBody] string paymentForm)
-    //{
-    //    PaymentForm pf = new PaymentForm()
-    //    {
-    //        Description = paymentForm
-    //    };
-    //    _uof.PaymentFormRepository.Add(pf);
-    //    _uof.Commit();
+    }
 
-    //    return new CreatedAtRouteResult("GetPaymentFormById",
-    //        new { id = pf.Id }, pf);
-    //}
-    
-    //[HttpPut("{id}")]
-    //public ActionResult Put(Guid id, PaymentForm paymentForm)
-    //{
-    //    if (id != paymentForm.Id)
-    //    {
-    //        return BadRequest();
-    //    }
-    //    _uof.PaymentFormRepository.Update(paymentForm);
-    //    _uof.Commit();
-    //    return Ok();
-    //}
+    [HttpPost]
+    public ActionResult<ErrorOr<PaymentForm>> Post([FromBody] string paymentFormName)
+    {
+        var result = _service.Create(paymentFormName);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Created();
+    }
 
-    //[HttpDelete("{id}")]
-    //public ActionResult<PaymentForm> Delete(Guid id)
-    //{
-    //    var paymentForm = _uof.PaymentFormRepository.Get().Where(p => p.Id == id).SingleOrDefault();
-    //    if (paymentForm is null)
-    //        return NotFound();
-        
-    //    _uof.PaymentFormRepository.Delete(paymentForm);
-    //    _uof.Commit();
-    //    return paymentForm;
-    //}
+    [HttpPut("{id}")]
+    public ActionResult Put(Guid id, PaymentForm paymentForm)
+    {
+        if (id != paymentForm.Id)
+        {
+            return BadRequest("Route id is different of model id");
+        }
+        var result = _service.Update(paymentForm);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    public ActionResult<PaymentForm> Delete(Guid id)
+    {
+        var result = _service.Delete(id);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
+    }
 }

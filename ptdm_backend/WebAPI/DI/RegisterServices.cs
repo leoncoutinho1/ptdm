@@ -7,6 +7,7 @@ namespace ptdm.Api.DI
         public static void RegisterEntitiesServices(this IServiceCollection services)
         {
             services.AddScoped<ICashierService, CashierService>();
+            services.AddScoped<ICheckoutService, CheckoutService>();
         }
     }
 }

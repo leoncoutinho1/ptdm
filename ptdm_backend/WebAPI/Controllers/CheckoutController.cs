@@ -4,79 +4,71 @@ using Microsoft.AspNetCore.Mvc;
 using AspNetCore.IQueryable.Extensions.Sort;
 using AspNetCore.IQueryable.Extensions.Pagination;
 using Microsoft.AspNetCore.Authorization;
+using ErrorOr;
+using ptdm.Domain.Filters;
+using ptdm.Domain.Helpers;
+using ptdm.Domain.Models;
+using ptdm.Service.Services;
 
 namespace ptdm.Api.Controllers;
 
-[Produces("application/json")]
 [Route("[controller]")]
 [ApiController]
 [Authorize]
 public class CheckoutController : ControllerBase
 {
-    //private readonly IUnitOfWork _uof;
+    private readonly ICheckoutService _service;
 
-    //public CheckoutController(IUnitOfWork uof)
-    //{
-    //    _uof = uof;
-    //}
+    public CheckoutController(ICheckoutService service)
+    {
+        _service = service;
+    }
 
-    //[HttpGet("ListCheckout")]
-    //public ActionResult<IEnumerable<Checkout>> ListCheckout([FromQuery] CheckoutFilter filters)
-    //{
-    //    var checkouts = _uof.CheckoutRepository.Get().Filter(filters).Sort(filters);
-    //    var count = checkouts.Count();
+    [HttpGet("ListCheckout")]
+    public ActionResult<ResultList<Checkout>> ListCheckout([FromQuery] CheckoutFilter filters)
+    {
+        ResultList<Checkout> result = _service.ListCheckout(filters);
+        return Ok(result);
+    }
 
-    //    return Ok(new
-    //    {
-    //        data = checkouts.Paginate(filters),
-    //        count = count
-    //    });
-    //}
+    [HttpGet("{id}", Name = "GetCheckoutById")]
+    public ActionResult<ErrorOr<Checkout>> Get(Guid id)
+    {
+        var result = _service.Get(id);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
 
-    //[HttpGet("{id}", Name = "GetCheckoutById")]
-    //public ActionResult<Checkout> Get(Guid id)
-    //{
-    //    var filters = new CheckoutFilter();
-    //    filters.Id = id;
-    //    var checkouts = _uof.CheckoutRepository.Get().Apply(filters).SingleOrDefault();
-    //    return checkouts != null ? checkouts : NotFound();
-    //}
+    }
 
-    //[HttpPost]
-    //public ActionResult Post([FromBody] string checkout)
-    //{
-    //    Checkout c = new Checkout()
-    //    {
-    //        Name = checkout
-    //    };
-    //    _uof.CheckoutRepository.Add(c);
-    //    _uof.Commit();
+    [HttpPost]
+    public ActionResult<ErrorOr<Checkout>> Post([FromBody] string checkoutName)
+    {
+        var result = _service.Create(checkoutName);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Created();
+    }
 
-    //    return new CreatedAtRouteResult("GetCheckoutById",
-    //        new { id = c.Id }, c);
-    //}
-    
-    //[HttpPut("{id}")]
-    //public ActionResult Put(Guid id, Checkout checkout)
-    //{
-    //    if (id != checkout.Id)
-    //    {
-    //        return BadRequest();
-    //    }
-    //    _uof.CheckoutRepository.Update(checkout);
-    //    _uof.Commit();
-    //    return Ok();
-    //}
+    [HttpPut("{id}")]
+    public ActionResult Put(Guid id, Checkout checkout)
+    {
+        if (id != checkout.Id)
+        {
+            return BadRequest("Route id is different of model id");
+        }
+        var result = _service.Update(checkout);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
+    }
 
-    //[HttpDelete("{id}")]
-    //public ActionResult<Checkout> Delete(Guid id)
-    //{
-    //    var checkout = _uof.CheckoutRepository.Get().Where(p => p.Id == id).SingleOrDefault(); ;
-    //    if (checkout is null)
-    //        return NotFound();
-        
-    //    _uof.CheckoutRepository.Delete(checkout);
-    //    _uof.Commit();
-    //    return checkout;
-    //}
+    [HttpDelete("{id}")]
+    public ActionResult<Checkout> Delete(Guid id)
+    {
+        var result = _service.Delete(id);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
+    }
 }
