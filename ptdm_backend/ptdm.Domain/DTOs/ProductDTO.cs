@@ -8,6 +8,6 @@ public class ProductDTO
     public Double Price { get; set; }
     public Double ProfitMargin { get; set; }
     public Double Quantity { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
     public ICollection<string> Barcodes { get; set; }
 }

@@ -8,6 +8,8 @@ namespace ptdm.Api.DI
         {
             services.AddScoped<ICashierService, CashierService>();
             services.AddScoped<ICheckoutService, CheckoutService>();
+            services.AddScoped<IPaymentFormService, PaymentFormService>();
+            services.AddScoped<IProductService, ProductService>();
         }
     }
 }
