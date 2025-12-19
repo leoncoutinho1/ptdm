@@ -3,12 +3,12 @@
     "WebAPI": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "https://localhost:7215/swagger/index.html",
+      //"launchUrl": "http://192.168.18.6:5215/swagger/index.html",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:7215;http://localhost:5215"
+      "applicationUrl": "http://0.0.0.0:5215"
     },
     "IIS Express": {
       "commandName": "IISExpress",

@@ -22,7 +22,7 @@ namespace ptdm.Service.Services
         ErrorOr<ProductDTO> Create(ProductDTO product);
         ErrorOr<ProductDTO> Delete(Guid id);
         ErrorOr<ProductDTO> Get(Guid id);
-        ErrorOr<ProductDTO> GetProductByBarcode(string barcode);
+        ErrorOr<ProductDTO> GetProductByDescOrBarcode(string text);
         ResultList<ProductDTO> ListProduct(ProductFilter filters);
         ErrorOr<ProductDTO> Update(ProductDTO product);
     }
@@ -36,12 +36,12 @@ namespace ptdm.Service.Services
             _context = context;
         }
 
-        public ErrorOr<ProductDTO> GetProductByBarcode(string barcode)
+        public ErrorOr<ProductDTO> GetProductByDescOrBarcode(string text)
         {
-            if (String.IsNullOrWhiteSpace(barcode))
+            if (String.IsNullOrWhiteSpace(text))
                 return Error.Failure("Código de barras não informado");
 
-            var product = _context.Products.Where(x => x.Barcodes.Contains(new Barcode { Code = barcode })).AsNoTracking().SingleOrDefault();
+            var product = _context.Products.Where(x => x.Barcodes.Contains(new Barcode { Code = text }) || x.Description.ToUpper().Contains(text.ToUpper())).AsNoTracking().SingleOrDefault();
 
             if (product == null)
                 return Error.NotFound();
@@ -62,7 +62,7 @@ namespace ptdm.Service.Services
 
         public ResultList<ProductDTO> ListProduct(ProductFilter filters)
         {
-            var products = _context.Products.Filter(filters).Sort(filters).AsNoTracking();
+            var products = _context.Products.Filter(filters).Sort(filters).Include(x => x.Barcodes).AsNoTracking();
             var count = products.Count();
 
             return new ResultList<ProductDTO>(products.Paginate(filters).Select(x => (ProductDTO)x).ToList(), count);
@@ -72,7 +72,7 @@ namespace ptdm.Service.Services
         {
             var filters = new ProductFilter();
             filters.Id = id;
-            var products = _context.Products.Apply(filters).AsNoTracking().SingleOrDefault();
+            var products = _context.Products.Apply(filters).Include(x => x.Barcodes).AsNoTracking().SingleOrDefault();
             return (products != null) ? (ProductDTO)products : Error.NotFound(description: "Product not found");
         }
 

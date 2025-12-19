@@ -22,10 +22,10 @@ public class ProductController : ControllerBase
     }
 
 
-    [HttpGet("GetProductByBarcode")]
-    public ActionResult<ProductDTO> GetProductByBarcode([FromQuery] string barcode)
+    [HttpGet("GetProductByDescOrBarcode/{text:string}")]
+    public ActionResult<ProductDTO> GetProductByDescOrBarcode([FromRoute] string text)
     {
-        var result = _service.GetProductByBarcode(barcode);
+        var result = _service.GetProductByDescOrBarcode(text);
         return (result.IsError)
             ? BadRequest(result)
             : Ok(result);

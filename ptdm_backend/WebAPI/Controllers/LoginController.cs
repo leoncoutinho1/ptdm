@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using ptdm.Domain.DTOs;
+using System.ComponentModel.DataAnnotations;
 
 namespace ptdm.Api.Controllers;
 
@@ -55,7 +56,7 @@ public class LoginController : ControllerBase
         var result = await _signInManager.PasswordSignInAsync(userInfo.Email, userInfo.Password, isPersistent: false, lockoutOnFailure: false);
 
         if (result.Succeeded){
-            return Ok(GeraToken(userInfo.Email));
+            return Ok(new { token = GeraToken(userInfo.Email) });
         } else {
             ModelState.AddModelError(string.Empty, "Login inválido");
             return BadRequest(ModelState);

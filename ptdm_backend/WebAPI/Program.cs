@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ptdm.Data.Context;
 using ptdm.Api.DI;
+using ptdm.Api.Services;
+using ptdm.Api.Middlewares;
 
 Console.WriteLine("App started");
 
@@ -16,9 +18,15 @@ try
     var builder = WebApplication.CreateBuilder(args);
     var config = builder.Configuration;
     
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(config.GetConnectionString("DefaultConnection"))
-    );
+
+    builder.Services.AddScoped<ITenantService, TenantService>();
+
+    builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+    {
+        var tenantService = serviceProvider.GetRequiredService<ITenantService>();
+        var connectionString = tenantService.GetConnectionString();
+        options.UseNpgsql(connectionString);
+    });
 
     builder.Services.AddIdentity<IdentityUser, IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>()
@@ -116,6 +124,7 @@ try
     app.MapHealthChecks("/healthcheck");
     app.MapHealthChecks("/healthchecks");
     app.UseCors();
+    app.UseMiddleware<TenantMiddleware>();
     app.UseAuthentication();
     app.UseAuthorization();
     
