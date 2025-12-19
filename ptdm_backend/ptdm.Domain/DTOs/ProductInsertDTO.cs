@@ -6,4 +6,6 @@ public class ProductInsertDTO
     public Double Cost { get; set; }
     public Double Price { get; set; }
     public Double Quantity { get; set; }
+    public string Barcode { get; set; }
+    public string ImageUrl { get; set; }
 }

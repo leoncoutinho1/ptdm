@@ -115,6 +115,11 @@ try
     }
     
     var app = builder.Build();
+
+    app.UseMiddleware<TenantMiddleware>();
+    // Explicitly add UseRouting so it runs AFTER TenantMiddleware
+    app.UseRouting();
+
     app.MapControllers();
     if (!builder.Environment.IsProduction())
     {
@@ -124,11 +129,11 @@ try
     app.MapHealthChecks("/healthcheck");
     app.MapHealthChecks("/healthchecks");
     app.UseCors();
-    app.UseMiddleware<TenantMiddleware>();
+    // app.UseMiddleware<TenantMiddleware>(); // Moved up
     app.UseAuthentication();
     app.UseAuthorization();
     
-    app.UseHttpsRedirection();
+    // app.UseHttpsRedirection();
     app.UseHsts();
     await using var scope = app.Services.CreateAsyncScope();
     using var db = scope.ServiceProvider.GetService<AppDbContext>();

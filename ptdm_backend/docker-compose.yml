@@ -2,22 +2,22 @@ version: '3'
 
 services:
 
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
+  postgres:
+    image: postgres:15
+    container_name: postgres
     ports:
-      - "6603:3306"
+      - "5432:5432"
     environment:
-      MYSQL_ROOT_PASSWORD: teste123
-      MYSQL_DATABASE: ptdm
-      MYSQL_USER: ptdm_admin
-      MYSQL_PASSWORD: teste123
+      POSTGRES_PASSWORD: "12345678"
+      POSTGRES_USER: "postgres"
+      POSTGRES_DB: "ptdm"
     volumes:
-      - ./mysql:/var/lib/mysql
+      - ./postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   aspnet:
     build: 
@@ -27,6 +27,8 @@ services:
       - "5215:5215"
     command: "dotnet WebAPI.dll"
     container_name: aspnetcore
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=postgres;Port=5432;Database=ptdm;User Id=postgres;Password=12345678;
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy

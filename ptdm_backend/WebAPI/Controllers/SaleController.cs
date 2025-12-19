@@ -1,5 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using ptdm.Domain.DTOs;
+using ptdm.Domain.Filters;
+using ptdm.Domain.Helpers;
+using ptdm.Domain.Models;
+using ptdm.Service.Services;
 
 namespace ptdm.Api.Controllers;
 
@@ -9,135 +14,49 @@ namespace ptdm.Api.Controllers;
 [Authorize]
 public class SaleController : ControllerBase
 {
-    //private readonly IUnitOfWork _uof;
-    //private readonly IMapper _mapper;
+    private readonly ISaleService _service;
 
-    //public SaleController(IUnitOfWork uof, IMapper mapper)
-    //{
-    //    _uof = uof;
-    //    _mapper = mapper;
-    //}
+    public SaleController(ISaleService service)
+    {
+        _service = service;
+    }
 
-    //[HttpGet("ListSale")]
-    //public ActionResult<IEnumerable<Sale>> ListSale([FromQuery] SaleFilter filters)
-    //{
-    //    var sales = _uof.SaleRepository.Get()
-    //        .Filter(filters).Sort(filters)
-    //        .Include(x => x.Cashier)
-    //        .Include(x => x.Checkout)
-    //        .Include(x => x.PaymentForm)
-    //        .Include(x => x.SaleProducts)
-    //        .ThenInclude(x => x.Product);
+    [HttpGet("ListSale")]
+    public ActionResult<ResultList<SaleDTO>> ListSale([FromQuery] SaleFilter filters)
+    {
+        var sales = _service.ListSale(filters);
 
-    //    var count = sales.Count();
+        return Ok(sales);
+    }
 
-    //    return Ok(new
-    //    {
-    //        data = sales.Paginate(filters),
-    //        count = count
-    //    });
-    //}
-
-    //[HttpGet("ListSaleDTO")]
-    //public ActionResult<IEnumerable<SaleDTO>> ListSaleDTO([FromQuery] SaleFilter filters)
-    //{
-    //    var sales = _uof.SaleRepository.Get().Filter(filters).Sort(filters);
-    //    var count = sales.Count();
-
-    //    var salesDTO = _mapper.Map<List<SaleDTO>>(sales.Paginate(filters));
-    //    return Ok(new
-    //    {
-    //        data = salesDTO,
-    //        count = count
-    //    });
-    //}
-
-    //[HttpGet("{id}", Name = "GetSaleById")]
-    //public ActionResult<Sale> Get(Guid id)
-    //{
-    //    var filters = new SaleFilter();
-    //    filters.Id = id;
-    //    var sale = _uof.SaleRepository.Get().Apply(filters).SingleOrDefault();
-    //    return sale != null ? sale : NotFound();
-    //}
-
-    ///// <summary>
-    ///// Cadastra a venda
-    ///// </summary>
-    ///// <remarks>
-    ///// Exemplo de request:
-    /////     
-    /////     POST /Sale
-    /////     {
-    /////         "checkoutId": "",
-    /////         "cashierId": "",
-    /////         "totalValue": 0,
-    /////         "overallDiscount": 0
-    /////         "paymentFormId": "",
-    /////         "saleProducts": [
-    /////             {
-    /////                 "productId":"",
-    /////                 "quantity": 0,
-    /////                 "dicount": 0
-    /////             }
-    /////         ]
-    /////     }
-    ///// </remarks>
-    ///// <returns>O container que foi criado contendo a imagem ou video</returns>
-    ///// <exception cref="Exception"></exception>
-    ///// <response code="200">Container criado com sucesso</response>
-    ///// <response code="400">Erro na comunicação com a GraphAPI para carregar a imagem ou video no container</response>
-    ///// <response code="500">Erro interno na API do facebook, verificar logs para mais detalhes</response>
-    //[HttpPost]
-    //public ActionResult Post([FromBody] SaleDTO saleDto)
-    //{
-    //    Sale sale = _mapper.Map<Sale>(saleDto);
-    //    _uof.SaleRepository.Add(sale);
+    [HttpGet("{id}", Name = "GetSaleById")]
+    public ActionResult<Sale> Get(Guid id)
+    {
+        var sale = _service.Get(id);
         
-    //    foreach (var sp in sale.SaleProducts)
-    //    {
-    //        _uof.SaleProductRepository.Add(sp);
-    //        var product = _uof.ProductRepository.Get().Where(x => x.Id == sp.ProductId).SingleOrDefault();
-    //        product.Quantity -= sp.Quantity;
-    //        _uof.ProductRepository.Update(product);    
-    //    }
+        if (sale.IsError)
+            return BadRequest(sale.Errors);
+
+        return Ok(sale);
+    }
+
+    [HttpPost]
+    public ActionResult Post([FromBody] SaleDTO saleDto)
+    {
         
-    //    _uof.Commit();
+        var result = _service.Create(saleDto);
 
-    //    return new CreatedAtRouteResult("GetSaleById",
-    //        new { id = sale.Id }, sale);
-    //}
-    
-    //[HttpPut("{id}")]
-    //public ActionResult Put(Guid id, Sale sale)
-    //{
-    //    if (id != sale.Id)
-    //    {
-    //        return BadRequest();
-    //    }
-    //    _uof.SaleRepository.Update(sale);
-    //    _uof.Commit();
-    //    return Ok();
-    //}
-
-    //[HttpDelete("{id}")]
-    //public ActionResult<Sale> Delete(Guid id)
-    //{
-    //    var sale = _uof.SaleRepository.Get().Include(x => x.SaleProducts).Where(p => p.Id == id).SingleOrDefault();
-    //    if (sale is null)
-    //        return NotFound();
-
-    //    foreach(var sale_product in sale.SaleProducts)
-    //    {
-    //        var product = _uof.ProductRepository.Get().SingleOrDefault(x => x.Id == sale_product.ProductId);
-    //        if (product is null)
-    //            continue;
-    //        product.Quantity += sale_product.Quantity;
-    //        _uof.SaleProductRepository.Delete(sale_product);
-    //    }
+        return result.IsError 
+            ? BadRequest(result.Errors) 
+            : Created();
+    }
         
-    //    _uof.SaleRepository.Delete(sale);
-    //    _uof.Commit();
-    //    return sale;
-    //}    
+    [HttpDelete("{id}")]
+    public ActionResult<Sale> Delete(Guid id)
+    {
+        var result = _service.Delete(id);
+        return (result.IsError)
+            ? BadRequest(result)
+            : Ok(result);
+    }
 }

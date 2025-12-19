@@ -22,7 +22,7 @@ public class ProductController : ControllerBase
     }
 
 
-    [HttpGet("GetProductByDescOrBarcode/{text:string}")]
+    [HttpGet("GetProductByDescOrBarcode/{text}")]
     public ActionResult<ProductDTO> GetProductByDescOrBarcode([FromRoute] string text)
     {
         var result = _service.GetProductByDescOrBarcode(text);
@@ -84,7 +84,7 @@ public class ProductController : ControllerBase
     //    using (var reader = new StreamReader(file.OpenReadStream()))
     //    {
     //        var count = 0;
-    //        reader.ReadLine(); // pular o cabeçalho da planilha
+    //        reader.ReadLine(); // pular o cabeÃ§alho da planilha
     //        while (!reader.EndOfStream) {
     //            var line = reader.ReadLine().Split('\t');
     //            if (line == null || line.Length == 0)

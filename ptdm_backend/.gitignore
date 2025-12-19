@@ -60,3 +60,5 @@ WebAPI/appsettings.json
 Dockerfile
 WebAPI/Properties/PublishProfiles/
 WebAPI/WebAPI.csproj.user
+
+postgres-data/
