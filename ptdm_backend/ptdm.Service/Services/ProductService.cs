@@ -22,7 +22,7 @@ namespace ptdm.Service.Services
         ErrorOr<ProductDTO> Create(ProductDTO product);
         ErrorOr<ProductDTO> Delete(Guid id);
         ErrorOr<ProductDTO> Get(Guid id);
-        ErrorOr<ProductDTO> GetProductByDescOrBarcode(string text);
+        ResultList<ProductDTO> GetProductByDescOrBarcode(string text);
         ResultList<ProductDTO> ListProduct(ProductFilter filters);
         ErrorOr<ProductDTO> Update(ProductDTO product);
     }
@@ -36,28 +36,22 @@ namespace ptdm.Service.Services
             _context = context;
         }
 
-        public ErrorOr<ProductDTO> GetProductByDescOrBarcode(string text)
+        public ResultList<ProductDTO> GetProductByDescOrBarcode(string text)
         {
             if (String.IsNullOrWhiteSpace(text))
-                return Error.Failure("Código de barras não informado");
+                return new ResultList<ProductDTO>(Array.Empty<ProductDTO>(), 0);
+                
+            var products = _context.Products
+                .Where(x => x.Barcodes.Contains(new Barcode { Code = text }) || x.Description.ToUpper().Contains(text.ToUpper()))
+                .Include(x => x.Barcodes)
+                .AsNoTracking();
 
-            var product = _context.Products.Where(x => x.Barcodes.Contains(new Barcode { Code = text }) || x.Description.ToUpper().Contains(text.ToUpper())).AsNoTracking().SingleOrDefault();
+            if (products.Count() == 0)
+                return new ResultList<ProductDTO>(Array.Empty<ProductDTO>(), 0);
 
-            if (product == null)
-                return Error.NotFound();
+            var count = products.Count();
 
-            var productDTO = new ProductDTO
-            {
-                Id = product.Id,
-                Description = product.Description,
-                Cost = product.Cost,
-                Price = product.Price,
-                Quantity = product.Quantity,
-                CreatedAt = product.CreatedAt,
-                Barcodes = product.Barcodes.Select(x => x.Code).ToList()
-            };
-
-            return productDTO;
+            return new ResultList<ProductDTO>(products.Select(x => (ProductDTO)x).ToList(), count);
         }
 
         public ResultList<ProductDTO> ListProduct(ProductFilter filters)

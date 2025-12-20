@@ -9,7 +9,7 @@ public class ProductDTO
     public Double ProfitMargin { get; set; }
     public Double Quantity { get; set; }
     public DateTime CreatedAt { get; set; }
-    public string ImageUrl { get; set; }
-    public bool IsActive { get; set; }
+    public string? ImageUrl { get; set; } = String.Empty;
+    public bool IsActive { get; set; } = true;
     public ICollection<string> Barcodes { get; set; }
 }
