@@ -13,8 +13,8 @@ public class Product : BaseModel
     public string? ImageUrl { get; set; } = String.Empty;
     public bool IsActive { get; set; } = true;
   
-    public ICollection<Barcode> Barcodes { get; set; }
-    public ICollection<SaleProduct> SaleProducts { get; set; }
+    public virtual ICollection<Barcode> Barcodes { get; set; }
+    public virtual ICollection<SaleProduct> SaleProducts { get; set; }
 
     public static implicit operator ProductDTO(Product p)
     {

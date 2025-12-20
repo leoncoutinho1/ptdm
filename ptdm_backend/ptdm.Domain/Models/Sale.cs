@@ -14,7 +14,7 @@ public class Sale : BaseModel
     public Double OverallDiscount { get; set; } = 0;
     public Guid PaymentFormId { get; set; }
     public virtual PaymentForm? PaymentForm { get; set; }
-    public IEnumerable<SaleProduct> SaleProducts { get; set; }
+    public virtual IEnumerable<SaleProduct> SaleProducts { get; set; }
 
     public static implicit operator SaleDTO(Sale sale)
     {

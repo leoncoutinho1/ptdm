@@ -6,6 +6,7 @@ using AspNetCore.IQueryable.Extensions.Sort;
 using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 using ptdm.Data.Context;
+using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
@@ -17,8 +18,8 @@ public interface IPaymentFormService
     ErrorOr<PaymentForm> Delete(Guid id);
     ErrorOr<PaymentForm> Get(Guid id);
     ResultList<PaymentForm> ListPaymentForm(PaymentFormFilter filters);
-    ErrorOr<PaymentForm> Create(string paymentFormName);
-    ErrorOr<PaymentForm> Update(PaymentForm paymentForm);
+    ErrorOr<PaymentForm> Create(PaymentFormDto dto);
+    ErrorOr<PaymentForm> Update(PaymentFormUpdateDTO dto);
 }
 
 public class PaymentFormService : IPaymentFormService
@@ -46,11 +47,11 @@ public class PaymentFormService : IPaymentFormService
         return (paymentForm != null) ? paymentForm : Error.NotFound(description: "PaymentForm not found");
     }
 
-    public ErrorOr<PaymentForm> Create(string paymentFormName)
+    public ErrorOr<PaymentForm> Create(PaymentFormDto dto)
     {
         PaymentForm paymentForm = new PaymentForm()
         {
-            Description = paymentFormName
+            Description = dto.Description
         };
         try
         {
@@ -64,8 +65,17 @@ public class PaymentFormService : IPaymentFormService
         }
     }
 
-    public ErrorOr<PaymentForm> Update(PaymentForm paymentForm)
+    public ErrorOr<PaymentForm> Update(PaymentFormUpdateDTO dto)
     {
+        var paymentForm = _context.PaymentForms.FirstOrDefault(x => x.Id == dto.Id);
+
+        if (paymentForm == null)
+        {
+            return Error.NotFound();
+        }
+
+        paymentForm.Description = dto.Description;
+
         try
         {
             _context.PaymentForms.Update(paymentForm);

@@ -5,6 +5,7 @@ using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
 using ptdm.Service.Services;
+using ptdm.Domain.DTOs;
 
 namespace ptdm.Api.Controllers;
 
@@ -39,22 +40,22 @@ public class PaymentFormController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<ErrorOr<PaymentForm>> Post([FromBody] string paymentFormName)
+    public ActionResult<ErrorOr<PaymentForm>> Post([FromBody] PaymentFormDto dto)
     {
-        var result = _service.Create(paymentFormName);
+        var result = _service.Create(dto);
         return (result.IsError)
             ? BadRequest(result)
             : Created();
     }
 
     [HttpPut("{id}")]
-    public ActionResult Put(Guid id, PaymentForm paymentForm)
+    public ActionResult Put(Guid id, PaymentFormUpdateDTO dto)
     {
-        if (id != paymentForm.Id)
+        if (id != dto.Id)
         {
             return BadRequest("Route id is different of model id");
         }
-        var result = _service.Update(paymentForm);
+        var result = _service.Update(dto);
         return (result.IsError)
             ? BadRequest(result)
             : Ok(result);
