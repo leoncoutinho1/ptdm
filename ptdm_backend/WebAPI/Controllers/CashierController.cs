@@ -1,6 +1,7 @@
 using ErrorOr;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
@@ -38,16 +39,16 @@ public class CashierController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<ErrorOr<Cashier>> Post([FromBody] string cashierName)
+    public ActionResult<ErrorOr<Cashier>> Post(CashierInsertDTO cashier)
     {
-        var result = _service.Create(cashierName);
+        var result = _service.Create(cashier);
         return (result.IsError)
             ? BadRequest(result)
             : Created();
     }
     
     [HttpPut("{id}")]
-    public ActionResult Put(Guid id, Cashier cashier)
+    public ActionResult Put([FromRoute] Guid id, [FromBody] CashierUpdateDTO cashier)
     {
         if (id != cashier.Id)
         {

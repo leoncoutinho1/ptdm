@@ -10,5 +10,6 @@ public class SaleDTO
     public Double ChangeValue { get; set; }
     public Double OverallDiscount { get; set; }
     public Guid PaymentFormId { get; set; }
+    public DateTime CreatedAt { get; set; }
     public IEnumerable<SaleProductDTO> SaleProducts { get; set; }
 }

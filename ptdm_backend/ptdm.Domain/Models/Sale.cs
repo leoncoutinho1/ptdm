@@ -20,13 +20,16 @@ public class Sale : BaseModel
     {
         return new SaleDTO
         {
+            Id = sale.Id,
             CheckoutId = sale.CheckoutId,
             CashierId = sale.CashierId,
             TotalValue = sale.TotalValue,
             PaidValue = sale.PaidValue,
             ChangeValue = sale.ChangeValue,
             OverallDiscount = sale.OverallDiscount,
-            PaymentFormId = sale.PaymentFormId
+            PaymentFormId = sale.PaymentFormId,
+            CreatedAt = sale.CreatedAt,
+            SaleProducts = sale.SaleProducts.Select(x => (SaleProductDTO)x).ToList()
         };
     }
 }

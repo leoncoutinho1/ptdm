@@ -42,7 +42,7 @@ namespace ptdm.Service.Services
                 return new ResultList<ProductDTO>(Array.Empty<ProductDTO>(), 0);
                 
             var products = _context.Products
-                .Where(x => x.Barcodes.Contains(new Barcode { Code = text }) || x.Description.ToUpper().Contains(text.ToUpper()))
+                .Where(x => x.Barcodes.Any(barcode => barcode.Code == text) || x.Description.ToUpper().Contains(text.ToUpper()))
                 .Include(x => x.Barcodes)
                 .AsNoTracking();
 

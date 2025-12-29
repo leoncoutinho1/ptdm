@@ -6,6 +6,7 @@ using AspNetCore.IQueryable.Extensions.Sort;
 using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 using ptdm.Data.Context;
+using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
@@ -17,8 +18,8 @@ public interface ICashierService
     ErrorOr<Cashier> Delete(Guid id);
     ErrorOr<Cashier> Get(Guid id);
     ResultList<Cashier> ListCashier(CashierFilter filters);
-    ErrorOr<Cashier> Create(string cashierName);
-    ErrorOr<Cashier> Update(Cashier cashier);
+    ErrorOr<Cashier> Create(CashierInsertDTO cashier);
+    ErrorOr<Cashier> Update(CashierUpdateDTO cashier);
 }
 
 public class CashierService : ICashierService
@@ -46,11 +47,11 @@ public class CashierService : ICashierService
         return (cashier != null) ? cashier : Error.NotFound(description: "Cashier not found");
     }
 
-    public ErrorOr<Cashier> Create(string cashierName)
+    public ErrorOr<Cashier> Create(CashierInsertDTO dto)
     {
         Cashier cashier = new Cashier()
         {
-            Name = cashierName
+            Name = dto.Name
         };
         try
         {
@@ -64,10 +65,11 @@ public class CashierService : ICashierService
         }
     }
 
-    public ErrorOr<Cashier> Update(Cashier cashier)
+    public ErrorOr<Cashier> Update(CashierUpdateDTO dto)
     {
         try
         {
+            var cashier = (Cashier)dto;
             _context.Cashiers.Update(cashier);
             _context.SaveChanges();
             return cashier;

@@ -9,6 +9,7 @@ using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
 using ptdm.Service.Services;
+using ptdm.Domain.DTOs;
 
 namespace ptdm.Api.Controllers;
 
@@ -42,22 +43,22 @@ public class CheckoutController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<ErrorOr<Checkout>> Post([FromBody] string checkoutName)
+    public ActionResult<ErrorOr<Checkout>> Post([FromBody] CheckoutInsertDTO dto)
     {
-        var result = _service.Create(checkoutName);
+        var result = _service.Create(dto);
         return (result.IsError)
             ? BadRequest(result)
             : Created();
     }
 
     [HttpPut("{id}")]
-    public ActionResult Put(Guid id, Checkout checkout)
+    public ActionResult Put([FromRoute] Guid id, [FromBody] CheckoutUpdateDTO dto)
     {
-        if (id != checkout.Id)
+        if (id != dto.Id)
         {
             return BadRequest("Route id is different of model id");
         }
-        var result = _service.Update(checkout);
+        var result = _service.Update(dto);
         return (result.IsError)
             ? BadRequest(result)
             : Ok(result);

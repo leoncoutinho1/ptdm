@@ -116,6 +116,8 @@ try
     
     var app = builder.Build();
 
+    app.UseCors();
+
     app.UseMiddleware<TenantMiddleware>();
     // Explicitly add UseRouting so it runs AFTER TenantMiddleware
     app.UseRouting();
@@ -128,7 +130,7 @@ try
     }
     app.MapHealthChecks("/healthcheck");
     app.MapHealthChecks("/healthchecks");
-    app.UseCors();
+
     // app.UseMiddleware<TenantMiddleware>(); // Moved up
     app.UseAuthentication();
     app.UseAuthorization();

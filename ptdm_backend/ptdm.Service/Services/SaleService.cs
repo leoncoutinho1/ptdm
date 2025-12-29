@@ -94,7 +94,14 @@ namespace ptdm.Service.Services
         {
             var filters = new SaleFilter();
             filters.Id = id;
-            var sale = _context.Sales.FirstOrDefault(x => x.Id == id);
+            var sale = _context.Sales
+                .Include(x => x.Cashier)
+                .Include(x => x.Checkout)
+                .Include(x => x.PaymentForm)
+                .Include(x => x.SaleProducts)
+                .ThenInclude(x => x.Product)
+                .AsNoTracking()
+                .FirstOrDefault(x => x.Id == id);
 
             if (sale is null)
                 return Error.NotFound();

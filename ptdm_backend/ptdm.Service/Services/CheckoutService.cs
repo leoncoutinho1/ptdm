@@ -6,6 +6,7 @@ using AspNetCore.IQueryable.Extensions.Sort;
 using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 using ptdm.Data.Context;
+using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
@@ -17,8 +18,8 @@ public interface ICheckoutService
     ErrorOr<Checkout> Delete(Guid id);
     ErrorOr<Checkout> Get(Guid id);
     ResultList<Checkout> ListCheckout(CheckoutFilter filters);
-    ErrorOr<Checkout> Create(string checkoutName);
-    ErrorOr<Checkout> Update(Checkout checkout);
+    ErrorOr<Checkout> Create(CheckoutInsertDTO dto);
+    ErrorOr<Checkout> Update(CheckoutUpdateDTO dto);
 }
 
 public class CheckoutService : ICheckoutService
@@ -46,11 +47,11 @@ public class CheckoutService : ICheckoutService
         return (checkout != null) ? checkout : Error.NotFound(description: "Checkout not found");
     }
 
-    public ErrorOr<Checkout> Create(string checkoutName)
+    public ErrorOr<Checkout> Create(CheckoutInsertDTO dto)
     {
         Checkout checkout = new Checkout()
         {
-            Name = checkoutName
+            Name = dto.Name
         };
         try
         {
@@ -64,10 +65,11 @@ public class CheckoutService : ICheckoutService
         }
     }
 
-    public ErrorOr<Checkout> Update(Checkout checkout)
+    public ErrorOr<Checkout> Update(CheckoutUpdateDTO dto)
     {
         try
         {
+            var checkout = (Checkout)dto;
             _context.Checkouts.Update(checkout);
             _context.SaveChanges();
             return checkout;
