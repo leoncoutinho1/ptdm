@@ -32,9 +32,7 @@ services:
         condition: service_healthy
 
   frontend:
-    build:
-      context: ./ptdm_react
-      dockerfile: Dockerfile
+    image: leoncoutinho1/ptdm-frontend:latest
     container_name: ptdm_frontend
     # Exposing 3000 locally as an alternative to nginx
     ports:
