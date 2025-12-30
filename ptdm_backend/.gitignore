@@ -57,7 +57,7 @@ logs/
 
 WebAPI/appsettings.json
 .editorconfig
-Dockerfile
+# Dockerfile
 WebAPI/Properties/PublishProfiles/
 WebAPI/WebAPI.csproj.user
 
