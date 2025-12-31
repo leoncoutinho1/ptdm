@@ -7,7 +7,7 @@ export function Welcome() {
     <MainLayout>
       <Title className={classes.title} ta="center" mt={100}>
         <Text inherit variant="gradient" component="span" gradient={{ from: 'pink', to: 'yellow' }}>
-          {window.env?.VITE_APP_NAME || import.meta.env.VITE_APP_NAME}
+          Controle de Estoque
         </Text>
       </Title>
     </MainLayout>

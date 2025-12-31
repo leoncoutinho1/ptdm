@@ -1,9 +1,6 @@
 services:
   backend:
     image: leoncoutinho1/ptdm-backend:latest
-    build:
-      context: ./ptdm_backend
-      dockerfile: WebAPI/Dockerfile
     container_name: ptdm_backend
     restart: always
     ports:
@@ -16,9 +13,6 @@ services:
 
   frontend:
     image: leoncoutinho1/ptdm-frontend:latest
-    build:
-      context: ./ptdm_react
-      dockerfile: Dockerfile
     container_name: ptdm_frontend
     restart: always
     ports:

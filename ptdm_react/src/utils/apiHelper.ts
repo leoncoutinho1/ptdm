@@ -1,5 +1,3 @@
-import { apiConstants } from '@/constants/apiConstants';
-
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export function getTenant(): string {
@@ -30,9 +28,9 @@ async function refreshTokens(): Promise<TokenResponse | null> {
   const accessToken = localStorage.getItem('accessToken');
   const refreshToken = localStorage.getItem('refreshToken');
   const tenant = getTenant();
-  const baseUrl = apiConstants.API_URL.replace(/\/$/, '');
+
   // Assume refresh endpoint is at /Login/refresh or similar, constructed with tenant
-  const url = `${baseUrl}/${tenant}/Login/refresh`;
+  const url = `/api/${tenant}/Login/refresh`;
 
   if (!accessToken || !refreshToken) return null;
 
@@ -66,11 +64,11 @@ export async function apiRequest<T>(
   const tenant = getTenant();
   //   console.log(tenant);
   // Garante que a URL base termine sem barra para consistência
-  const baseUrl = apiConstants.API_URL.replace(/\/$/, '');
+
   const cleanRoute = route.replace(/^\//, '');
 
   // Constrói a URL no formato: API_URL/{tenant}/{route}
-  const url = `${baseUrl}/${tenant}/${cleanRoute}`;
+  const url = `/api/${tenant}/${cleanRoute}`;
 
   const getHeaders = (t: string | null) => {
     const h: Record<string, string> = {};

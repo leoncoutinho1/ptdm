@@ -1,27 +1,31 @@
-# Build Stage
-FROM node:22-alpine AS build
+FROM node:20-alpine AS build
+
 WORKDIR /app
 
-# Enable Corepack for Yarn 4 support
+# Enable corepack for Yarn Berry
 RUN corepack enable
 
-# Copy package manager configs first for better caching
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn ./.yarn
 
-# Install dependencies (using --immutable for reproducible builds in CI/Docker)
-RUN yarn install --immutable
+RUN yarn install
 
 COPY . .
+
 RUN yarn build
 
-# Serve Stage
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Final stage utilizing 'serve' - a static file server for Node.js
+# This removes the need for an internal Nginx configuration
+FROM node:20-alpine
 
-EXPOSE 80
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+RUN npm install -g serve
+
+WORKDIR /app
+
+# Copy the build output
+COPY --from=build /app/dist .
+
+EXPOSE 3000
+
+# Start server on port 3000, single-page application mode (-s)
+CMD ["serve", "-s", ".", "-l", "3000"]
