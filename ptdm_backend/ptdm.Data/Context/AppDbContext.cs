@@ -4,7 +4,7 @@ using ptdm.Data.Context.EntitiesConfiguration;
 using ptdm.Domain.Models;
 
 namespace ptdm.Data.Context;
-public class AppDbContext : IdentityDbContext
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {

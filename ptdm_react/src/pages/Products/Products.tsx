@@ -22,7 +22,7 @@ export function Products() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (!token) {
       notifications.show({
         color: 'red',
@@ -45,7 +45,7 @@ export function Products() {
   }, []);
 
   const searchProducts = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (!token) { return; }
 
     if (!search) {

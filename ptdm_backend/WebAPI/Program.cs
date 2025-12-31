@@ -10,6 +10,7 @@ using ptdm.Data.Context;
 using ptdm.Api.DI;
 using ptdm.Api.Services;
 using ptdm.Api.Middlewares;
+using ptdm.Domain.Models;
 
 Console.WriteLine("App started");
 
@@ -28,7 +29,7 @@ try
         options.UseNpgsql(connectionString);
     });
 
-    builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
 
@@ -74,7 +75,7 @@ try
         options.AddDefaultPolicy(
             policy =>
             {
-                policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                policy.WithOrigins(Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "*").AllowAnyMethod().AllowAnyHeader();
             });
     });
 

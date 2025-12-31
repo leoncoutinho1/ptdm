@@ -26,10 +26,11 @@ export function Login(props: PaperProps) {
 
     const authenticate = async (form: IAuthenticate) => {
         try {
-            const data = await apiRequest<{ token: string }>('login/authenticate', 'POST', form);
-            localStorage.setItem('token', data.token.toString());
+            const data = await apiRequest<{ accessToken: string; refreshToken: string }>('login/authenticate', 'POST', form);
+            localStorage.setItem('accessToken', data.accessToken);
+            localStorage.setItem('refreshToken', data.refreshToken);
             setIsAuth(true);
-            await setTimeout(() => {}, 1500);
+            await setTimeout(() => { }, 1500);
             navigate("/home");
         } catch (err) {
             notifications.show({ color: 'red', title: 'Erro ao realizar login', message: String(err) });
@@ -37,8 +38,8 @@ export function Login(props: PaperProps) {
     }
 
     return (
-        <Paper radius="md" p="lg" withBorder {...props} style={{width: '65%', margin: '25vh auto', marginTop: '25vh' }} >
-            <div style={{display: 'flex', justifyContent: 'space-between'}}>
+        <Paper radius="md" p="lg" withBorder {...props} style={{ width: '65%', margin: '25vh auto', marginTop: '25vh' }} >
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div>
                     <Text size="lg" fw={500}>
                         Welcome to PDV
@@ -46,34 +47,34 @@ export function Login(props: PaperProps) {
                 </div>
                 <ColorSchemeToggle />
             </div>
-            
+
             <form onSubmit={form.onSubmit((form) => authenticate(form))}>
                 <Stack>
-                <TextInput
-                    required
-                    label="Email"
-                    placeholder="hello@mantine.dev"
-                    value={form.values.email}
-                    onChange={(event) => form.setFieldValue('email', event.currentTarget.value)}
-                    error={form.errors.email && 'Invalid email'}
-                    radius="md"
-                />
+                    <TextInput
+                        required
+                        label="Email"
+                        placeholder="hello@mantine.dev"
+                        value={form.values.email}
+                        onChange={(event) => form.setFieldValue('email', event.currentTarget.value)}
+                        error={form.errors.email && 'Invalid email'}
+                        radius="md"
+                    />
 
-                <PasswordInput
-                    required
-                    label="Password"
-                    placeholder="Your password"
-                    value={form.values.password}
-                    onChange={(event) => form.setFieldValue('password', event.currentTarget.value)}
-                    error={form.errors.password && 'Password should include at least 8 characters'}
-                    radius="md"
-                />
+                    <PasswordInput
+                        required
+                        label="Password"
+                        placeholder="Your password"
+                        value={form.values.password}
+                        onChange={(event) => form.setFieldValue('password', event.currentTarget.value)}
+                        error={form.errors.password && 'Password should include at least 8 characters'}
+                        radius="md"
+                    />
                 </Stack>
 
                 <Group justify="space-between" mt="xl">
-                <Button type="submit" radius="xl">
-                    Entrar
-                </Button>
+                    <Button type="submit" radius="xl">
+                        Entrar
+                    </Button>
                 </Group>
             </form>
         </Paper>
