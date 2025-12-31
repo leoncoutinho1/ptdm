@@ -124,11 +124,10 @@ try
     app.UseRouting();
 
     app.MapControllers();
-    if (!builder.Environment.IsProduction())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    
     app.MapHealthChecks("/healthcheck");
     app.MapHealthChecks("/healthchecks");
 

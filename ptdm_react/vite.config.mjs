@@ -4,14 +4,21 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('Proxy:', req.url)
+          })
+        }
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './vitest.setup.mjs',
-  },
-  server: {
-    proxy: {
-      '/api': 'http://localhost:5175'
-    }
   },
 });

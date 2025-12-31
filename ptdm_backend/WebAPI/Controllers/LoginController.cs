@@ -27,7 +27,6 @@ public class LoginController : ControllerBase
     }
 
     [HttpPost("register")]
-    [AllowAnonymous]
     public async Task<ActionResult> RegisterUser([FromBody] RegisterUserDTO model){
         if (!ModelState.IsValid){
             return BadRequest(ModelState.Values.SelectMany(e => e.Errors));

@@ -13,7 +13,14 @@ import { CheckoutForm } from './pages/Settings/Checkout/CheckoutForm';
 import { AuthProvider } from './contexts/AuthContext';
 import { SaleForm } from './pages/Sales/SaleForm';
 import { SaleList } from './pages/Sales/SaleList';
+import { getTenant } from './utils/apiHelper';
 
+// Redirect root to master/login
+if (window.location.pathname === '/' || window.location.pathname === '') {
+  window.location.href = '/ptdm/login';
+}
+
+const tenant = getTenant();
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   {
@@ -44,7 +51,9 @@ const router = createBrowserRouter([
       { path: '/settings/checkouts/:id', element: <CheckoutForm /> }
     ]
   }
-]);
+], {
+  basename: `/${tenant}`
+});
 
 export function Router() {
 

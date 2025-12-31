@@ -1,21 +1,13 @@
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export function getTenant(): string {
-  const hostname = window.location.hostname;
-  console.log(hostname);
-  // Verifica se é um IP ou localhost para usar tenant padrão
-  const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname);
-  if (isIp || hostname === 'localhost') {
-    return 'master';
+  // Extract tenant from path: /tenant/resource...
+  const pathParts = window.location.pathname.split('/');
+  // pathParts[0] is empty because path starts with /
+  // pathParts[1] should be the tenant
+  if (pathParts.length >= 2 && pathParts[1]) {
+    return pathParts[1];
   }
-
-  // Se tiver subdomínio, assume que é o tenant (ex: tenant.dominio.com)
-  const parts = hostname.split('.');
-  console.log(parts);
-  if (parts.length >= 2) {
-    return parts[0];
-  }
-
   return 'master';
 }
 
@@ -38,9 +30,9 @@ async function refreshTokens(): Promise<TokenResponse | null> {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ accessToken, refreshToken })
+      body: JSON.stringify({ accessToken, refreshToken }),
     });
 
     if (res.ok) {
@@ -50,7 +42,7 @@ async function refreshTokens(): Promise<TokenResponse | null> {
       return data;
     }
   } catch (error) {
-    console.error("Token refresh failed", error);
+    console.error('Token refresh failed', error);
   }
   return null;
 }
@@ -115,7 +107,8 @@ export async function apiRequest<T>(
       // Se refresh falhar ou retry falhar
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      const currentTenant = getTenant();
+      window.location.href = `/${currentTenant}/login`;
       throw new Error('Sessão expirada. Faça login novamente.');
     }
 

@@ -16,27 +16,27 @@ namespace ptdm.Api.Middlewares
 
             // 1. Try to extract tenant from Subdomain
             // Logic: If host is NOT an IP address and has subdomains.
-            if (Uri.CheckHostName(host) != UriHostNameType.IPv4 && Uri.CheckHostName(host) != UriHostNameType.IPv6)
-            {
-                var parts = host.Split('.');
+            //if (Uri.CheckHostName(host) != UriHostNameType.IPv4 && Uri.CheckHostName(host) != UriHostNameType.IPv6)
+            //{
+            //    var parts = host.Split('.');
                 
-                // Case: ptdm.localhost (2 parts) or ptdm.vps (2 parts)
-                // Case: ptdm.domain.com (3 parts)
-                // We need to be careful not to treat "domain.com" as tenant "domain".
-                // Simple heuristic for this context:
-                // If ends with .localhost, .vps, or has >= 3 parts.
+            //    // Case: ptdm.localhost (2 parts) or ptdm.vps (2 parts)
+            //    // Case: ptdm.domain.com (3 parts)
+            //    // We need to be careful not to treat "domain.com" as tenant "domain".
+            //    // Simple heuristic for this context:
+            //    // If ends with .localhost, .vps, or has >= 3 parts.
                 
-                if (host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) || 
-                    host.EndsWith(".vps", StringComparison.OrdinalIgnoreCase) ||
-                    parts.Length >= 3)
-                {
-                     // Take the first part as tenant, unless it's www
-                     if (!string.Equals(parts[0], "www", StringComparison.OrdinalIgnoreCase))
-                     {
-                         tenant = parts[0];
-                     }
-                }
-            }
+            //    if (host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) || 
+            //        host.EndsWith(".vps", StringComparison.OrdinalIgnoreCase) ||
+            //        parts.Length >= 3)
+            //    {
+            //         // Take the first part as tenant, unless it's www
+            //         if (!string.Equals(parts[0], "www", StringComparison.OrdinalIgnoreCase))
+            //         {
+            //             tenant = parts[0];
+            //         }
+            //    }
+            //}
 
             if (!string.IsNullOrEmpty(tenant))
             {
