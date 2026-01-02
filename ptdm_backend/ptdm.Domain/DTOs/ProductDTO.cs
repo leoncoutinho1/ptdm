@@ -1,3 +1,5 @@
+using ptdm.Domain.Models;
+
 namespace ptdm.Domain.DTOs;
 
 public class ProductDTO

@@ -15,6 +15,7 @@ namespace ptdm.Data.Context.EntitiesConfiguration
             builder
                 .HasOne(sp => sp.Product).WithMany(p => p.SaleProducts).HasForeignKey(sp => sp.ProductId).IsRequired();
             builder.Property(sp => sp.Discount).IsRequired().HasDefaultValue(0);
+            builder.Property(sp => sp.UnitPrice).IsRequired();
             builder.Property(sp => sp.Quantity).IsRequired();
         }
     }

@@ -1,4 +1,4 @@
-export interface IResult {
+export interface IResult<T> {
     isError: boolean,
     errors: [
         {
@@ -18,7 +18,7 @@ export interface IResult {
             metadata: any
         }
     ],
-    value: any,
+    value: T,
     firstError: {
         code: string,
         description: string,

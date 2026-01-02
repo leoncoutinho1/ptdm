@@ -55,12 +55,13 @@ namespace ptdm.Service.Services
                 _context.SaleProducts.Add(new SaleProduct
                 {
                     ProductId = sp.ProductId,
+                    UnitPrice = sp.UnitPrice,
                     Quantity = sp.Quantity,
                     Discount = sp.Discount,
                     SaleId = sale.Id
                 });
 
-                var product = _context.Products.Where(x => x.Id == sp.ProductId).SingleOrDefault();
+                var product = _context.Products.Where(x => x.Id == sp.ProductId).Include(x => x.Barcodes).SingleOrDefault();
                 product.Quantity -= sp.Quantity;
                 _context.Products.Update(product);
             }
@@ -100,6 +101,7 @@ namespace ptdm.Service.Services
                 .Include(x => x.PaymentForm)
                 .Include(x => x.SaleProducts)
                 .ThenInclude(x => x.Product)
+                .ThenInclude(x => x.Barcodes)
                 .AsNoTracking()
                 .FirstOrDefault(x => x.Id == id);
 
@@ -118,6 +120,7 @@ namespace ptdm.Service.Services
             .Include(x => x.PaymentForm)
             .Include(x => x.SaleProducts)
             .ThenInclude(x => x.Product)
+            .ThenInclude(x => x.Barcodes)
             .AsNoTracking();
 
             var count = sales.Count();

@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useForm } from '@mantine/form';
-import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Modal, Divider, Box, ScrollArea, ActionIcon } from '@mantine/core';
+import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Modal, Divider, Box, ScrollArea, ActionIcon, Accordion } from '@mantine/core';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
 import { formatCurrency } from '@/utils/currency';
 import { useParams } from 'react-router-dom';
+import { IResult } from '@/models/IResult';
+import { ISaleDTO } from '@/models/ISaleDTO';
 
 interface PaymentForm {
     id: string | number;
@@ -32,9 +34,9 @@ interface Product {
 
 interface SaleItem {
     productId: string | number;
-    productName: string;
-    quantity: number;
+    product: Product;
     unitPrice: number;
+    quantity: number;
     totalPrice: number;
 }
 
@@ -79,9 +81,9 @@ export function SaleForm() {
         const fetchData = async () => {
             try {
                 const [paymentFormsRes, cashiersRes, checkoutsRes] = await Promise.all([
-                    apiRequest<any>('paymentForm/ListPaymentForm'),
-                    apiRequest<any>('cashier/listCashier'),
-                    apiRequest<any>('checkout/listCheckout'),
+                    await apiRequest<any>('paymentForm/ListPaymentForm'),
+                    await apiRequest<any>('cashier/listCashier'),
+                    await apiRequest<any>('checkout/listCheckout'),
                 ]);
 
                 setPaymentForms(Array.isArray(paymentFormsRes.data) ? paymentFormsRes.data : []);
@@ -99,7 +101,8 @@ export function SaleForm() {
         if (id) {
             const fetchSale = async () => {
                 try {
-                    const sale = await apiRequest<any>(`sale/${id}`);
+                    const result = await apiRequest<IResult<ISaleDTO>>(`sale/${id}`);
+                    const sale = result.value;
 
                     // Preenche o formulário
                     form.setValues({
@@ -107,14 +110,14 @@ export function SaleForm() {
                         cashierId: String(sale.cashierId || ''),
                         checkoutId: String(sale.checkoutId || ''),
                     });
-
+                    console.log(sale);
                     // Preenche os itens da venda
                     if (Array.isArray(sale.saleProducts)) {
                         const items = sale.saleProducts.map((item: any) => ({
                             productId: item.productId,
-                            productName: item.product?.description || 'Produto',
-                            quantity: item.quantity,
+                            product: item.product,
                             unitPrice: item.unitPrice,
+                            quantity: item.quantity,
                             totalPrice: item.quantity * item.unitPrice,
                         }));
                         setSaleItems(items);
@@ -267,7 +270,7 @@ export function SaleForm() {
         } else {
             const newItem: SaleItem = {
                 productId: itemId!,
-                productName: item.description,
+                product: item,
                 quantity,
                 unitPrice: item.price,
                 totalPrice: quantity * item.price,
@@ -352,168 +355,175 @@ export function SaleForm() {
 
     return (
         <MainLayout>
+            <Box style={{ height: '95vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-            <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
-                <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
-                <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)} title={showReceipt ? "Ocultar Cupom" : "Mostrar Cupom"}>
-                    {showReceipt ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
-                    )}
-                </ActionIcon>
-            </Group>
-
-            <Grid align="stretch" style={{ flex: 1, minHeight: 0 }} gutter="md">
-                <Grid.Col span={showReceipt ? { base: 12, md: 7, lg: 8 } : 12} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    <Stack gap="md" style={{ minHeight: 0 }}>
-                        {/* Primeira linha: Selects */}
-                        <Group grow style={{ flexShrink: 0 }}>
-                            <Select
-                                label="Forma de Pagamento"
-                                placeholder="Selecione"
-                                data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
-                                {...form.getInputProps('paymentFormId')}
-                                required
-                                readOnly={isViewMode}
-                                disabled={isViewMode}
-                            />
-                            <Select
-                                label="Operador"
-                                placeholder="Selecione"
-                                data={cashiers.map(c => ({ value: String(c.id), label: c.name }))}
-                                {...form.getInputProps('cashierId')}
-                                required
-                                readOnly={isViewMode}
-                                disabled={isViewMode}
-                            />
-                            <Select
-                                label="Terminal de Caixa"
-                                placeholder="Selecione"
-                                data={checkouts.map(ch => ({ value: String(ch.id), label: ch.name }))}
-                                {...form.getInputProps('checkoutId')}
-                                required
-                                readOnly={isViewMode}
-                                disabled={isViewMode}
-                            />
-                        </Group>
-
-                        {/* Segunda linha: Busca de produto - apenas no modo de criação */}
-                        {!isViewMode && (
-                            <Group align="flex-end" style={{ flexShrink: 0 }}>
-                                <NumberInput
-                                    label="Quantidade"
-                                    value={quantity}
-                                    onChange={(val) => setQuantity(Number(val) || 0)}
-                                    min={0}
-                                    style={{ width: 120 }}
-                                    ref={quantityRef}
-                                    onKeyDown={handleQuantityKeyDown}
-                                />
-                                <Select
-                                    label="Buscar Produto"
-                                    placeholder="Digite para buscar..."
-                                    searchable
-                                    searchValue={searchTerm}
-                                    onSearchChange={setSearchTerm}
-                                    value={selectedProductId}
-                                    onChange={handleProductSelect}
-                                    data={productOptions.map(p => ({
-                                        value: String(p.id),
-                                        label: p.description
-                                    }))}
-                                    filter={({ options }) => options}
-                                    limit={Infinity}
-                                    nothingFoundMessage={isSearching ? 'Buscando...' : 'Nenhum produto encontrado'}
-                                    style={{ flex: 1 }}
-                                    clearable
-                                    ref={productSelectRef}
-                                    onKeyDown={handleSearchKeyDown}
-                                />
-                            </Group>
+                <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
+                    <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
+                    <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)} title={showReceipt ? "Ocultar Cupom" : "Mostrar Cupom"}>
+                        {showReceipt ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
                         )}
+                    </ActionIcon>
+                </Group>
 
-                        {/* Tabela de itens da venda */}
-                        <ScrollArea scrollbars="y" style={{ flex: 1, minHeight: 0 }}>
-                            <Table striped highlightOnHover withTableBorder withColumnBorders>
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>Produto</Table.Th>
-                                        <Table.Th>Qtd</Table.Th>
-                                        <Table.Th>Vlr. Unit.</Table.Th>
-                                        <Table.Th>Total</Table.Th>
-                                        {!isViewMode && <Table.Th>Ações</Table.Th>}
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>
-                                    {saleItems.length === 0 ? (
-                                        <Table.Tr>
-                                            <Table.Td colSpan={isViewMode ? 4 : 5} style={{ textAlign: 'center', color: '#888' }}>
-                                                Nenhum produto adicionado
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    ) : (
-                                        saleItems.map((item) => (
-                                            <Table.Tr key={item.productId}>
-                                                <Table.Td>{item.productName}</Table.Td>
-                                                <Table.Td>{item.quantity}</Table.Td>
-                                                <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
-                                                <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
-                                                {!isViewMode && (
-                                                    <Table.Td>
-                                                        <Button size="xs" color="red" onClick={() => removeItem(item.productId)}>
-                                                            Remover
-                                                        </Button>
-                                                    </Table.Td>
-                                                )}
-                                            </Table.Tr>
-                                        ))
-                                    )}
-                                </Table.Tbody>
-                            </Table>
-                        </ScrollArea>
+                <Grid align="stretch" style={{ flex: 1, height: '92vh' }} gutter="xs">
+                    <Grid.Col span={showReceipt ? { base: 12, md: 7, lg: 8 } : 12} style={{ display: 'flex', flexDirection: 'column', height: '92vh' }}>
+                        <Stack gap="md" style={{ height: '92vh' }}>
+                            <Accordion variant="separated" defaultValue="config" style={{ flexShrink: 0 }}>
+                                <Accordion.Item value="config">
+                                    <Accordion.Control style={{ maxHeight: '2rem' }}>Dados da Venda</Accordion.Control>
+                                    <Accordion.Panel>
+                                        <Group grow>
+                                            <Select
+                                                label="Forma de Pagamento"
+                                                placeholder="Selecione"
+                                                data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
+                                                {...form.getInputProps('paymentFormId')}
+                                                required
+                                                readOnly={isViewMode}
+                                                disabled={isViewMode}
+                                            />
+                                            <Select
+                                                label="Operador"
+                                                placeholder="Selecione"
+                                                data={cashiers.map(c => ({ value: String(c.id), label: c.name }))}
+                                                {...form.getInputProps('cashierId')}
+                                                required
+                                                readOnly={isViewMode}
+                                                disabled={isViewMode}
+                                            />
+                                            <Select
+                                                label="Terminal de Caixa"
+                                                placeholder="Selecione"
+                                                data={checkouts.map(ch => ({ value: String(ch.id), label: ch.name }))}
+                                                {...form.getInputProps('checkoutId')}
+                                                required
+                                                readOnly={isViewMode}
+                                                disabled={isViewMode}
+                                            />
+                                        </Group>
+                                    </Accordion.Panel>
+                                </Accordion.Item>
+                            </Accordion>
 
-                        {/* Resumo da venda e Botão Finalizar */}
-                        <Group align="flex-end" gap="md" pt="md" style={{ flexShrink: 0 }}>
-                            <Group grow style={{ flex: 1 }} align="flex-end">
-                                <NumberInput
-                                    label="Valor Pago"
-                                    value={amountPaid}
-                                    ref={paidValueRef}
-                                    onChange={(val) => setAmountPaid(Number(val) || 0)}
-                                    min={0}
-                                    decimalScale={2}
-                                    fixedDecimalScale
-                                    prefix="R$ "
-                                    readOnly={isViewMode}
-                                    disabled={isViewMode}
-                                    onKeyDown={handlePaidValueKeyDown}
-                                />
-                                <Paper p="sm" withBorder style={{ backgroundColor: '#f0f0f0' }}>
-                                    <Text size="lg" fw={700} ta="center">
-                                        Total: {formatCurrency(totalSale)}
-                                    </Text>
-                                </Paper>
-                                <Paper p="sm" withBorder>
-                                    <Text size="md" ta="center">
-                                        Troco: {formatCurrency(change >= 0 ? change : 0)}
-                                    </Text>
-                                </Paper>
-                            </Group>
-
+                            {/* Segunda linha: Busca de produto - apenas no modo de criação */}
                             {!isViewMode && (
-                                <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef}>
-                                    Finalizar Venda
-                                </Button>
+                                <Group align="flex-end" style={{ flexShrink: 0 }}>
+                                    <NumberInput
+                                        label="Quantidade"
+                                        value={quantity}
+                                        onChange={(val) => setQuantity(Number(val) || 0)}
+                                        min={0}
+                                        style={{ width: 120 }}
+                                        ref={quantityRef}
+                                        onKeyDown={handleQuantityKeyDown}
+                                    />
+                                    <Select
+                                        label="Buscar Produto"
+                                        placeholder="Digite para buscar..."
+                                        searchable
+                                        searchValue={searchTerm}
+                                        onSearchChange={setSearchTerm}
+                                        value={selectedProductId}
+                                        onChange={handleProductSelect}
+                                        data={productOptions.map(p => ({
+                                            value: String(p.id),
+                                            label: p.description
+                                        }))}
+                                        filter={({ options }) => options}
+                                        limit={Infinity}
+                                        nothingFoundMessage={isSearching ? 'Buscando...' : 'Nenhum produto encontrado'}
+                                        style={{ flex: 1 }}
+                                        clearable
+                                        ref={productSelectRef}
+                                        onKeyDown={handleSearchKeyDown}
+                                    />
+                                </Group>
                             )}
-                        </Group>
-                    </Stack>
-                </Grid.Col>
 
-                {/* Cupom Fiscal Lateral */}
-                {showReceipt && (
-                    <Grid.Col span={{ base: 12, md: 5, lg: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                        <style>{`
+                            {/* Tabela de itens da venda */}
+                            <ScrollArea scrollbars="y" style={{ flex: 1, minHeight: 0 }}>
+                                <Table striped highlightOnHover withTableBorder withColumnBorders style={{ color: '#228be6', fontWeight: 'bold' }}>
+                                    <Table.Thead style={{ color: 'black', fontWeight: 'bold' }}>
+                                        <Table.Tr>
+                                            <Table.Th>Produto</Table.Th>
+                                            <Table.Th>Qtd</Table.Th>
+                                            <Table.Th>Vlr. Unit.</Table.Th>
+                                            <Table.Th>Total</Table.Th>
+                                            {!isViewMode && <Table.Th>Ações</Table.Th>}
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {saleItems.length === 0 ? (
+                                            <Table.Tr>
+                                                <Table.Td colSpan={isViewMode ? 4 : 5} style={{ textAlign: 'center', color: '#888' }}>
+                                                    Nenhum produto adicionado
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ) : (
+                                            saleItems.map((item) => (
+                                                <Table.Tr key={item.productId}>
+                                                    <Table.Td>{item.product?.description}</Table.Td>
+                                                    <Table.Td>{item.quantity}</Table.Td>
+                                                    <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
+                                                    <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
+                                                    {!isViewMode && (
+                                                        <Table.Td>
+                                                            <Button size="xs" color="red" onClick={() => removeItem(item.productId)}>
+                                                                Remover
+                                                            </Button>
+                                                        </Table.Td>
+                                                    )}
+                                                </Table.Tr>
+                                            ))
+                                        )}
+                                    </Table.Tbody>
+                                </Table>
+                            </ScrollArea>
+
+                            {/* Resumo da venda e Botão Finalizar */}
+                            <Group align="flex-end" gap="md" py="md" style={{ flexShrink: 0, marginTop: 'auto' }}>
+                                <Group grow style={{ flex: 1 }} align="flex-end">
+                                    <NumberInput
+                                        label="Valor Pago"
+                                        value={amountPaid}
+                                        ref={paidValueRef}
+                                        onChange={(val) => setAmountPaid(Number(val) || 0)}
+                                        min={0}
+                                        decimalScale={2}
+                                        fixedDecimalScale
+                                        prefix="R$ "
+                                        readOnly={isViewMode}
+                                        disabled={isViewMode}
+                                        onKeyDown={handlePaidValueKeyDown}
+                                    />
+                                    <Paper p="sm" withBorder style={{ backgroundColor: '#f0f0f0' }}>
+                                        <Text size="lg" fw={700} ta="center">
+                                            Total: {formatCurrency(totalSale)}
+                                        </Text>
+                                    </Paper>
+                                    <Paper p="sm" withBorder>
+                                        <Text size="md" ta="center">
+                                            Troco: {formatCurrency(change >= 0 ? change : 0)}
+                                        </Text>
+                                    </Paper>
+                                </Group>
+
+                                {!isViewMode && (
+                                    <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef}>
+                                        Finalizar Venda
+                                    </Button>
+                                )}
+                            </Group>
+                        </Stack>
+                    </Grid.Col>
+
+                    {/* Cupom Fiscal Lateral */}
+                    {showReceipt && (
+                        <Grid.Col span={{ base: 12, md: 5, lg: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                            <style>{`
                     @media print {
                         body * {
                             visibility: hidden;
@@ -546,57 +556,59 @@ export function SaleForm() {
                         }
                     }
                 `}</style>
-                        <Paper id="printable-receipt" shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                            <ScrollArea style={{ flex: 1 }} scrollbars="y">
-                                <Stack gap="xs">
-                                    <Text ta="center" fw={700}>*** CUPOM DE VENDA ***</Text>
-                                    <Text ta="center" size="sm">{new Date().toLocaleString()}</Text>
-                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                            <Paper id="printable-receipt" shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                <ScrollArea style={{ flex: 1 }} scrollbars="y">
+                                    <Stack gap="xs">
+                                        <Text ta="center" fw={700}>*** CUPOM DE VENDA ***</Text>
+                                        <Text ta="center" size="sm">{new Date().toLocaleString("pt-BR")}</Text>
+                                        <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
 
-                                    <Group justify="space-between">
-                                        <Text size="sm">ITEM</Text>
-                                        <Text size="sm">VALOR</Text>
-                                    </Group>
-                                    <Divider my="xs" style={{ borderTopStyle: 'dashed' }} />
+                                        <Group justify="space-between">
+                                            <Text size="sm">ITEM</Text>
+                                            <Text size="sm">VALOR</Text>
+                                        </Group>
+                                        <Divider my="xs" style={{ borderTopStyle: 'dashed' }} />
 
-                                    <Box>
-                                        {saleItems.length === 0 ? (
-                                            <Text ta="center" size="sm" c="dimmed" py="xl">...aguardando itens...</Text>
-                                        ) : (
-                                            saleItems.map((item, index) => (
-                                                <Box key={index} mb="xs">
-                                                    <Text size="sm" lineClamp={1}>{item.productName}</Text>
-                                                    <Group justify="space-between">
-                                                        <Text size="xs">{item.quantity} x {formatCurrency(item.unitPrice)}</Text>
-                                                        <Text size="sm">{formatCurrency(item.totalPrice)}</Text>
-                                                    </Group>
-                                                </Box>
-                                            ))
-                                        )}
-                                    </Box>
+                                        <Box>
+                                            {saleItems.length === 0 ? (
+                                                <Text ta="center" size="sm" c="dimmed" py="xl">...aguardando itens...</Text>
+                                            ) : (
+                                                saleItems.map((item, index) => (
+                                                    <Box key={index} mb="xs">
+                                                        <Text size="sm" lineClamp={1}>{item.product.description}</Text>
+                                                        <Group justify="space-between">
+                                                            <Text size="xs">{item.quantity} x {formatCurrency(item.unitPrice)}</Text>
+                                                            <Text size="sm">{formatCurrency(item.totalPrice)}</Text>
+                                                        </Group>
+                                                    </Box>
+                                                ))
+                                            )}
+                                        </Box>
 
-                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
-                                    <Group justify="space-between">
-                                        <Text fw={700}>TOTAL</Text>
-                                        <Text fw={700}>{formatCurrency(totalSale)}</Text>
-                                    </Group>
-                                    <Group justify="space-between">
-                                        <Text size="sm">PAGO</Text>
-                                        <Text size="sm">{formatCurrency(amountPaid)}</Text>
-                                    </Group>
-                                    <Group justify="space-between">
-                                        <Text size="sm">TROCO</Text>
-                                        <Text size="sm">{formatCurrency(change >= 0 ? change : 0)}</Text>
-                                    </Group>
+                                        <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                                        <Group justify="space-between">
+                                            <Text fw={700}>TOTAL</Text>
+                                            <Text fw={700}>{formatCurrency(totalSale)}</Text>
+                                        </Group>
+                                        <Group justify="space-between">
+                                            <Text size="sm">PAGO</Text>
+                                            <Text size="sm">{formatCurrency(amountPaid)}</Text>
+                                        </Group>
+                                        <Group justify="space-between">
+                                            <Text size="sm">TROCO</Text>
+                                            <Text size="sm">{formatCurrency(change >= 0 ? change : 0)}</Text>
+                                        </Group>
 
-                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
-                                    <Text ta="center" size="xs">Obrigado pela preferência!</Text>
-                                </Stack>
-                            </ScrollArea>
-                        </Paper>
-                    </Grid.Col>
-                )}
-            </Grid>
+                                        <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                                        <Text ta="center" size="xs">Obrigado pela preferência!</Text>
+                                    </Stack>
+                                </ScrollArea>
+                            </Paper>
+                        </Grid.Col>
+                    )}
+                </Grid>
+
+            </Box>
 
             {/* Modal de Impressão */}
             <Modal opened={showPrintModal} onClose={resetForm} title="Venda Finalizada" centered>

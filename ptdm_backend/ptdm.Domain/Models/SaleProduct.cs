@@ -7,9 +7,10 @@ public class SaleProduct
     public Guid SaleId { get; set; }
     public virtual Sale? Sale { get; set; }
     public Guid ProductId { get; set; }
-    public virtual Product? Product { get; set; }
+    public Double UnitPrice { get; set; }
     public Double Quantity { get; set; }
     public Double Discount { get; set; } = 0;
+    public virtual Product? Product { get; set; }
 
     public static implicit operator SaleProductDTO(SaleProduct sp)
     {
@@ -17,8 +18,11 @@ public class SaleProduct
         {
             SaleId = sp.SaleId,
             ProductId = sp.ProductId,
+            UnitPrice = sp.UnitPrice,
             Quantity = sp.Quantity,
-            Discount = sp.Discount
+            Discount = sp.Discount,
+            Product = (ProductDTO)sp.Product
+            
         };
     }
 }
