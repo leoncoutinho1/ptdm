@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useForm } from '@mantine/form';
 import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Modal, Divider, Box, ScrollArea, ActionIcon, Accordion } from '@mantine/core';
+import { Eye, EyeOff, XCircle } from 'lucide-react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
@@ -360,11 +361,7 @@ export function SaleForm() {
                 <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
                     <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
                     <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)} title={showReceipt ? "Ocultar Cupom" : "Mostrar Cupom"}>
-                        {showReceipt ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-                        ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
-                        )}
+                        {showReceipt ? <Eye size={20} /> : <EyeOff size={20} />}
                     </ActionIcon>
                 </Group>
 
@@ -471,9 +468,7 @@ export function SaleForm() {
                                                     <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
                                                     {!isViewMode && (
                                                         <Table.Td>
-                                                            <Button size="xs" color="red" onClick={() => removeItem(item.productId)}>
-                                                                Remover
-                                                            </Button>
+                                                            <XCircle size={20} color="red" onClick={() => removeItem(item.productId)} style={{ cursor: 'pointer' }} />
                                                         </Table.Td>
                                                     )}
                                                 </Table.Tr>

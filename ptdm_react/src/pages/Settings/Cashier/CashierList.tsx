@@ -4,6 +4,7 @@ import { ActionIcon, Button, Group, Table, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
 import { Link, useNavigate } from 'react-router-dom';
+import { CirclePlus } from 'lucide-react';
 
 interface Cashier {
     id?: string | number;
@@ -31,10 +32,7 @@ export function CashierList() {
             <Group justify="space-between" mb="md">
                 <Title order={3} style={{ paddingLeft: '2.5rem' }}>Operadores de Caixa</Title>
                 <ActionIcon component={Link} to="/settings/cashiers/new" variant="light" size="lg">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
+                    <CirclePlus size={20} />
                 </ActionIcon>
             </Group>
 
