@@ -637,6 +637,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@canvas/image-data@npm:^1.0.0":
+  version: 1.1.0
+  resolution: "@canvas/image-data@npm:1.1.0"
+  checksum: 10c0/9a559ddd52a9276581051787d4e85e223beaf8fe7fbbe5c651d3bfecfce524ab12518798d6b73669251c8845a597f867e2035c3fcf115d4b66b0a4ae75771e7e
+  languageName: node
+  linkType: hard
+
 "@csstools/color-helpers@npm:^5.1.0":
   version: 5.1.0
   resolution: "@csstools/color-helpers@npm:5.1.0"
@@ -1558,6 +1565,26 @@ __metadata:
   version: 0.11.0
   resolution: "@pkgjs/parseargs@npm:0.11.0"
   checksum: 10c0/5bd7576bb1b38a47a7fc7b51ac9f38748e772beebc56200450c4a817d712232b8f1d3ef70532c80840243c657d491cf6a6be1e3a214cff907645819fdc34aadd
+  languageName: node
+  linkType: hard
+
+"@point-of-sale/codepage-encoder@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "@point-of-sale/codepage-encoder@npm:3.0.0"
+  checksum: 10c0/f1df546833ef0e803fba738735833a8bc7363e00bb116613b5035bd0076cae57636c173dfc1aac2469ebcfe08af192cf2b12941f465a32608397a62fa8223b59
+  languageName: node
+  linkType: hard
+
+"@point-of-sale/receipt-printer-encoder@npm:^3.0.3":
+  version: 3.0.3
+  resolution: "@point-of-sale/receipt-printer-encoder@npm:3.0.3"
+  dependencies:
+    "@canvas/image-data": "npm:^1.0.0"
+    "@point-of-sale/codepage-encoder": "npm:^3.0.0"
+    canvas-dither: "npm:^1.0.1"
+    canvas-flatten: "npm:^1.0.1"
+    resize-image-data: "npm:^0.3.1"
+  checksum: 10c0/6e26f406c2f96d6f8478940ae5b73114009d38fc4fec5d1c820f5cb376183fcca3251be567769a123ecb33f7e2139733fbff6363174fdf5af611fc2af6661c72
   languageName: node
   linkType: hard
 
@@ -2929,6 +2956,20 @@ __metadata:
   version: 1.0.30001668
   resolution: "caniuse-lite@npm:1.0.30001668"
   checksum: 10c0/247b3200aeec55038f3a11f3e6ab66f656c54d30df7b01d8d447efaba9af96ad3e17128da2ddd42ddc9cb6c286bac65b634a20955b3cc6619be7ca4601fddc8e
+  languageName: node
+  linkType: hard
+
+"canvas-dither@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "canvas-dither@npm:1.0.1"
+  checksum: 10c0/532cfeef9248de3fc0fdbc20e2023dd38b6899826856ef4e63a7cdc4b8863316cd93cb50139dc885f43584b7c59a40f06d4d69b433776efb84c6bcdd1a2a244b
+  languageName: node
+  linkType: hard
+
+"canvas-flatten@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "canvas-flatten@npm:1.0.1"
+  checksum: 10c0/c0862e82f3449877c85e42c5b1a9862a33058878e084610d02f2b47ae84d103da445f12500662fe4030960544d58ded1863073a35f4dbce1484f8aea533b5a82
   languageName: node
   linkType: hard
 
@@ -6675,6 +6716,7 @@ __metadata:
     "@mantine/form": "npm:^8.3.9"
     "@mantine/hooks": "npm:8.3.9"
     "@mantine/notifications": "npm:^8.3.9"
+    "@point-of-sale/receipt-printer-encoder": "npm:^3.0.3"
     "@storybook/addon-themes": "npm:^10.0.0"
     "@storybook/react": "npm:^10.0.0"
     "@storybook/react-vite": "npm:^10.0.0"
@@ -7033,6 +7075,15 @@ __metadata:
   version: 2.0.2
   resolution: "require-from-string@npm:2.0.2"
   checksum: 10c0/aaa267e0c5b022fc5fd4eef49d8285086b15f2a1c54b28240fdf03599cbd9c26049fee3eab894f2e1f6ca65e513b030a7c264201e3f005601e80c49fb2937ce2
+  languageName: node
+  linkType: hard
+
+"resize-image-data@npm:^0.3.1":
+  version: 0.3.1
+  resolution: "resize-image-data@npm:0.3.1"
+  dependencies:
+    "@canvas/image-data": "npm:^1.0.0"
+  checksum: 10c0/5198e8a93a30a95b21a47138d06367f78276171584204986ce75072cbe8bed980b4d551499405c88d8ed77c7b1f50215a207bfdf6bf548471124cf92c51776d2
   languageName: node
   linkType: hard
 

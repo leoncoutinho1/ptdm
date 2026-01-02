@@ -24,6 +24,7 @@
     "@mantine/form": "^8.3.9",
     "@mantine/hooks": "8.3.9",
     "@mantine/notifications": "^8.3.9",
+    "@point-of-sale/receipt-printer-encoder": "^3.0.3",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

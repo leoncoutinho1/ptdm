@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder';
 import { useForm } from '@mantine/form';
 import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Modal, Divider, Box, ScrollArea, ActionIcon, Accordion } from '@mantine/core';
 import { Eye, EyeOff, XCircle } from 'lucide-react';
@@ -349,7 +350,78 @@ export function SaleForm() {
         }, 100);
     };
 
-    const handlePrint = () => {
+    const handlePrint = async () => {
+        const encoder = new ReceiptPrinterEncoder({
+            language: 'esc-pos',
+            width: 32
+        });
+
+        const result = encoder
+            .initialize()
+            .align('center')
+            .text('*** CUPOM DE VENDA ***')
+            .newline()
+            .text(new Date().toLocaleString("pt-BR"))
+            .newline()
+            .rule()
+            .align('left');
+
+        saleItems.forEach((item) => {
+            const description = item.product.description.substring(0, 32);
+            const qtyPrice = `${item.quantity} x ${formatCurrency(item.unitPrice)}`;
+            const total = formatCurrency(item.totalPrice);
+
+            result
+                .text(description)
+                .newline()
+                .text(qtyPrice.padEnd(20))
+                .text(total.padStart(12))
+                .newline();
+        });
+
+        const finalEncoded = result
+            .rule()
+            .align('right')
+            .text(`TOTAL: ${formatCurrency(totalSale)}`)
+            .newline()
+            .text(`PAGO: ${formatCurrency(amountPaid)}`)
+            .newline()
+            .text(`TROCO: ${formatCurrency(change >= 0 ? change : 0)}`)
+            .newline()
+            .rule()
+            .align('center')
+            .text('Obrigado pela preferência!')
+            .newline()
+            .cut()
+            .encode();
+
+        console.log('Dados codificados para impressora térmica:', finalEncoded);
+
+        if ('serial' in navigator) {
+            try {
+                // Solicitar permissão para acessar a porta serial
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 }); // Configurar a velocidade (baud rate)
+
+                // Obter o escritor (writer) para enviar dados
+                const writer = port.writable.getWriter();
+
+                // Enviar o byte array para a impressora
+                await writer.write(finalEncoded);
+                await writer.close();
+                await port.close();
+
+                console.log('Impressão enviada com sucesso.');
+
+            } catch (error) {
+                console.error('Falha na comunicação com a impressora:', error);
+            }
+        } else {
+            alert('Seu navegador não suporta a Web Serial API. Use Chrome ou Edge.');
+        }
+        // Nota: O finalEncoded é um Uint8Array contendo os comandos ESC/POS.
+        // Ele pode ser enviado via Web Serial, Web Bluetooth ou para um servidor de impressão local.
+
         window.print();
         resetForm();
     };
