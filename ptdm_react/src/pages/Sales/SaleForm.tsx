@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useForm } from '@mantine/form';
-import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Modal, Divider, Box, ScrollArea } from '@mantine/core';
+import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Modal, Divider, Box, ScrollArea, ActionIcon } from '@mantine/core';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
@@ -60,6 +60,7 @@ export function SaleForm() {
     const [amountPaid, setAmountPaid] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
     const [showPrintModal, setShowPrintModal] = useState(false);
+    const [showReceipt, setShowReceipt] = useState(false);
 
     const form = useForm({
         initialValues: {
@@ -351,13 +352,23 @@ export function SaleForm() {
 
     return (
         <MainLayout>
-            <Title order={3} mb="md">{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
 
-            <Grid>
-                <Grid.Col span={{ base: 12, md: 7, lg: 8 }}>
-                    <Stack gap="md">
+            <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
+                <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
+                <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)} title={showReceipt ? "Ocultar Cupom" : "Mostrar Cupom"}>
+                    {showReceipt ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
+                    )}
+                </ActionIcon>
+            </Group>
+
+            <Grid align="stretch" style={{ flex: 1, minHeight: 0 }} gutter="md">
+                <Grid.Col span={showReceipt ? { base: 12, md: 7, lg: 8 } : 12} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <Stack gap="md" style={{ minHeight: 0 }}>
                         {/* Primeira linha: Selects */}
-                        <Group grow>
+                        <Group grow style={{ flexShrink: 0 }}>
                             <Select
                                 label="Forma de Pagamento"
                                 placeholder="Selecione"
@@ -389,7 +400,7 @@ export function SaleForm() {
 
                         {/* Segunda linha: Busca de produto - apenas no modo de criação */}
                         {!isViewMode && (
-                            <Group align="flex-end">
+                            <Group align="flex-end" style={{ flexShrink: 0 }}>
                                 <NumberInput
                                     label="Quantidade"
                                     value={quantity}
@@ -423,162 +434,168 @@ export function SaleForm() {
                         )}
 
                         {/* Tabela de itens da venda */}
-                        <Table striped highlightOnHover withTableBorder withColumnBorders>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Produto</Table.Th>
-                                    <Table.Th>Qtd</Table.Th>
-                                    <Table.Th>Vlr. Unit.</Table.Th>
-                                    <Table.Th>Total</Table.Th>
-                                    {!isViewMode && <Table.Th>Ações</Table.Th>}
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {saleItems.length === 0 ? (
+                        <ScrollArea scrollbars="y" style={{ flex: 1, minHeight: 0 }}>
+                            <Table striped highlightOnHover withTableBorder withColumnBorders>
+                                <Table.Thead>
                                     <Table.Tr>
-                                        <Table.Td colSpan={isViewMode ? 4 : 5} style={{ textAlign: 'center', color: '#888' }}>
-                                            Nenhum produto adicionado
-                                        </Table.Td>
+                                        <Table.Th>Produto</Table.Th>
+                                        <Table.Th>Qtd</Table.Th>
+                                        <Table.Th>Vlr. Unit.</Table.Th>
+                                        <Table.Th>Total</Table.Th>
+                                        {!isViewMode && <Table.Th>Ações</Table.Th>}
                                     </Table.Tr>
-                                ) : (
-                                    saleItems.map((item) => (
-                                        <Table.Tr key={item.productId}>
-                                            <Table.Td>{item.productName}</Table.Td>
-                                            <Table.Td>{item.quantity}</Table.Td>
-                                            <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
-                                            <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
-                                            {!isViewMode && (
-                                                <Table.Td>
-                                                    <Button size="xs" color="red" onClick={() => removeItem(item.productId)}>
-                                                        Remover
-                                                    </Button>
-                                                </Table.Td>
-                                            )}
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {saleItems.length === 0 ? (
+                                        <Table.Tr>
+                                            <Table.Td colSpan={isViewMode ? 4 : 5} style={{ textAlign: 'center', color: '#888' }}>
+                                                Nenhum produto adicionado
+                                            </Table.Td>
                                         </Table.Tr>
-                                    ))
-                                )}
-                            </Table.Tbody>
-                        </Table>
+                                    ) : (
+                                        saleItems.map((item) => (
+                                            <Table.Tr key={item.productId}>
+                                                <Table.Td>{item.productName}</Table.Td>
+                                                <Table.Td>{item.quantity}</Table.Td>
+                                                <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
+                                                <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
+                                                {!isViewMode && (
+                                                    <Table.Td>
+                                                        <Button size="xs" color="red" onClick={() => removeItem(item.productId)}>
+                                                            Remover
+                                                        </Button>
+                                                    </Table.Td>
+                                                )}
+                                            </Table.Tr>
+                                        ))
+                                    )}
+                                </Table.Tbody>
+                            </Table>
+                        </ScrollArea>
 
-                        {/* Resumo da venda */}
-                        <Group align="flex-start" grow>
-                            <NumberInput
-                                label="Valor Pago"
-                                value={amountPaid}
-                                ref={paidValueRef}
-                                onChange={(val) => setAmountPaid(Number(val) || 0)}
-                                min={0}
-                                decimalScale={2}
-                                fixedDecimalScale
-                                prefix="R$ "
-                                readOnly={isViewMode}
-                                disabled={isViewMode}
-                                onKeyDown={handlePaidValueKeyDown}
-                            />
-                            <Paper p="md" withBorder style={{ backgroundColor: '#f0f0f0' }}>
-                                <Text size="xl" fw={700} ta="center">
-                                    Total: {formatCurrency(totalSale)}
-                                </Text>
-                            </Paper>
-                            <Paper p="md" withBorder>
-                                <Text size="lg" ta="center">
-                                    Troco: {formatCurrency(change >= 0 ? change : 0)}
-                                </Text>
-                            </Paper>
-                        </Group>
+                        {/* Resumo da venda e Botão Finalizar */}
+                        <Group align="flex-end" gap="md" pt="md" style={{ flexShrink: 0 }}>
+                            <Group grow style={{ flex: 1 }} align="flex-end">
+                                <NumberInput
+                                    label="Valor Pago"
+                                    value={amountPaid}
+                                    ref={paidValueRef}
+                                    onChange={(val) => setAmountPaid(Number(val) || 0)}
+                                    min={0}
+                                    decimalScale={2}
+                                    fixedDecimalScale
+                                    prefix="R$ "
+                                    readOnly={isViewMode}
+                                    disabled={isViewMode}
+                                    onKeyDown={handlePaidValueKeyDown}
+                                />
+                                <Paper p="sm" withBorder style={{ backgroundColor: '#f0f0f0' }}>
+                                    <Text size="lg" fw={700} ta="center">
+                                        Total: {formatCurrency(totalSale)}
+                                    </Text>
+                                </Paper>
+                                <Paper p="sm" withBorder>
+                                    <Text size="md" ta="center">
+                                        Troco: {formatCurrency(change >= 0 ? change : 0)}
+                                    </Text>
+                                </Paper>
+                            </Group>
 
-                        {!isViewMode && (
-                            <Group justify="flex-end">
+                            {!isViewMode && (
                                 <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef}>
                                     Finalizar Venda
                                 </Button>
-                            </Group>
-                        )}
+                            )}
+                        </Group>
                     </Stack>
                 </Grid.Col>
 
                 {/* Cupom Fiscal Lateral */}
-                <Grid.Col span={{ base: 12, md: 5, lg: 4 }}>
-                    <style>{`
-                        @media print {
-                            body * {
-                                visibility: hidden;
-                            }
-                            #printable-receipt, #printable-receipt * {
-                                visibility: visible;
-                            }
-                            #printable-receipt {
-                                position: absolute;
-                                left: 0;
-                                top: 0;
-                                width: 100%;
-                                margin: 0;
-                                padding: 0;
-                                background-color: white !important;
-                                box-shadow: none !important;
-                                border: none !important;
-                                min-height: auto !important;
-                            }
-                            /* Força a exibição de todo o conteúdo do ScrollArea na impressão */
-                            #printable-receipt .mantine-ScrollArea-root,
-                            #printable-receipt .mantine-ScrollArea-viewport {
-                                height: auto !important;
-                                max-height: none !important;
-                                overflow: visible !important;
-                            }
-                            /* Esconde elementos de layout como navbar se eles ainda estiverem visíveis */
-                            nav, header, footer {
-                                display: none !important;
-                            }
+                {showReceipt && (
+                    <Grid.Col span={{ base: 12, md: 5, lg: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                        <style>{`
+                    @media print {
+                        body * {
+                            visibility: hidden;
                         }
-                    `}</style>
-                    <Paper id="printable-receipt" shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', minHeight: '500px' }}>
-                        <Stack gap="xs">
-                            <Text ta="center" fw={700}>*** CUPOM DE VENDA ***</Text>
-                            <Text ta="center" size="sm">{new Date().toLocaleString()}</Text>
-                            <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                        #printable-receipt, #printable-receipt * {
+                            visibility: visible;
+                        }
+                        #printable-receipt {
+                            position: absolute;
+                            left: 0;
+                            top: 0;
+                            width: 100%;
+                            margin: 0;
+                            padding: 0;
+                            background-color: white !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                            min-height: auto !important;
+                        }
+                        /* Força a exibição de todo o conteúdo do ScrollArea na impressão */
+                        #printable-receipt .mantine-ScrollArea-root,
+                        #printable-receipt .mantine-ScrollArea-viewport {
+                            height: auto !important;
+                            max-height: none !important;
+                            overflow: visible !important;
+                        }
+                        /* Esconde elementos de layout como navbar se eles ainda estiverem visíveis */
+                        nav, header, footer {
+                            display: none !important;
+                        }
+                    }
+                `}</style>
+                        <Paper id="printable-receipt" shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <ScrollArea style={{ flex: 1 }} scrollbars="y">
+                                <Stack gap="xs">
+                                    <Text ta="center" fw={700}>*** CUPOM DE VENDA ***</Text>
+                                    <Text ta="center" size="sm">{new Date().toLocaleString()}</Text>
+                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
 
-                            <Group justify="space-between">
-                                <Text size="sm">ITEM</Text>
-                                <Text size="sm">VALOR</Text>
-                            </Group>
-                            <Divider my="xs" style={{ borderTopStyle: 'dashed' }} />
+                                    <Group justify="space-between">
+                                        <Text size="sm">ITEM</Text>
+                                        <Text size="sm">VALOR</Text>
+                                    </Group>
+                                    <Divider my="xs" style={{ borderTopStyle: 'dashed' }} />
 
-                            <ScrollArea h={350}>
-                                {saleItems.length === 0 ? (
-                                    <Text ta="center" size="sm" c="dimmed" py="xl">...aguardando itens...</Text>
-                                ) : (
-                                    saleItems.map((item, index) => (
-                                        <Box key={index} mb="xs">
-                                            <Text size="sm" lineClamp={1}>{item.productName}</Text>
-                                            <Group justify="space-between">
-                                                <Text size="xs">{item.quantity} x {formatCurrency(item.unitPrice)}</Text>
-                                                <Text size="sm">{formatCurrency(item.totalPrice)}</Text>
-                                            </Group>
-                                        </Box>
-                                    ))
-                                )}
+                                    <Box>
+                                        {saleItems.length === 0 ? (
+                                            <Text ta="center" size="sm" c="dimmed" py="xl">...aguardando itens...</Text>
+                                        ) : (
+                                            saleItems.map((item, index) => (
+                                                <Box key={index} mb="xs">
+                                                    <Text size="sm" lineClamp={1}>{item.productName}</Text>
+                                                    <Group justify="space-between">
+                                                        <Text size="xs">{item.quantity} x {formatCurrency(item.unitPrice)}</Text>
+                                                        <Text size="sm">{formatCurrency(item.totalPrice)}</Text>
+                                                    </Group>
+                                                </Box>
+                                            ))
+                                        )}
+                                    </Box>
+
+                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                                    <Group justify="space-between">
+                                        <Text fw={700}>TOTAL</Text>
+                                        <Text fw={700}>{formatCurrency(totalSale)}</Text>
+                                    </Group>
+                                    <Group justify="space-between">
+                                        <Text size="sm">PAGO</Text>
+                                        <Text size="sm">{formatCurrency(amountPaid)}</Text>
+                                    </Group>
+                                    <Group justify="space-between">
+                                        <Text size="sm">TROCO</Text>
+                                        <Text size="sm">{formatCurrency(change >= 0 ? change : 0)}</Text>
+                                    </Group>
+
+                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                                    <Text ta="center" size="xs">Obrigado pela preferência!</Text>
+                                </Stack>
                             </ScrollArea>
-
-                            <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
-                            <Group justify="space-between">
-                                <Text fw={700}>TOTAL</Text>
-                                <Text fw={700}>{formatCurrency(totalSale)}</Text>
-                            </Group>
-                            <Group justify="space-between">
-                                <Text size="sm">PAGO</Text>
-                                <Text size="sm">{formatCurrency(amountPaid)}</Text>
-                            </Group>
-                            <Group justify="space-between">
-                                <Text size="sm">TROCO</Text>
-                                <Text size="sm">{formatCurrency(change >= 0 ? change : 0)}</Text>
-                            </Group>
-
-                            <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
-                            <Text ta="center" size="xs">Obrigado pela preferência!</Text>
-                        </Stack>
-                    </Paper>
-                </Grid.Col>
+                        </Paper>
+                    </Grid.Col>
+                )}
             </Grid>
 
             {/* Modal de Impressão */}

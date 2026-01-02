@@ -42,16 +42,21 @@ namespace ptdm.Service.Services
                 return new ResultList<ProductDTO>(Array.Empty<ProductDTO>(), 0);
                 
             var products = _context.Products
-                .Where(x => x.Barcodes.Any(barcode => barcode.Code == text) || x.Description.ToUpper().Contains(text.ToUpper()))
+                .Where(x => x.Barcodes.Any(barcode => barcode.Code == text))
                 .Include(x => x.Barcodes)
                 .AsNoTracking();
 
-            if (products.Count() == 0)
-                return new ResultList<ProductDTO>(Array.Empty<ProductDTO>(), 0);
+            if (products.Count() == 1)
+            {
+                return new ResultList<ProductDTO>(products.Select(x => (ProductDTO)x).ToList(), products.Count());
+            }
 
-            var count = products.Count();
-
-            return new ResultList<ProductDTO>(products.Select(x => (ProductDTO)x).ToList(), count);
+            products = _context.Products
+                .Where(x => x.Description.ToUpper().Contains(text.ToUpper()))
+                .Include(x => x.Barcodes)
+                .AsNoTracking();
+                        
+            return new ResultList<ProductDTO>(products.Select(x => (ProductDTO)x).ToList(), products.Count());
         }
 
         public ResultList<ProductDTO> ListProduct(ProductFilter filters)
@@ -72,12 +77,16 @@ namespace ptdm.Service.Services
 
         public ErrorOr<ProductDTO> Create(ProductDTO product)
         {
-            if (!product.Barcodes.Any())
-                return Error.Failure("É necessário informar ao menos um código.");
-
+            if (!product.Barcodes.Any() ||
+                (product.Barcodes.Count() == 1 && product.Barcodes.First() == String.Empty)
+            )
+            {
+                return Error.Failure(description: "É necessário informar ao menos um código.");
+            }
+            
             var existCodes = _context.Barcodes.Where(x => product.Barcodes.Contains(x.Code)).AsNoTracking().ToList();
             if (product.Barcodes.Count == existCodes.Count)
-                return Error.Failure("O código informado já existe para outro produto");
+                return Error.Failure(description: "O código informado já existe para outro produto");
 
             Product p = new Product
             {
@@ -115,7 +124,7 @@ namespace ptdm.Service.Services
         public ErrorOr<ProductDTO> Update(ProductDTO product)
         {
             if (!product.Barcodes.Any())
-                return Error.Failure("É necessário informar ao menos um código");
+                return Error.Failure(description: "É necessário informar ao menos um código");
 
             Product p = new Product
             {
@@ -162,9 +171,9 @@ namespace ptdm.Service.Services
 
             if (existCode == 0)
                 if (otherProduct > 0)
-                    return Error.Failure("O código que você tentou inserir já existe para outro produto");
+                    return Error.Failure(description: "O código que você tentou inserir já existe para outro produto");
                 else
-                    return Error.Failure("O Produto não possui um código");
+                    return Error.Failure(description: "O Produto não possui um código");
 
             _context.Products.Update(p);
             _context.SaveChanges();

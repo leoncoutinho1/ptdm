@@ -95,7 +95,7 @@ export function ProductForm() {
   return (
     <MainLayout>
       <Group justify="space-between" mb="md">
-        <Title order={3}>{id ? 'Editar Produto' : 'Novo Produto'}</Title>
+        <Title order={3} style={{ paddingLeft: '2.5rem' }}>{id ? 'Editar Produto' : 'Novo Produto'}</Title>
       </Group>
 
       <form onSubmit={form.onSubmit(submit)}>

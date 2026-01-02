@@ -50,7 +50,7 @@ export function PaymentFormForm() {
     return (
         <MainLayout>
             <Group justify="space-between" mb="md">
-                <Title order={3}>{id ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}</Title>
+                <Title order={3} style={{ paddingLeft: '2.5rem' }}>{id ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}</Title>
             </Group>
 
             <form onSubmit={form.onSubmit(submit)}>

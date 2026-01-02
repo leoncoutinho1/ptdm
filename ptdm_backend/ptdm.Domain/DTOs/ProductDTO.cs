@@ -8,7 +8,7 @@ public class ProductDTO
     public Double Price { get; set; }
     public Double ProfitMargin { get; set; }
     public Double Quantity { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } 
     public string? ImageUrl { get; set; } = String.Empty;
     public bool IsActive { get; set; } = true;
     public virtual ICollection<string> Barcodes { get; set; }

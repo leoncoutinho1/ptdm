@@ -29,7 +29,7 @@ export function CheckoutList() {
     return (
         <MainLayout>
             <Group justify="space-between" mb="md">
-                <Title order={3}>Terminais de Caixa (Checkouts)</Title>
+                <Title order={3} style={{ paddingLeft: '2.5rem' }}>Terminais de Caixa (Checkouts)</Title>
                 <ActionIcon component={Link} to="/settings/checkouts/new" variant="light" size="lg">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19" />

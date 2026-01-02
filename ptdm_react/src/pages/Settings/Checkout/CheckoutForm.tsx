@@ -50,7 +50,7 @@ export function CheckoutForm() {
     return (
         <MainLayout>
             <Group justify="space-between" mb="md">
-                <Title order={3}>{id ? 'Editar Terminal' : 'Novo Terminal'}</Title>
+                <Title order={3} style={{ paddingLeft: '2.5rem' }}>{id ? 'Editar Terminal' : 'Novo Terminal'}</Title>
             </Group>
 
             <form onSubmit={form.onSubmit(submit)}>
