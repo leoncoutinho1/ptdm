@@ -443,7 +443,7 @@ export function SaleForm() {
                 </Group>
 
                 <Grid align="stretch" style={{ flex: 1, height: '92vh' }} gutter="xs">
-                    <Grid.Col span={showReceipt ? { base: 12, md: 7, lg: 8 } : 12} style={{ display: 'flex', flexDirection: 'column', height: '92vh' }}>
+                    <Grid.Col span={showReceipt ? { base: 9 } : 12} style={{ display: 'flex', flexDirection: 'column', height: '92vh' }}>
                         <Stack gap="md" style={{ height: '92vh' }}>
                             <Accordion variant="separated" defaultValue="config" style={{ flexShrink: 0 }}>
                                 <Accordion.Item value="config">
@@ -522,11 +522,11 @@ export function SaleForm() {
                                 <Table striped highlightOnHover withTableBorder withColumnBorders style={{ color: '#228be6', fontWeight: 'bold' }}>
                                     <Table.Thead style={{ color: 'black', fontWeight: 'bold' }}>
                                         <Table.Tr>
-                                            <Table.Th>Produto</Table.Th>
-                                            <Table.Th>Qtd</Table.Th>
-                                            <Table.Th>Vlr. Unit.</Table.Th>
-                                            <Table.Th>Total</Table.Th>
-                                            {!isViewMode && <Table.Th>Ações</Table.Th>}
+                                            <Table.Th w={!isViewMode ? '50%' : '60%'}>Produto</Table.Th>
+                                            <Table.Th w={'5%'}>Qtd</Table.Th>
+                                            <Table.Th w={'10%'}>Vlr. Unit.</Table.Th>
+                                            <Table.Th w={'10%'}>Total</Table.Th>
+                                            {!isViewMode && <Table.Th w={'5%'}>Ações</Table.Th>}
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
@@ -594,7 +594,7 @@ export function SaleForm() {
 
                     {/* Cupom Fiscal Lateral */}
                     {showReceipt && (
-                        <Grid.Col span={{ base: 12, md: 5, lg: 4 }} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                        <Grid.Col span={{ base: 3 }} style={{ display: 'flex', flexDirection: 'column', height: '90vh' }}>
                             <style>{`
                     @media print {
                         body * {
