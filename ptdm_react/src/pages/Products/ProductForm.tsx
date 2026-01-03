@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from '@mantine/form';
-import { Button, Group, NumberInput, Stack, TextInput, Title } from '@mantine/core';
+import { Button, Group, NumberInput, Select, Stack, TextInput, Title } from '@mantine/core';
 import { MainLayout } from '../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
@@ -12,6 +12,7 @@ interface ProductFormValues {
   price: number;
   quantity: number;
   barcodes: string[];
+  categoryId: string;
 }
 
 
@@ -19,6 +20,7 @@ export function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
   const product = (location.state as any)?.product as Partial<ProductFormValues & { id: string | number }> | undefined;
 
   const form = useForm<ProductFormValues>({
@@ -27,9 +29,23 @@ export function ProductForm() {
       cost: 0,
       price: 0,
       quantity: 0,
-      barcodes: ['']
+      barcodes: [''],
+      categoryId: ''
     }
   });
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const result = await apiRequest<any>('category/listCategory');
+        const data = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
+        setCategories(data.map((cat: any) => ({ value: String(cat.id), label: cat.description })));
+      } catch (err) {
+        console.error('Erro ao buscar categorias', err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (product) {
@@ -38,7 +54,8 @@ export function ProductForm() {
         cost: Number(product.cost ?? 0),
         price: Number(product.price ?? 0),
         quantity: Number(product.quantity ?? 0),
-        barcodes: Array.isArray((product as any).barcodes) ? ((product as any).barcodes as string[]) : (product?.barcodes ? [String(product.barcodes)] : [''])
+        barcodes: Array.isArray((product as any).barcodes) ? ((product as any).barcodes as string[]) : (product?.barcodes ? [String(product.barcodes)] : ['']),
+        categoryId: String(product.categoryId ?? '')
       });
       return;
     }
@@ -54,7 +71,8 @@ export function ProductForm() {
               cost: Number(found.cost ?? 0),
               price: Number(found.price ?? 0),
               quantity: Number(found.quantity ?? 0),
-              barcodes: found.barcodes && Array.isArray(found.barcodes) ? found.barcodes : found.barcode ? [found.barcode] : ['']
+              barcodes: found.barcodes && Array.isArray(found.barcodes) ? found.barcodes : found.barcode ? [found.barcode] : [''],
+              categoryId: String(found.categoryId ?? '')
             });
           } else {
             notifications.show({ color: 'yellow', title: 'Produto não encontrado', message: 'Não foi possível carregar o produto.' });
@@ -101,6 +119,15 @@ export function ProductForm() {
       <form onSubmit={form.onSubmit(submit)}>
         <Stack>
           <TextInput label="Descrição" placeholder="Descrição" value={form.values.description} onChange={(e) => form.setFieldValue('description', e.currentTarget.value)} required />
+          <Select
+            label="Categoria"
+            placeholder="Selecione uma categoria"
+            data={categories}
+            value={form.values.categoryId}
+            onChange={(val) => form.setFieldValue('categoryId', val || '')}
+            searchable
+            clearable
+          />
           <NumberInput label="Custo" value={form.values.cost} onChange={(v) => form.setFieldValue('cost', Number(v ?? 0))} min={0} />
           <NumberInput label="Preço" value={form.values.price} onChange={(v) => form.setFieldValue('price', Number(v ?? 0))} min={0} />
           <NumberInput label="Quantidade" value={form.values.quantity} onChange={(v) => form.setFieldValue('quantity', Number(v ?? 0))} min={0} />

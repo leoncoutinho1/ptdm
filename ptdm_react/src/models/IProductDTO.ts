@@ -9,4 +9,5 @@ export interface IProductDTO {
     imageUrl: string;
     isActive: boolean;
     barcodes: string[];
+    categoryId?: string | number;
 }
