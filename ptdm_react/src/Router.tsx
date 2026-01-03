@@ -8,6 +8,8 @@ import { PaymentFormList } from './pages/Settings/PaymentForm/PaymentFormList';
 import { PaymentFormForm } from './pages/Settings/PaymentForm/PaymentFormForm';
 import { CashierList } from './pages/Settings/Cashier/CashierList';
 import { CashierForm } from './pages/Settings/Cashier/CashierForm';
+import { CategoryList } from './pages/Settings/Category/CategoryList';
+import { CategoryForm } from './pages/Settings/Category/CategoryForm';
 import { CheckoutList } from './pages/Settings/Checkout/CheckoutList';
 import { CheckoutForm } from './pages/Settings/Checkout/CheckoutForm';
 import { AuthProvider } from './contexts/AuthContext';
@@ -45,6 +47,10 @@ const router = createBrowserRouter([
       { path: '/settings/cashiers', element: <CashierList /> },
       { path: '/settings/cashiers/new', element: <CashierForm /> },
       { path: '/settings/cashiers/:id', element: <CashierForm /> },
+
+      { path: '/settings/categories', element: <CategoryList /> },
+      { path: '/settings/categories/new', element: <CategoryForm /> },
+      { path: '/settings/categories/:id', element: <CategoryForm /> },
 
       { path: '/settings/checkouts', element: <CheckoutList /> },
       { path: '/settings/checkouts/new', element: <CheckoutForm /> },

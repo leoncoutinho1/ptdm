@@ -39,6 +39,12 @@ export function MainLayout({ children }: { children: ReactNode }) {
             />
             <NavLink
               component={Link}
+              to="/settings/categories"
+              label="Categorias"
+              onClick={() => toggle()}
+            />
+            <NavLink
+              component={Link}
               to="/settings/checkouts"
               label="Terminais de caixa"
               onClick={() => toggle()}
