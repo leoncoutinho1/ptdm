@@ -4579,6 +4579,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dexie@npm:4.2.1":
+  version: 4.2.1
+  resolution: "dexie@npm:4.2.1"
+  checksum: 10c0/2e96bb21fc559290e545b740d943cdaa0cad4281f89e7355c332a8bc83870fc05ae9460be586fdb4b55f3860489070b17234a41a78cf469ed6464f6e0616125b
+  languageName: node
+  linkType: hard
+
 "dir-glob@npm:^3.0.1":
   version: 3.0.1
   resolution: "dir-glob@npm:3.0.1"
@@ -8214,6 +8221,7 @@ __metadata:
     "@types/react": "npm:^19.2.2"
     "@types/react-dom": "npm:^19.2.1"
     "@vitejs/plugin-react": "npm:^5.0.4"
+    dexie: "npm:4.2.1"
     eslint: "npm:^9.37.0"
     eslint-config-mantine: "npm:^4.0.3"
     eslint-plugin-jsx-a11y: "npm:^6.10.2"

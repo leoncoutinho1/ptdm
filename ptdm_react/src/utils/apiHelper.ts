@@ -1,3 +1,5 @@
+import { db } from './db';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export function getTenant(): string {
@@ -16,15 +18,41 @@ interface TokenResponse {
   refreshToken: string;
 }
 
+export async function saveAuthData(accessToken: string, refreshToken: string, tenant: string) {
+  localStorage.setItem('accessToken', accessToken);
+  localStorage.setItem('refreshToken', refreshToken);
+  await db.auth.put({ id: 'current_auth', accessToken, refreshToken, tenant });
+}
+
+export async function clearAuthData() {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  await db.auth.delete('current_auth');
+}
+
+export async function getAuthData() {
+  let auth = await db.auth.get('current_auth');
+  if (!auth) {
+    const accessToken = localStorage.getItem('accessToken');
+    const refreshToken = localStorage.getItem('refreshToken');
+    const tenant = getTenant();
+    if (accessToken && refreshToken) {
+      auth = { id: 'current_auth', accessToken, refreshToken, tenant };
+      await db.auth.put(auth);
+    }
+  }
+  return auth;
+}
+
 async function refreshTokens(): Promise<TokenResponse | null> {
-  const accessToken = localStorage.getItem('accessToken');
-  const refreshToken = localStorage.getItem('refreshToken');
-  const tenant = getTenant();
+  // Se estiver offline, não tenta o refresh
+  if (!navigator.onLine) return null;
 
-  // Assume refresh endpoint is at /Login/refresh or similar, constructed with tenant
+  const auth = await getAuthData();
+  if (!auth) return null;
+
+  const { accessToken, refreshToken, tenant } = auth;
   const url = `/api/${tenant}/Login/refresh`;
-
-  if (!accessToken || !refreshToken) return null;
 
   try {
     const res = await fetch(url, {
@@ -37,8 +65,7 @@ async function refreshTokens(): Promise<TokenResponse | null> {
 
     if (res.ok) {
       const data: TokenResponse = await res.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      await saveAuthData(data.accessToken, data.refreshToken, tenant);
       return data;
     }
   } catch (error) {
@@ -52,8 +79,9 @@ export async function apiRequest<T>(
   method: HttpMethod = 'GET',
   body?: unknown
 ): Promise<T> {
-  let token = localStorage.getItem('accessToken');
-  const tenant = getTenant();
+  const auth = await getAuthData();
+  const token = auth?.accessToken || null;
+  const tenant = auth?.tenant || getTenant();
   //   console.log(tenant);
   // Garante que a URL base termine sem barra para consistência
 
@@ -73,11 +101,19 @@ export async function apiRequest<T>(
     return h;
   };
 
-  let res = await fetch(url, {
-    method,
-    headers: getHeaders(token),
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: getHeaders(token),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    if (!navigator.onLine) {
+      throw new Error('Você está offline. Verifique sua conexão.');
+    }
+    throw error;
+  }
 
   if (!res.ok) {
     // Se receber 401 (não autorizado), tenta refresh
@@ -105,8 +141,12 @@ export async function apiRequest<T>(
       }
 
       // Se refresh falhar ou retry falhar
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      // Mas se estiver offline, NÃO desloga. Apenas lança erro de conexão.
+      if (!navigator.onLine) {
+        throw new Error('Você está offline. Algumas operações podem não estar disponíveis.');
+      }
+
+      await clearAuthData();
       const currentTenant = getTenant();
       window.location.href = `/${currentTenant}/login`;
       throw new Error('Sessão expirada. Faça login novamente.');

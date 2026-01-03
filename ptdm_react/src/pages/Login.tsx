@@ -5,7 +5,7 @@ import { Group, PasswordInput, TextInput, Text, Button, Stack, Paper, PaperProps
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useContext } from "react";
-import { apiRequest } from '@/utils/apiHelper';
+import { apiRequest, saveAuthData, getTenant } from '@/utils/apiHelper';
 import { useNavigate } from "react-router-dom";
 
 const defaultValues: IAuthenticate = {
@@ -27,10 +27,9 @@ export function Login(props: PaperProps) {
     const authenticate = async (form: IAuthenticate) => {
         try {
             const data = await apiRequest<{ accessToken: string; refreshToken: string }>('login/authenticate', 'POST', form);
-            localStorage.setItem('accessToken', data.accessToken);
-            localStorage.setItem('refreshToken', data.refreshToken);
+            const tenant = getTenant();
+            await saveAuthData(data.accessToken, data.refreshToken, tenant);
             setIsAuth(true);
-            await setTimeout(() => { }, 1500);
             navigate("/home");
         } catch (err) {
             notifications.show({ color: 'red', title: 'Erro ao realizar login', message: String(err) });
