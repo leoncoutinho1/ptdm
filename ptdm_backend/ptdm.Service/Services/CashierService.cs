@@ -10,6 +10,8 @@ using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace ptdm.Service.Services;
 
@@ -25,10 +27,17 @@ public interface ICashierService
 public class CashierService : ICashierService
 {
     private readonly AppDbContext _context;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public CashierService(AppDbContext context)
+    public CashierService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private string GetUserId()
+    {
+        return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
     }
 
     public ResultList<Cashier> ListCashier(CashierFilter filters)
@@ -51,7 +60,8 @@ public class CashierService : ICashierService
     {
         Cashier cashier = new Cashier()
         {
-            Name = dto.Name
+            Name = dto.Name,
+            CreatedBy = GetUserId()
         };
         try
         {
@@ -69,7 +79,13 @@ public class CashierService : ICashierService
     {
         try
         {
-            var cashier = (Cashier)dto;
+            var cashier = _context.Cashiers.FirstOrDefault(x => x.Id == dto.Id);
+            if (cashier == null) return Error.NotFound(description: "Cashier not found");
+
+            cashier.Name = dto.Name;
+            cashier.UpdatedBy = GetUserId();
+            cashier.UpdatedAt = DateTime.UtcNow;
+
             _context.Cashiers.Update(cashier);
             _context.SaveChanges();
             return cashier;

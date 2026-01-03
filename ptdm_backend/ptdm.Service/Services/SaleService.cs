@@ -8,6 +8,8 @@ using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,10 +30,17 @@ namespace ptdm.Service.Services
     public class SaleService : ISaleService
     {
         private readonly AppDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public SaleService(AppDbContext context)
+        public SaleService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        private string GetUserId()
+        {
+            return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
         }
 
         public ErrorOr<SaleDTO> Create(SaleDTO dto)
@@ -44,7 +53,8 @@ namespace ptdm.Service.Services
                 ChangeValue = dto.ChangeValue,
                 PaidValue = dto.PaidValue,
                 PaymentFormId = dto.PaymentFormId,
-                TotalValue = dto.TotalValue
+                TotalValue = dto.TotalValue,
+                CreatedBy = GetUserId()
             };
             _context.Sales.Add(sale);
 
@@ -63,6 +73,8 @@ namespace ptdm.Service.Services
 
                 var product = _context.Products.Where(x => x.Id == sp.ProductId).Include(x => x.Barcodes).SingleOrDefault();
                 product.Quantity -= sp.Quantity;
+                product.UpdatedBy = GetUserId();
+                product.UpdatedAt = DateTime.UtcNow;
                 _context.Products.Update(product);
             }
 

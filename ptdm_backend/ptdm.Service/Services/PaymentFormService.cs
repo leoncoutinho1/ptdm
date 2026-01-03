@@ -10,6 +10,8 @@ using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace ptdm.Service.Services;
 
@@ -25,10 +27,17 @@ public interface IPaymentFormService
 public class PaymentFormService : IPaymentFormService
 {
     private readonly AppDbContext _context;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public PaymentFormService(AppDbContext context)
+    public PaymentFormService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private string GetUserId()
+    {
+        return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
     }
 
     public ResultList<PaymentForm> ListPaymentForm(PaymentFormFilter filters)
@@ -51,7 +60,8 @@ public class PaymentFormService : IPaymentFormService
     {
         PaymentForm paymentForm = new PaymentForm()
         {
-            Description = dto.Description
+            Description = dto.Description,
+            CreatedBy = GetUserId()
         };
         try
         {
@@ -75,6 +85,8 @@ public class PaymentFormService : IPaymentFormService
         }
 
         paymentForm.Description = dto.Description;
+        paymentForm.UpdatedBy = GetUserId();
+        paymentForm.UpdatedAt = DateTime.UtcNow;
 
         try
         {

@@ -9,6 +9,8 @@ using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace ptdm.Service.Services
 {
@@ -24,10 +26,17 @@ namespace ptdm.Service.Services
     public class CategoryService : ICategoryService
     {
         private readonly AppDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CategoryService(AppDbContext context)
+        public CategoryService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        private string GetUserId()
+        {
+            return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
         }
 
         public ResultList<CategoryDTO> ListCategory(CategoryFilter filters)
@@ -48,7 +57,8 @@ namespace ptdm.Service.Services
         {
             Category category = new Category
             {
-                Description = categoryDto.Description
+                Description = categoryDto.Description,
+                CreatedBy = GetUserId()
             };
 
             try
@@ -69,6 +79,8 @@ namespace ptdm.Service.Services
             if (category == null) return Error.NotFound();
 
             category.Description = categoryDto.Description;
+            category.UpdatedBy = GetUserId();
+            category.UpdatedAt = DateTime.UtcNow;
 
             try
             {

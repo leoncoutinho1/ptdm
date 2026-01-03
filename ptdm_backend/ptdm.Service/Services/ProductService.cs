@@ -9,6 +9,8 @@ using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,10 +32,17 @@ namespace ptdm.Service.Services
     public class ProductService : IProductService
     {
         private readonly AppDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ProductService(AppDbContext context)
+        public ProductService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        private string GetUserId()
+        {
+            return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
         }
 
         public ResultList<ProductDTO> GetProductByDescOrBarcode(string text)
@@ -97,7 +106,8 @@ namespace ptdm.Service.Services
                 ProfitMargin = product.Cost * 100 / product.Price,
                 Price = product.Price,
                 Quantity = product.Quantity,
-                CategoryId = product.CategoryId
+                CategoryId = product.CategoryId,
+                CreatedBy = GetUserId()
             };
 
             try
@@ -129,17 +139,20 @@ namespace ptdm.Service.Services
             if (!product.Barcodes.Any())
                 return Error.Failure(description: "É necessário informar ao menos um código");
 
-            Product p = new Product
+            Product? p = _context.Products.Find(product.Id);
+            if (p == null)
             {
-                Id = product.Id,
-                Description = product.Description,
-                Cost = product.Cost,
-                ProfitMargin = product.ProfitMargin,
-                Price = product.Price,
-                Quantity = product.Quantity,
-                CreatedAt = product.CreatedAt,
-                CategoryId = product.CategoryId
-            };
+                return Error.NotFound(description: "Product not found");
+            }
+
+            p.Description = product.Description;
+            p.Cost = product.Cost;
+            p.ProfitMargin = product.ProfitMargin;
+            p.Price = product.Price;
+            p.Quantity = product.Quantity;
+            p.CategoryId = product.CategoryId;
+            p.UpdatedBy = GetUserId();
+            p.UpdatedAt = DateTime.UtcNow;
 
             var codes = _context.Barcodes.Where(x => product.Barcodes.Contains(x.Code) || x.ProductId == product.Id);
             var existCode = 0;

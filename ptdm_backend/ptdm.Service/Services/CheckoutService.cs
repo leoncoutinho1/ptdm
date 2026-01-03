@@ -10,6 +10,8 @@ using ptdm.Domain.DTOs;
 using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace ptdm.Service.Services;
 
@@ -25,10 +27,17 @@ public interface ICheckoutService
 public class CheckoutService : ICheckoutService
 {
     private readonly AppDbContext _context;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public CheckoutService(AppDbContext context)
+    public CheckoutService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private string GetUserId()
+    {
+        return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
     }
 
     public ResultList<Checkout> ListCheckout(CheckoutFilter filters)
@@ -51,7 +60,8 @@ public class CheckoutService : ICheckoutService
     {
         Checkout checkout = new Checkout()
         {
-            Name = dto.Name
+            Name = dto.Name,
+            CreatedBy = GetUserId()
         };
         try
         {
@@ -69,7 +79,13 @@ public class CheckoutService : ICheckoutService
     {
         try
         {
-            var checkout = (Checkout)dto;
+            var checkout = _context.Checkouts.FirstOrDefault(x => x.Id == dto.Id);
+            if (checkout == null) return Error.NotFound(description: "Checkout not found");
+
+            checkout.Name = dto.Name;
+            checkout.UpdatedBy = GetUserId();
+            checkout.UpdatedAt = DateTime.UtcNow;
+
             _context.Checkouts.Update(checkout);
             _context.SaveChanges();
             return checkout;

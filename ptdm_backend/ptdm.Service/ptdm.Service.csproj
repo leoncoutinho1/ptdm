@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="AspNetCore.IQueryable.Extensions" Version="8.0.0" />
     <PackageReference Include="ErrorOr" Version="2.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>
