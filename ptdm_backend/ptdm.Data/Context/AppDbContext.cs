@@ -18,10 +18,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Cashier> Cashiers { get; set; }
     public DbSet<Checkout> Checkouts { get; set; }
     public DbSet<Barcode> Barcodes { get; set; }
+    public DbSet<Category> Categories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        new CategoryEntityTypeConfiguration().Configure(modelBuilder.Entity<Category>());
         new BarcodeEntityTypeConfiguration().Configure(modelBuilder.Entity<Barcode>());
         new CashierEntityTypeConfiguration().Configure(modelBuilder.Entity<Cashier>());
         new CheckoutEntityTypeConfiguration().Configure(modelBuilder.Entity<Checkout>());

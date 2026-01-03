@@ -44,6 +44,7 @@ namespace ptdm.Service.Services
             var products = _context.Products
                 .Where(x => x.Barcodes.Any(barcode => barcode.Code == text))
                 .Include(x => x.Barcodes)
+                .Include(x => x.Category)
                 .AsNoTracking();
 
             if (products.Count() == 1)
@@ -54,6 +55,7 @@ namespace ptdm.Service.Services
             products = _context.Products
                 .Where(x => x.Description.ToUpper().Contains(text.ToUpper()))
                 .Include(x => x.Barcodes)
+                .Include(x => x.Category)
                 .AsNoTracking();
                         
             return new ResultList<ProductDTO>(products.Select(x => (ProductDTO)x).ToList(), products.Count());
@@ -61,7 +63,7 @@ namespace ptdm.Service.Services
 
         public ResultList<ProductDTO> ListProduct(ProductFilter filters)
         {
-            var products = _context.Products.Filter(filters).Sort(filters).Include(x => x.Barcodes).AsNoTracking();
+            var products = _context.Products.Filter(filters).Sort(filters).Include(x => x.Barcodes).Include(x => x.Category).AsNoTracking();
             var count = products.Count();
 
             return new ResultList<ProductDTO>(products.Paginate(filters).Select(x => (ProductDTO)x).ToList(), count);
@@ -71,7 +73,7 @@ namespace ptdm.Service.Services
         {
             var filters = new ProductFilter();
             filters.Id = id;
-            var products = _context.Products.Apply(filters).Include(x => x.Barcodes).AsNoTracking().SingleOrDefault();
+            var products = _context.Products.Apply(filters).Include(x => x.Barcodes).Include(x => x.Category).AsNoTracking().SingleOrDefault();
             return (products != null) ? (ProductDTO)products : Error.NotFound(description: "Product not found");
         }
 
@@ -94,7 +96,8 @@ namespace ptdm.Service.Services
                 Cost = product.Cost,
                 ProfitMargin = product.Cost * 100 / product.Price,
                 Price = product.Price,
-                Quantity = product.Quantity
+                Quantity = product.Quantity,
+                CategoryId = product.CategoryId
             };
 
             try
@@ -134,7 +137,8 @@ namespace ptdm.Service.Services
                 ProfitMargin = product.ProfitMargin,
                 Price = product.Price,
                 Quantity = product.Quantity,
-                CreatedAt = product.CreatedAt
+                CreatedAt = product.CreatedAt,
+                CategoryId = product.CategoryId
             };
 
             var codes = _context.Barcodes.Where(x => product.Barcodes.Contains(x.Code) || x.ProductId == product.Id);

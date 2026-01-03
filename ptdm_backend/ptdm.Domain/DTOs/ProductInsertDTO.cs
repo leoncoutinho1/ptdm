@@ -8,4 +8,5 @@ public class ProductInsertDTO
     public Double Quantity { get; set; }
     public string Barcode { get; set; }
     public string ImageUrl { get; set; }
+    public Guid? CategoryId { get; set; }
 }

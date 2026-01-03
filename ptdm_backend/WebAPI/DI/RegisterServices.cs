@@ -11,6 +11,7 @@ namespace ptdm.Api.DI
             services.AddScoped<IPaymentFormService, PaymentFormService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ISaleService, SaleService>();
+            services.AddScoped<ICategoryService, CategoryService>();
         }
     }
 }
