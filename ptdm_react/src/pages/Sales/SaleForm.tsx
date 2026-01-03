@@ -403,12 +403,17 @@ export function SaleForm() {
                 const port = await navigator.serial.requestPort();
                 await port.open({ baudRate: 9600 }); // Configurar a velocidade (baud rate)
 
+                const { writable } = port;
+                if (!writable) {
+                    throw new Error('Porta serial não está pronta para escrita.');
+                }
+
                 // Obter o escritor (writer) para enviar dados
-                const writer = port.writable.getWriter();
+                const writer = writable.getWriter();
 
                 // Enviar o byte array para a impressora
                 await writer.write(finalEncoded);
-                await writer.close();
+                await writer.releaseLock(); // Importante soltar o lock antes de fechar
                 await port.close();
 
                 console.log('Impressão enviada com sucesso.');
