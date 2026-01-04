@@ -8,5 +8,7 @@ namespace ptdm.Domain.Filters
         public Guid? Id { get; set; }
         [QueryOperator(Operator = WhereOperator.Contains)]
         public string? Description { get; set; }
+        [QueryOperator(Operator = WhereOperator.GreaterThanOrEqualWhenNullable)]
+        public DateTime? UpdatedAt { get; set; }
     }
 }
