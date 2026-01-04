@@ -9,7 +9,7 @@ import { apiRequest } from '@/utils/apiHelper';
 import { formatCurrency } from '@/utils/currency';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, Product, Cashier, Checkout, PaymentForm, Sale } from '@/utils/db';
-import { genericSubmit } from '@/utils/syncHelper';
+import { genericSubmit, normalizeData } from '@/utils/syncHelper';
 
 interface SaleItem {
     productId: string;
@@ -37,11 +37,10 @@ export function SaleForm() {
     const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [productOptions, setProductOptions] = useState<Product[]>([]);
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
     const [quantity, setQuantity] = useState(0);
     const [amountPaid, setAmountPaid] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
+    const [selectedProductValue, setSelectedProductValue] = useState<string | null>(null);
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
 
@@ -203,18 +202,15 @@ export function SaleForm() {
     };
 
     const handleProductSelect = (productId: string | null) => {
-        setSelectedProductId(productId);
         if (productId) {
             const product = productOptions.find(p => String(p.id) === productId);
-            setSelectedProduct(product || null);
-        } else {
-            setSelectedProduct(null);
+            addProductToSale(product);
         }
     };
 
     const addProductToSale = (product?: Product) => {
-        let item = product || selectedProduct;
-        let itemId = product?.id || selectedProduct?.id;
+        let item = product;
+        let itemId = product?.id;
 
         if (!item && quantity <= 0 && saleItems.length > 0) {
             paidValueRef.current?.focus();
@@ -251,9 +247,8 @@ export function SaleForm() {
         }
 
         setSearchTerm('');
-        setSelectedProductId(null);
-        setSelectedProduct(null);
         setProductOptions([]);
+        setSelectedProductValue(null);
         setQuantity(0);
         quantityRef.current?.focus();
         quantityRef.current?.select();
@@ -305,8 +300,12 @@ export function SaleForm() {
             await db.sales.put(localSale);
 
             if (navigator.onLine) {
-                await apiRequest('sale', 'POST', saleData);
-                await db.sales.update(saleId, { syncStatus: 'synced' });
+                const response = await apiRequest<any>('sale', 'POST', saleData);
+                const normalized = normalizeData(response);
+                await db.sales.delete(saleId);
+                if (normalized && normalized.id && normalized.id !== '0') {
+                    await db.sales.put({ ...normalized, syncStatus: 'synced' } as any);
+                }
             }
 
             notifications.show({ color: 'green', title: 'Sucesso', message: 'Venda registrada!' });
@@ -321,8 +320,6 @@ export function SaleForm() {
         setSaleItems([]);
         setAmountPaid(0);
         setSearchTerm('');
-        setSelectedProductId(null);
-        setSelectedProduct(null);
         setProductOptions([]);
         setQuantity(0);
         setShowPrintModal(false);
@@ -418,8 +415,8 @@ export function SaleForm() {
                                         placeholder="Pesquisar..."
                                         searchable
                                         searchValue={searchTerm}
+                                        value={selectedProductValue}
                                         onSearchChange={setSearchTerm}
-                                        value={selectedProductId}
                                         onChange={handleProductSelect}
                                         data={productOptions.map(p => ({ value: String(p.id), label: p.description }))}
                                         filter={({ options }) => options}
