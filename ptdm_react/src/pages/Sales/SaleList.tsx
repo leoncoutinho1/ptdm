@@ -2,16 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { ActionIcon, Group, Table, Title, Pagination, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { apiRequest } from '@/utils/apiHelper';
+import { db, Sale } from '@/utils/db';
+import { syncAll } from '@/utils/syncHelper';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/utils/currency';
 import { CirclePlus } from 'lucide-react';
-
-interface Sale {
-    id?: string | number;
-    createdAt: string;
-    totalValue: number;
-}
 
 export function SaleList() {
     const [items, setItems] = useState<Sale[]>([]);
@@ -23,20 +18,34 @@ export function SaleList() {
     const fetchItems = useCallback(async (page: number) => {
         try {
             const offset = (page - 1) * pageSize;
-            const result = await apiRequest<any>(`sale/listSale?Limit=${pageSize}&Offset=${offset}&Sort=-CreatedAt`);
 
-            const data = result.data || [];
-            const total = result.totalCount || 0;
+            const collection = db.sales.filter(s => s.syncStatus !== 'pending-delete');
+            const total = await collection.count();
+            const data = await collection
+                .offset(offset)
+                .limit(pageSize)
+                .toArray();
+
+            // Sort by updatedAt (desc) as a proxy for date
+            data.sort((a, b) => {
+                const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+                const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+                return dateB - dateA;
+            });
 
             setItems(data);
             setTotalCount(total);
         } catch (err) {
-            notifications.show({ color: 'red', title: 'Erro', message: String(err) });
+            notifications.show({ color: 'red', title: 'Erro ao carregar vendas', message: String(err) });
         }
     }, [pageSize]);
 
     useEffect(() => {
-        fetchItems(activePage);
+        const performSync = async () => {
+            await syncAll();
+            fetchItems(activePage);
+        };
+        performSync();
     }, [activePage, fetchItems]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
@@ -56,15 +65,23 @@ export function SaleList() {
                         <Table.Tr>
                             <Table.Th>Data</Table.Th>
                             <Table.Th>Valor Total</Table.Th>
+                            <Table.Th>Status</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                        {items.map((item) => (
-                            <Table.Tr key={item.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/sales/${item.id}`, { state: { item } })}>
-                                <Table.Td>{new Date(item.createdAt).toLocaleString("pt-BR")}</Table.Td>
-                                <Table.Td>{formatCurrency(item.totalValue)}</Table.Td>
+                        {items.length === 0 ? (
+                            <Table.Tr>
+                                <Table.Td colSpan={3} style={{ textAlign: 'center' }}>Nenhuma venda encontrada.</Table.Td>
                             </Table.Tr>
-                        ))}
+                        ) : (
+                            items.map((item: Sale) => (
+                                <Table.Tr key={item.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/sales/${item.id}`, { state: { item } })}>
+                                    <Table.Td>{item.createdAt ? new Date(item.createdAt).toLocaleString("pt-BR") : 'Pendente'}</Table.Td>
+                                    <Table.Td>{formatCurrency(item.totalValue)}</Table.Td>
+                                    <Table.Td>{item.syncStatus === 'synced' ? 'Sincronizado' : 'Offline'}</Table.Td>
+                                </Table.Tr>
+                            ))
+                        )}
                     </Table.Tbody>
                 </Table>
 

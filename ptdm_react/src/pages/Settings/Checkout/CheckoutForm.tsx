@@ -1,13 +1,16 @@
 import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { Button, Group, Stack, TextInput, Title } from '@mantine/core';
+import { Button, Group, Stack, TextInput, Title, ActionIcon } from '@mantine/core';
 import { MainLayout } from '../../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
+import { db } from '@/utils/db';
+import { genericSubmit, genericDelete } from '@/utils/syncHelper';
+import { Trash2 } from 'lucide-react';
 
 interface CheckoutValues {
-    id?: string | number;
+    id?: string;
     name: string;
 }
 
@@ -27,36 +30,39 @@ export function CheckoutForm() {
         if (item) {
             form.setValues({ name: item.name });
         } else if (id) {
-            apiRequest<any>(`checkout/${id}`).then((found) => {
-                if (found) form.setValues({ name: found.name });
+            apiRequest<CheckoutValues>(`checkout/${id}`).then((found) => {
+                const data = (found as any).data || found;
+                if (data) form.setValues({ name: data.name || data.Name });
             }).catch(err => notifications.show({ color: 'red', title: 'Erro', message: String(err) }));
         }
     }, [id, item]);
 
     const submit = async (values: CheckoutValues) => {
-        try {
-            if (id) {
-                await apiRequest(`checkout/${id}`, 'PUT', { ...values, id });
-            } else {
-                await apiRequest('checkout', 'POST', values);
-            }
-            notifications.show({ color: 'green', title: 'Sucesso', message: 'Salvo com sucesso.' });
-            navigate('/settings/checkouts');
-        } catch (err) {
-            notifications.show({ color: 'red', title: 'Erro', message: String(err) });
-        }
+        await genericSubmit(db.checkouts, 'checkout', id, values, navigate, '/settings/checkouts');
+    };
+
+    const handleDelete = async () => {
+        await genericDelete(db.checkouts, 'checkout', id, navigate, '/settings/checkouts');
     };
 
     return (
         <MainLayout>
-            <Group justify="space-between" mb="md">
-                <Title order={3} style={{ paddingLeft: '2.5rem' }}>{id ? 'Editar Terminal' : 'Novo Terminal'}</Title>
+            <Group justify="space-between" mb="md" style={{ paddingLeft: '2.5rem' }}>
+                <Title order={3}>{id ? 'Editar Terminal' : 'Novo Terminal'}</Title>
+                {id && (
+                    <ActionIcon color="red" variant="light" onClick={handleDelete} size="lg">
+                        <Trash2 size={20} />
+                    </ActionIcon>
+                )}
             </Group>
 
             <form onSubmit={form.onSubmit(submit)}>
                 <Stack>
                     <TextInput label="Descrição" {...form.getInputProps('name')} required />
-                    <Button type="submit">Salvar</Button>
+                    <Group justify="flex-end">
+                        <Button variant="subtle" onClick={() => navigate('/settings/checkouts')}>Cancelar</Button>
+                        <Button type="submit">Salvar</Button>
+                    </Group>
                 </Stack>
             </form>
         </MainLayout>

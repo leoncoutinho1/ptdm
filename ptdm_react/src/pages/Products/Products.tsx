@@ -2,20 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { ActionIcon, Button, Group, Table, TextInput, Title, Pagination, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { apiRequest } from '@/utils/apiHelper';
+import { db, Product } from '@/utils/db';
+import { syncAll } from '@/utils/syncHelper';
 import { Link, useNavigate } from 'react-router-dom';
 import { CirclePlus } from 'lucide-react';
-
-interface Product {
-  id?: string | number;
-  description: string;
-  barcode?: string;
-  barcodes?: string[];
-  cost: number;
-  price: number;
-  quantity: number;
-}
-
 
 export function Products() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -28,17 +18,33 @@ export function Products() {
   const fetchProducts = useCallback(async (page: number, searchString: string = '') => {
     try {
       const offset = (page - 1) * pageSize;
-      let url = `product/listproduct?Limit=${pageSize}&Offset=${offset}`;
+
+      let collection = db.products.filter(p => p.syncStatus !== 'pending-delete');
 
       if (searchString) {
-        url += `&Description=${encodeURIComponent(searchString)}`;
+        const lowerSearch = searchString.toLowerCase();
+        const barcodeCollection = db.products.filter(p =>
+          p.syncStatus !== 'pending-delete' &&
+          (Array.isArray(p.barcodes) && p.barcodes.some(b => b.toLowerCase() === lowerSearch))
+        );
+
+        if (await barcodeCollection.count() === 1) {
+          collection = barcodeCollection;
+        } else {
+          collection = db.products.filter(p =>
+            p.syncStatus !== 'pending-delete' &&
+            p.description.toLowerCase().includes(lowerSearch)
+          );
+        }
       }
 
-      const result = await apiRequest<any>(url);
+      const total = await collection.count();
+      const data = await collection
+        .offset(offset)
+        .limit(pageSize)
+        .toArray();
 
-      // Handle ResultList structure { data: [], totalCount: 0 }
-      const data = result.data || [];
-      const total = result.totalCount || 0;
+      data.sort((a, b) => a.description.localeCompare(b.description));
 
       setProducts(data);
       setTotalCount(total);
@@ -48,7 +54,15 @@ export function Products() {
   }, [pageSize]);
 
   useEffect(() => {
-    fetchProducts(activePage, search);
+    const performSync = async () => {
+      await syncAll();
+      fetchProducts(activePage, search);
+    };
+    performSync();
+
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SYNC_CATEGORIES' });
+    }
   }, [activePage, fetchProducts]);
 
   const handleSearch = () => {
@@ -80,7 +94,7 @@ export function Products() {
         <TextInput
           value={search}
           onChange={(e) => setSearch(e.currentTarget.value)}
-          placeholder="Pesquisar por descrição"
+          placeholder="Pesquisar por descrição ou código de barras"
           style={{ flex: 1 }}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
         />
@@ -100,15 +114,21 @@ export function Products() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {products.map((p) => (
-              <Table.Tr key={p.id ?? (Array.isArray(p.barcodes) ? p.barcodes[0] : p.barcode)} style={{ cursor: 'pointer' }} onClick={() => navigate(`/products/${p.id}`, { state: { product: p } })}>
-                <Table.Td>{p.description}</Table.Td>
-                <Table.Td>{Array.isArray(p.barcodes) ? p.barcodes.join(', ') : p.barcode}</Table.Td>
-                <Table.Td>{formatCurrency(p.cost)}</Table.Td>
-                <Table.Td>{formatCurrency(p.price)}</Table.Td>
-                <Table.Td>{p.quantity}</Table.Td>
+            {products.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={5} style={{ textAlign: 'center' }}>Nenhum produto encontrado.</Table.Td>
               </Table.Tr>
-            ))}
+            ) : (
+              products.map((p) => (
+                <Table.Tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/products/${p.id}`, { state: { product: p } })}>
+                  <Table.Td>{p.description}</Table.Td>
+                  <Table.Td>{Array.isArray(p.barcodes) ? p.barcodes.join(', ') : (p as any).barcode}</Table.Td>
+                  <Table.Td>{formatCurrency(p.cost)}</Table.Td>
+                  <Table.Td>{formatCurrency(p.price)}</Table.Td>
+                  <Table.Td>{p.quantity}</Table.Td>
+                </Table.Tr>
+              ))
+            )}
           </Table.Tbody>
         </Table>
 

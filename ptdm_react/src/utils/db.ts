@@ -7,23 +7,72 @@ interface AuthData {
     tenant: string;
 }
 
-interface Category {
+interface Syncable {
     id: string;
-    description: string;
     updatedAt?: string;
     syncStatus?: 'synced' | 'pending-save' | 'pending-delete';
+}
+
+interface Category extends Syncable {
+    description: string;
+}
+
+interface Cashier extends Syncable {
+    name: string;
+}
+
+interface Checkout extends Syncable {
+    name: string;
+}
+
+interface PaymentForm extends Syncable {
+    description: string;
+}
+
+interface Product extends Syncable {
+    description: string;
+    cost: number;
+    price: number;
+    quantity: number;
+    barcodes: string[];
+    categoryId: string;
+}
+
+interface Sale extends Syncable {
+    paymentFormId: string;
+    cashierId: string;
+    checkoutId: string;
+    totalValue: number;
+    paidValue: number;
+    changeValue: number;
+    saleProducts: {
+        productId: string;
+        quantity: number;
+        unitPrice: number;
+    }[];
+    createdAt?: string;
 }
 
 const db = new Dexie('PtdmDatabase') as Dexie & {
     auth: EntityTable<AuthData, 'id'>;
     categories: EntityTable<Category, 'id'>;
+    cashiers: EntityTable<Cashier, 'id'>;
+    checkouts: EntityTable<Checkout, 'id'>;
+    paymentForms: EntityTable<PaymentForm, 'id'>;
+    products: EntityTable<Product, 'id'>;
+    sales: EntityTable<Sale, 'id'>;
 };
 
 // Schema declaration:
-db.version(3).stores({
+db.version(5).stores({
     auth: 'id',
-    categories: 'id, updatedAt, syncStatus' // Index syncStatus for easy filtering of pending items
+    categories: 'id, updatedAt, syncStatus',
+    cashiers: 'id, updatedAt, syncStatus',
+    checkouts: 'id, updatedAt, syncStatus',
+    paymentForms: 'id, updatedAt, syncStatus',
+    products: 'id, updatedAt, syncStatus, categoryId',
+    sales: 'id, updatedAt, syncStatus'
 });
 
-export type { AuthData, Category };
+export type { AuthData, Category, Cashier, Checkout, PaymentForm, Product, Sale };
 export { db };

@@ -7,35 +7,12 @@ import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
 import { formatCurrency } from '@/utils/currency';
-import { useParams } from 'react-router-dom';
-import { IResult } from '@/models/IResult';
-import { ISaleDTO } from '@/models/ISaleDTO';
-
-interface PaymentForm {
-    id: string | number;
-    description: string;
-}
-
-interface Cashier {
-    id: string | number;
-    name: string;
-}
-
-interface Checkout {
-    id: string | number;
-    name: string;
-}
-
-interface Product {
-    id: string | number;
-    description: string;
-    price: number;
-    barcode?: string;
-    barcodes?: string[];
-}
+import { useNavigate, useParams } from 'react-router-dom';
+import { db, Product, Cashier, Checkout, PaymentForm, Sale } from '@/utils/db';
+import { genericSubmit } from '@/utils/syncHelper';
 
 interface SaleItem {
-    productId: string | number;
+    productId: string;
     product: Product;
     unitPrice: number;
     quantity: number;
@@ -44,6 +21,7 @@ interface SaleItem {
 
 export function SaleForm() {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const isViewMode = !!id;
 
     // Refs para navegação por teclado
@@ -52,6 +30,7 @@ export function SaleForm() {
     const paidValueRef = useRef<HTMLInputElement>(null);
     const saveSaleRef = useRef<HTMLButtonElement>(null);
     const noPrintModalRef = useRef<HTMLButtonElement>(null);
+
     const [paymentForms, setPaymentForms] = useState<PaymentForm[]>([]);
     const [cashiers, setCashiers] = useState<Cashier[]>([]);
     const [checkouts, setCheckouts] = useState<Checkout[]>([]);
@@ -82,17 +61,17 @@ export function SaleForm() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [paymentFormsRes, cashiersRes, checkoutsRes] = await Promise.all([
-                    await apiRequest<any>('paymentForm/ListPaymentForm'),
-                    await apiRequest<any>('cashier/listCashier'),
-                    await apiRequest<any>('checkout/listCheckout'),
+                const [pf, c, ch] = await Promise.all([
+                    db.paymentForms.toArray(),
+                    db.cashiers.toArray(),
+                    db.checkouts.toArray()
                 ]);
 
-                setPaymentForms(Array.isArray(paymentFormsRes.data) ? paymentFormsRes.data : []);
-                setCashiers(Array.isArray(cashiersRes.data) ? cashiersRes.data : []);
-                setCheckouts(Array.isArray(checkoutsRes.data) ? checkoutsRes.data : []);
+                setPaymentForms(pf);
+                setCashiers(c);
+                setCheckouts(ch);
             } catch (err) {
-                notifications.show({ color: 'red', title: 'Erro', message: String(err) });
+                notifications.show({ color: 'red', title: 'Erro ao carregar dados locais', message: String(err) });
             }
         };
         fetchData();
@@ -103,30 +82,36 @@ export function SaleForm() {
         if (id) {
             const fetchSale = async () => {
                 try {
-                    const result = await apiRequest<IResult<ISaleDTO>>(`sale/${id}`);
-                    const sale = result.value;
+                    let sale = await db.sales.get(id);
 
-                    // Preenche o formulário
-                    form.setValues({
-                        paymentFormId: String(sale.paymentFormId || ''),
-                        cashierId: String(sale.cashierId || ''),
-                        checkoutId: String(sale.checkoutId || ''),
-                    });
-                    console.log(sale);
-                    // Preenche os itens da venda
-                    if (Array.isArray(sale.saleProducts)) {
-                        const items = sale.saleProducts.map((item: any) => ({
-                            productId: item.productId,
-                            product: item.product,
-                            unitPrice: item.unitPrice,
-                            quantity: item.quantity,
-                            totalPrice: item.quantity * item.unitPrice,
-                        }));
-                        setSaleItems(items);
+                    if (!sale) {
+                        const result = await apiRequest<any>(`sale/${id}`);
+                        sale = result.value || result.data || result;
                     }
 
-                    // Preenche valores pagos
-                    setAmountPaid(sale.paidValue || 0);
+                    if (sale) {
+                        form.setValues({
+                            paymentFormId: String(sale.paymentFormId || ''),
+                            cashierId: String(sale.cashierId || ''),
+                            checkoutId: String(sale.checkoutId || ''),
+                        });
+
+                        if (Array.isArray(sale.saleProducts)) {
+                            // We might need to fetch products to show descriptions if they are not details
+                            const items = await Promise.all(sale.saleProducts.map(async (item: any) => {
+                                const prod = await db.products.get(item.productId);
+                                return {
+                                    productId: item.productId,
+                                    product: prod || { description: 'Produto não encontrado', price: item.unitPrice } as any,
+                                    unitPrice: item.unitPrice,
+                                    quantity: item.quantity,
+                                    totalPrice: item.quantity * item.unitPrice,
+                                };
+                            }));
+                            setSaleItems(items);
+                        }
+                        setAmountPaid(sale.paidValue || 0);
+                    }
                 } catch (err) {
                     notifications.show({ color: 'red', title: 'Erro ao carregar venda', message: String(err) });
                 }
@@ -135,28 +120,19 @@ export function SaleForm() {
         }
     }, [id]);
 
-    // Salva os valores no localStorage sempre que mudarem
     useEffect(() => {
-        if (form.values.paymentFormId) {
-            localStorage.setItem('saleForm_paymentFormId', form.values.paymentFormId);
-        }
+        if (form.values.paymentFormId) localStorage.setItem('saleForm_paymentFormId', form.values.paymentFormId);
     }, [form.values.paymentFormId]);
 
     useEffect(() => {
-        if (form.values.cashierId) {
-            localStorage.setItem('saleForm_cashierId', form.values.cashierId);
-        }
+        if (form.values.cashierId) localStorage.setItem('saleForm_cashierId', form.values.cashierId);
     }, [form.values.cashierId]);
 
     useEffect(() => {
-        if (form.values.checkoutId) {
-            localStorage.setItem('saleForm_checkoutId', form.values.checkoutId);
-        }
+        if (form.values.checkoutId) localStorage.setItem('saleForm_checkoutId', form.values.checkoutId);
     }, [form.values.checkoutId]);
 
-    // Função para buscar produtos (acionada ao pressionar Enter)
     const searchProducts = async () => {
-        console.log('chamou aqui')
         if (!searchTerm || searchTerm.length < 1) {
             setProductOptions([]);
             return;
@@ -164,33 +140,34 @@ export function SaleForm() {
 
         setIsSearching(true);
         try {
-            const result = await apiRequest<any>(`product/GetProductByDescOrBarcode/${encodeURIComponent(searchTerm)}`);
-            const foundProducts = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
-            setProductOptions(foundProducts);
+            const lowerSearch = searchTerm.toLowerCase();
+            const foundById = await db.products
+                .filter(p =>
+                    (Array.isArray(p.barcodes) && p.barcodes.some(b => b.toLowerCase() === lowerSearch))
+                ).toArray();
 
-            // Se retornar apenas 1 produto, seleciona automaticamente
-            if (foundProducts.length === 1) {
-                const product = foundProducts[0];
-                addProductToSale(product);
+            if (foundById.length === 1) {
+                addProductToSale(foundById[0]);
+            } else {
+                const foundByDescription = await db.products
+                    .filter(p =>
+                        p.description.toLowerCase().includes(lowerSearch)
+                    ).toArray();
+                setProductOptions(foundByDescription);
             }
         } catch (err) {
             notifications.show({ color: 'red', title: 'Erro ao buscar produto', message: String(err) });
-            setProductOptions([]);
         } finally {
             setIsSearching(false);
         }
     };
 
-    // Foco automático no botão "Não" quando o modal de impressão abrir
     useEffect(() => {
         if (showPrintModal && noPrintModalRef.current) {
-            setTimeout(() => {
-                noPrintModalRef.current?.focus();
-            }, 100);
+            setTimeout(() => noPrintModalRef.current?.focus(), 100);
         }
     }, [showPrintModal]);
 
-    // Foco automático no campo quantidade ao abrir (apenas no modo criação)
     useEffect(() => {
         if (!isViewMode && quantityRef.current) {
             quantityRef.current.focus();
@@ -198,7 +175,6 @@ export function SaleForm() {
         }
     }, [isViewMode]);
 
-    // Handler para Enter no campo quantidade
     const handleQuantityKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -206,12 +182,9 @@ export function SaleForm() {
         }
     };
 
-    // Handler para Enter no campo de busca de produtos
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            console.log(quantity);
-            console.log(saleItems.length);
             if (quantity <= 0 && saleItems.length > 0) {
                 paidValueRef.current?.focus();
                 paidValueRef.current?.select();
@@ -221,13 +194,10 @@ export function SaleForm() {
         }
     };
 
-    // Handler para Enter no campo de valor pago
     const handlePaidValueKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (amountPaid === 0) {
-                setAmountPaid(totalSale);
-            }
+            if (amountPaid === 0) setAmountPaid(totalSale);
             saveSaleRef.current?.focus();
         }
     };
@@ -289,7 +259,7 @@ export function SaleForm() {
         quantityRef.current?.select();
     };
 
-    const removeItem = (productId: string | number) => {
+    const removeItem = (productId: string) => {
         setSaleItems(saleItems.filter(item => item.productId !== productId));
     };
 
@@ -298,41 +268,52 @@ export function SaleForm() {
 
     const submitSale = async () => {
         const validation = form.validate();
-        if (validation.hasErrors) {
-            notifications.show({ color: 'yellow', title: 'Atenção', message: 'Preencha todos os campos obrigatórios' });
-            return;
-        }
+        if (validation.hasErrors) return;
 
         if (saleItems.length === 0) {
-            notifications.show({ color: 'yellow', title: 'Atenção', message: 'Adicione pelo menos um produto à venda' });
+            notifications.show({ color: 'yellow', title: 'Atenção', message: 'Adicione pelo menos um produto' });
             return;
         }
 
         if (amountPaid > 0 && amountPaid < totalSale) {
-            notifications.show({ color: 'yellow', title: 'Atenção', message: 'Valor pago é insuficiente' });
+            notifications.show({ color: 'yellow', title: 'Atenção', message: 'Valor pago insuficiente' });
             return;
         }
 
-        try {
-            const saleData = {
-                paymentFormId: form.values.paymentFormId,
-                cashierId: form.values.cashierId,
-                checkoutId: form.values.checkoutId,
-                saleProducts: saleItems.map(item => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    unitPrice: item.unitPrice,
-                })),
-                totalValue: totalSale,
-                paidValue: amountPaid > 0 ? amountPaid : totalSale,
-                changeValue: amountPaid > 0 ? change : 0
-            };
+        const saleData = {
+            paymentFormId: form.values.paymentFormId,
+            cashierId: form.values.cashierId,
+            checkoutId: form.values.checkoutId,
+            saleProducts: saleItems.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+            })),
+            totalValue: totalSale,
+            paidValue: amountPaid > 0 ? amountPaid : totalSale,
+            changeValue: amountPaid > 0 ? change : 0
+        };
 
-            await apiRequest('sale', 'POST', saleData);
-            notifications.show({ color: 'green', title: 'Sucesso', message: 'Venda registrada com sucesso!' });
+        // For sales, we don't necessarily want to navigate away immediately if printing is needed
+        // But genericSubmit does navigate. I'll use a custom logic or just allow it.
+        // Actually, SaleForm should stay open to show the print modal.
+
+        const saleId = crypto.randomUUID();
+        const localSale: Sale = { ...saleData, id: saleId, syncStatus: 'pending-save' };
+
+        try {
+            await db.sales.put(localSale);
+
+            if (navigator.onLine) {
+                await apiRequest('sale', 'POST', saleData);
+                await db.sales.update(saleId, { syncStatus: 'synced' });
+            }
+
+            notifications.show({ color: 'green', title: 'Sucesso', message: 'Venda registrada!' });
             setShowPrintModal(true);
         } catch (err) {
-            notifications.show({ color: 'red', title: 'Erro ao registrar venda', message: String(err) });
+            notifications.show({ color: 'blue', title: 'Offline', message: 'Venda salva localmente.' });
+            setShowPrintModal(true);
         }
     };
 
@@ -345,99 +326,49 @@ export function SaleForm() {
         setProductOptions([]);
         setQuantity(0);
         setShowPrintModal(false);
-        setTimeout(() => {
-            quantityRef.current?.focus();
-        }, 100);
+        if (isViewMode) {
+            navigate('/sales');
+        } else {
+            setTimeout(() => quantityRef.current?.focus(), 100);
+        }
     };
 
     const handlePrint = async () => {
-        const encoder = new ReceiptPrinterEncoder({
-            language: 'esc-pos',
-            width: 32
-        });
-
-        const result = encoder
-            .initialize()
-            .align('center')
-            .text('*** CUPOM DE VENDA ***')
-            .newline()
-            .text(new Date().toLocaleString("pt-BR"))
-            .newline()
-            .rule()
-            .align('left');
+        const encoder = new ReceiptPrinterEncoder({ language: 'esc-pos', width: 32 });
+        const result = encoder.initialize().align('center').text('*** CUPOM DE VENDA ***').newline().text(new Date().toLocaleString("pt-BR")).newline().rule().align('left');
 
         saleItems.forEach((item) => {
             const description = item.product.description.substring(0, 32);
             const qtyPrice = `${item.quantity} x ${formatCurrency(item.unitPrice)}`;
             const total = formatCurrency(item.totalPrice);
-
-            result
-                .text(description)
-                .newline()
-                .text(qtyPrice.padEnd(20))
-                .text(total.padStart(12))
-                .newline();
+            result.text(description).newline().text(qtyPrice.padEnd(20)).text(total.padStart(12)).newline();
         });
 
-        const finalEncoded = result
-            .rule()
-            .align('right')
-            .text(`TOTAL: ${formatCurrency(totalSale)}`)
-            .newline()
-            .text(`PAGO: ${formatCurrency(amountPaid)}`)
-            .newline()
-            .text(`TROCO: ${formatCurrency(change >= 0 ? change : 0)}`)
-            .newline()
-            .rule()
-            .align('center')
-            .text('Obrigado pela preferência!')
-            .newline()
-            .cut()
-            .encode();
-
-        console.log('Dados codificados para impressora térmica:', finalEncoded);
+        const finalEncoded = result.rule().align('right').text(`TOTAL: ${formatCurrency(totalSale)}`).newline().text(`PAGO: ${formatCurrency(amountPaid)}`).newline().text(`TROCO: ${formatCurrency(change >= 0 ? change : 0)}`).newline().rule().align('center').text('Obrigado pela preferência!').newline().cut().encode();
 
         if ('serial' in navigator) {
             try {
-                // Solicitar permissão para acessar a porta serial
-                const port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 9600 }); // Configurar a velocidade (baud rate)
-
-                const { writable } = port;
-                if (!writable) {
-                    throw new Error('Porta serial não está pronta para escrita.');
-                }
-
-                // Obter o escritor (writer) para enviar dados
-                const writer = writable.getWriter();
-
-                // Enviar o byte array para a impressora
+                const port = await (navigator as any).serial.requestPort();
+                await port.open({ baudRate: 9600 });
+                const writer = port.writable.getWriter();
                 await writer.write(finalEncoded);
-                await writer.releaseLock(); // Importante soltar o lock antes de fechar
+                await writer.releaseLock();
                 await port.close();
-
-                console.log('Impressão enviada com sucesso.');
-
             } catch (error) {
-                console.error('Falha na comunicação com a impressora:', error);
+                console.error('Erro na impressora:', error);
             }
         } else {
-            alert('Seu navegador não suporta a Web Serial API. Use Chrome ou Edge.');
+            window.print();
         }
-        // Nota: O finalEncoded é um Uint8Array contendo os comandos ESC/POS.
-        // Ele pode ser enviado via Web Serial, Web Bluetooth ou para um servidor de impressão local.
-
-        window.print();
         resetForm();
     };
 
     return (
         <MainLayout>
             <Box style={{ height: '95vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
                 <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
                     <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
-                    <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)} title={showReceipt ? "Ocultar Cupom" : "Mostrar Cupom"}>
+                    <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)}>
                         {showReceipt ? <Eye size={20} /> : <EyeOff size={20} />}
                     </ActionIcon>
                 </Group>
@@ -456,7 +387,6 @@ export function SaleForm() {
                                                 data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
                                                 {...form.getInputProps('paymentFormId')}
                                                 required
-                                                readOnly={isViewMode}
                                                 disabled={isViewMode}
                                             />
                                             <Select
@@ -465,7 +395,6 @@ export function SaleForm() {
                                                 data={cashiers.map(c => ({ value: String(c.id), label: c.name }))}
                                                 {...form.getInputProps('cashierId')}
                                                 required
-                                                readOnly={isViewMode}
                                                 disabled={isViewMode}
                                             />
                                             <Select
@@ -474,7 +403,6 @@ export function SaleForm() {
                                                 data={checkouts.map(ch => ({ value: String(ch.id), label: ch.name }))}
                                                 {...form.getInputProps('checkoutId')}
                                                 required
-                                                readOnly={isViewMode}
                                                 disabled={isViewMode}
                                             />
                                         </Group>
@@ -482,33 +410,19 @@ export function SaleForm() {
                                 </Accordion.Item>
                             </Accordion>
 
-                            {/* Segunda linha: Busca de produto - apenas no modo de criação */}
                             {!isViewMode && (
                                 <Group align="flex-end" style={{ flexShrink: 0 }}>
-                                    <NumberInput
-                                        label="Quantidade"
-                                        value={quantity}
-                                        onChange={(val) => setQuantity(Number(val) || 0)}
-                                        min={0}
-                                        style={{ width: 120 }}
-                                        ref={quantityRef}
-                                        onKeyDown={handleQuantityKeyDown}
-                                    />
+                                    <NumberInput label="Qtd" value={quantity} onChange={(val) => setQuantity(Number(val) || 0)} min={0} style={{ width: 80 }} ref={quantityRef} onKeyDown={handleQuantityKeyDown} />
                                     <Select
                                         label="Buscar Produto"
-                                        placeholder="Digite para buscar..."
+                                        placeholder="Pesquisar..."
                                         searchable
                                         searchValue={searchTerm}
                                         onSearchChange={setSearchTerm}
                                         value={selectedProductId}
                                         onChange={handleProductSelect}
-                                        data={productOptions.map(p => ({
-                                            value: String(p.id),
-                                            label: p.description
-                                        }))}
+                                        data={productOptions.map(p => ({ value: String(p.id), label: p.description }))}
                                         filter={({ options }) => options}
-                                        limit={Infinity}
-                                        nothingFoundMessage={isSearching ? 'Buscando...' : 'Nenhum produto encontrado'}
                                         style={{ flex: 1 }}
                                         clearable
                                         ref={productSelectRef}
@@ -517,175 +431,70 @@ export function SaleForm() {
                                 </Group>
                             )}
 
-                            {/* Tabela de itens da venda */}
-                            <ScrollArea scrollbars="y" style={{ flex: 1, minHeight: 0 }}>
-                                <Table striped highlightOnHover withTableBorder withColumnBorders style={{ color: '#228be6', fontWeight: 'bold' }}>
-                                    <Table.Thead style={{ color: 'black', fontWeight: 'bold' }}>
+                            <ScrollArea style={{ flex: 1 }}>
+                                <Table striped highlightOnHover withTableBorder withColumnBorders>
+                                    <Table.Thead>
                                         <Table.Tr>
-                                            <Table.Th w={!isViewMode ? '50%' : '60%'}>Produto</Table.Th>
-                                            <Table.Th w={'5%'}>Qtd</Table.Th>
-                                            <Table.Th w={'10%'}>Vlr. Unit.</Table.Th>
-                                            <Table.Th w={'10%'}>Total</Table.Th>
-                                            {!isViewMode && <Table.Th w={'5%'}>Ações</Table.Th>}
+                                            <Table.Th>Produto</Table.Th>
+                                            <Table.Th w={60}>Qtd</Table.Th>
+                                            <Table.Th w={100}>Unit.</Table.Th>
+                                            <Table.Th w={100}>Total</Table.Th>
+                                            {!isViewMode && <Table.Th w={50}></Table.Th>}
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
-                                        {saleItems.length === 0 ? (
-                                            <Table.Tr>
-                                                <Table.Td colSpan={isViewMode ? 4 : 5} style={{ textAlign: 'center', color: '#888' }}>
-                                                    Nenhum produto adicionado
-                                                </Table.Td>
+                                        {saleItems.map((item) => (
+                                            <Table.Tr key={item.productId}>
+                                                <Table.Td>{item.product?.description}</Table.Td>
+                                                <Table.Td>{item.quantity}</Table.Td>
+                                                <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
+                                                <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
+                                                {!isViewMode && <Table.Td><XCircle size={18} color="red" onClick={() => removeItem(item.productId)} style={{ cursor: 'pointer' }} /></Table.Td>}
                                             </Table.Tr>
-                                        ) : (
-                                            saleItems.map((item) => (
-                                                <Table.Tr key={item.productId}>
-                                                    <Table.Td>{item.product?.description}</Table.Td>
-                                                    <Table.Td>{item.quantity}</Table.Td>
-                                                    <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
-                                                    <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
-                                                    {!isViewMode && (
-                                                        <Table.Td>
-                                                            <XCircle size={20} color="red" onClick={() => removeItem(item.productId)} style={{ cursor: 'pointer' }} />
-                                                        </Table.Td>
-                                                    )}
-                                                </Table.Tr>
-                                            ))
-                                        )}
+                                        ))}
                                     </Table.Tbody>
                                 </Table>
                             </ScrollArea>
 
-                            {/* Resumo da venda e Botão Finalizar */}
-                            <Group align="flex-end" gap="md" py="md" style={{ flexShrink: 0, marginTop: 'auto' }}>
+                            <Group align="flex-end" gap="md" py="md" style={{ flexShrink: 0 }}>
                                 <Group grow style={{ flex: 1 }} align="flex-end">
-                                    <NumberInput
-                                        label="Valor Pago"
-                                        value={amountPaid}
-                                        ref={paidValueRef}
-                                        onChange={(val) => setAmountPaid(Number(val) || 0)}
-                                        min={0}
-                                        decimalScale={2}
-                                        fixedDecimalScale
-                                        prefix="R$ "
-                                        readOnly={isViewMode}
-                                        disabled={isViewMode}
-                                        onKeyDown={handlePaidValueKeyDown}
-                                    />
-                                    <Paper p="sm" withBorder style={{ backgroundColor: '#f0f0f0' }}>
-                                        <Text size="lg" fw={700} ta="center">
-                                            Total: {formatCurrency(totalSale)}
-                                        </Text>
+                                    <NumberInput label="Vlr Pago" value={amountPaid} ref={paidValueRef} onChange={(val) => setAmountPaid(Number(val) || 0)} min={0} prefix="R$ " disabled={isViewMode} onKeyDown={handlePaidValueKeyDown} />
+                                    <Paper p="xs" withBorder style={{ backgroundColor: '#f8f9fa' }}>
+                                        <Text size="lg" fw={700} ta="center">Total: {formatCurrency(totalSale)}</Text>
                                     </Paper>
-                                    <Paper p="sm" withBorder>
-                                        <Text size="md" ta="center">
-                                            Troco: {formatCurrency(change >= 0 ? change : 0)}
-                                        </Text>
+                                    <Paper p="xs" withBorder>
+                                        <Text size="sm" ta="center">Troco: {formatCurrency(change >= 0 ? change : 0)}</Text>
                                     </Paper>
                                 </Group>
-
-                                {!isViewMode && (
-                                    <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef}>
-                                        Finalizar Venda
-                                    </Button>
-                                )}
+                                {!isViewMode && <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef}>Finalizar</Button>}
                             </Group>
                         </Stack>
                     </Grid.Col>
 
-                    {/* Cupom Fiscal Lateral */}
                     {showReceipt && (
-                        <Grid.Col span={{ base: 3 }} style={{ display: 'flex', flexDirection: 'column', height: '90vh' }}>
-                            <style>{`
-                    @media print {
-                        body * {
-                            visibility: hidden;
-                        }
-                        #printable-receipt, #printable-receipt * {
-                            visibility: visible;
-                        }
-                        #printable-receipt {
-                            position: absolute;
-                            left: 0;
-                            top: 0;
-                            width: 100%;
-                            margin: 0;
-                            padding: 0;
-                            background-color: white !important;
-                            box-shadow: none !important;
-                            border: none !important;
-                            min-height: auto !important;
-                        }
-                        /* Força a exibição de todo o conteúdo do ScrollArea na impressão */
-                        #printable-receipt .mantine-ScrollArea-root,
-                        #printable-receipt .mantine-ScrollArea-viewport {
-                            height: auto !important;
-                            max-height: none !important;
-                            overflow: visible !important;
-                        }
-                        /* Esconde elementos de layout como navbar se eles ainda estiverem visíveis */
-                        nav, header, footer {
-                            display: none !important;
-                        }
-                    }
-                `}</style>
-                            <Paper id="printable-receipt" shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                                <ScrollArea style={{ flex: 1 }} scrollbars="y">
-                                    <Stack gap="xs">
-                                        <Text ta="center" fw={700}>*** CUPOM DE VENDA ***</Text>
-                                        <Text ta="center" size="sm">{new Date().toLocaleString("pt-BR")}</Text>
-                                        <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
-
-                                        <Group justify="space-between">
-                                            <Text size="sm">ITEM</Text>
-                                            <Text size="sm">VALOR</Text>
-                                        </Group>
-                                        <Divider my="xs" style={{ borderTopStyle: 'dashed' }} />
-
-                                        <Box>
-                                            {saleItems.length === 0 ? (
-                                                <Text ta="center" size="sm" c="dimmed" py="xl">...aguardando itens...</Text>
-                                            ) : (
-                                                saleItems.map((item, index) => (
-                                                    <Box key={index} mb="xs">
-                                                        <Text size="sm" lineClamp={1}>{item.product.description}</Text>
-                                                        <Group justify="space-between">
-                                                            <Text size="xs">{item.quantity} x {formatCurrency(item.unitPrice)}</Text>
-                                                            <Text size="sm">{formatCurrency(item.totalPrice)}</Text>
-                                                        </Group>
-                                                    </Box>
-                                                ))
-                                            )}
+                        <Grid.Col span={{ base: 3 }}>
+                            <Paper shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', height: '90vh', overflowY: 'auto' }}>
+                                <Stack gap="xs">
+                                    <Text ta="center" fw={700}>*** CUPOM ***</Text>
+                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                                    {saleItems.map((item, index) => (
+                                        <Box key={index}>
+                                            <Text size="xs">{item.product.description}</Text>
+                                            <Group justify="space-between"><Text size="xs">{item.quantity}x</Text><Text size="xs">{formatCurrency(item.totalPrice)}</Text></Group>
                                         </Box>
-
-                                        <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
-                                        <Group justify="space-between">
-                                            <Text fw={700}>TOTAL</Text>
-                                            <Text fw={700}>{formatCurrency(totalSale)}</Text>
-                                        </Group>
-                                        <Group justify="space-between">
-                                            <Text size="sm">PAGO</Text>
-                                            <Text size="sm">{formatCurrency(amountPaid)}</Text>
-                                        </Group>
-                                        <Group justify="space-between">
-                                            <Text size="sm">TROCO</Text>
-                                            <Text size="sm">{formatCurrency(change >= 0 ? change : 0)}</Text>
-                                        </Group>
-
-                                        <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
-                                        <Text ta="center" size="xs">Obrigado pela preferência!</Text>
-                                    </Stack>
-                                </ScrollArea>
+                                    ))}
+                                    <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
+                                    <Group justify="space-between"><Text fw={700}>TOTAL</Text><Text fw={700}>{formatCurrency(totalSale)}</Text></Group>
+                                </Stack>
                             </Paper>
                         </Grid.Col>
                     )}
                 </Grid>
-
             </Box>
 
-            {/* Modal de Impressão */}
             <Modal opened={showPrintModal} onClose={resetForm} title="Venda Finalizada" centered>
                 <Stack>
-                    <Text>Deseja imprimir o comprovante da venda?</Text>
+                    <Text>Deseja imprimir o comprovante?</Text>
                     <Group justify="flex-end" mt="md">
                         <Button variant="default" onClick={resetForm} ref={noPrintModalRef}>Não</Button>
                         <Button color="blue" onClick={handlePrint}>Sim, Imprimir</Button>

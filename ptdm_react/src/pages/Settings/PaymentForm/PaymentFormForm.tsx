@@ -1,13 +1,16 @@
 import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { Button, Group, Stack, TextInput, Title } from '@mantine/core';
+import { Button, Group, Stack, TextInput, Title, ActionIcon } from '@mantine/core';
 import { MainLayout } from '../../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
+import { db } from '@/utils/db';
+import { genericSubmit, genericDelete } from '@/utils/syncHelper';
+import { Trash2 } from 'lucide-react';
 
 interface PaymentFormValues {
-    id?: string | number;
+    id?: string;
     description: string;
 }
 
@@ -27,36 +30,39 @@ export function PaymentFormForm() {
         if (item) {
             form.setValues({ description: item.description });
         } else if (id) {
-            apiRequest<any>(`paymentform/${id}`).then((found) => {
-                if (found) form.setValues({ description: found.description });
+            apiRequest<PaymentFormValues>(`paymentform/${id}`).then((found) => {
+                const data = (found as any).data || found;
+                if (data) form.setValues({ description: data.description || data.Description });
             }).catch(err => notifications.show({ color: 'red', title: 'Erro', message: String(err) }));
         }
     }, [id, item]);
 
     const submit = async (values: PaymentFormValues) => {
-        try {
-            if (id) {
-                await apiRequest(`paymentform/${id}`, 'PUT', { ...values, id });
-            } else {
-                await apiRequest('paymentform', 'POST', values);
-            }
-            notifications.show({ color: 'green', title: 'Sucesso', message: 'Salvo com sucesso.' });
-            navigate('/settings/payment-forms');
-        } catch (err) {
-            notifications.show({ color: 'red', title: 'Erro', message: String(err) });
-        }
+        await genericSubmit(db.paymentForms, 'paymentform', id, values, navigate, '/settings/payment-forms');
+    };
+
+    const handleDelete = async () => {
+        await genericDelete(db.paymentForms, 'paymentform', id, navigate, '/settings/payment-forms');
     };
 
     return (
         <MainLayout>
-            <Group justify="space-between" mb="md">
-                <Title order={3} style={{ paddingLeft: '2.5rem' }}>{id ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}</Title>
+            <Group justify="space-between" mb="md" style={{ paddingLeft: '2.5rem' }}>
+                <Title order={3}>{id ? 'Editar Forma de Pagamento' : 'Nova Forma de Pagamento'}</Title>
+                {id && (
+                    <ActionIcon color="red" variant="light" onClick={handleDelete} size="lg">
+                        <Trash2 size={20} />
+                    </ActionIcon>
+                )}
             </Group>
 
             <form onSubmit={form.onSubmit(submit)}>
                 <Stack>
                     <TextInput label="Descrição" {...form.getInputProps('description')} required />
-                    <Button type="submit">Salvar</Button>
+                    <Group justify="flex-end">
+                        <Button variant="subtle" onClick={() => navigate('/settings/payment-forms')}>Cancelar</Button>
+                        <Button type="submit">Salvar</Button>
+                    </Group>
                 </Stack>
             </form>
         </MainLayout>

@@ -1,13 +1,16 @@
 import { useEffect } from 'react';
 import { useForm } from '@mantine/form';
-import { Button, Group, Stack, TextInput, Title } from '@mantine/core';
+import { Button, Group, Stack, TextInput, Title, ActionIcon } from '@mantine/core';
 import { MainLayout } from '../../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
+import { db } from '@/utils/db';
+import { genericSubmit, genericDelete } from '@/utils/syncHelper';
+import { Trash2 } from 'lucide-react';
 
 interface CashierValues {
-    id?: string | number;
+    id?: string;
     name: string;
 }
 
@@ -27,36 +30,39 @@ export function CashierForm() {
         if (item) {
             form.setValues({ name: item.name });
         } else if (id) {
-            apiRequest<any>(`cashier/${id}`).then((found) => {
-                if (found) form.setValues({ name: found.name });
+            apiRequest<CashierValues>(`cashier/${id}`).then((found) => {
+                const data = (found as any).data || found;
+                if (data) form.setValues({ name: data.name || data.Name });
             }).catch(err => notifications.show({ color: 'red', title: 'Erro', message: String(err) }));
         }
     }, [id, item]);
 
     const submit = async (values: CashierValues) => {
-        try {
-            if (id) {
-                await apiRequest(`cashier/${id}`, 'PUT', { ...values, id });
-            } else {
-                await apiRequest('cashier', 'POST', values);
-            }
-            notifications.show({ color: 'green', title: 'Sucesso', message: 'Salvo com sucesso.' });
-            navigate('/settings/cashiers');
-        } catch (err) {
-            notifications.show({ color: 'red', title: 'Erro', message: String(err) });
-        }
+        await genericSubmit(db.cashiers, 'cashier', id, values, navigate, '/settings/cashiers');
+    };
+
+    const handleDelete = async () => {
+        await genericDelete(db.cashiers, 'cashier', id, navigate, '/settings/cashiers');
     };
 
     return (
         <MainLayout>
-            <Group justify="space-between" mb="md">
-                <Title order={3} style={{ paddingLeft: '2.5rem' }}>{id ? 'Editar Operador' : 'Novo Operador'}</Title>
+            <Group justify="space-between" mb="md" style={{ paddingLeft: '2.5rem' }}>
+                <Title order={3}>{id ? 'Editar Operador' : 'Novo Operador'}</Title>
+                {id && (
+                    <ActionIcon color="red" variant="light" onClick={handleDelete} size="lg">
+                        <Trash2 size={20} />
+                    </ActionIcon>
+                )}
             </Group>
 
             <form onSubmit={form.onSubmit(submit)}>
                 <Stack>
                     <TextInput label="Nome" {...form.getInputProps('name')} required />
-                    <Button type="submit">Salvar</Button>
+                    <Group justify="flex-end">
+                        <Button variant="subtle" onClick={() => navigate('/settings/cashiers')}>Cancelar</Button>
+                        <Button type="submit">Salvar</Button>
+                    </Group>
                 </Stack>
             </form>
         </MainLayout>
