@@ -3,7 +3,6 @@ import { MainLayout } from '../../layouts/MainLayout';
 import { ActionIcon, Button, Group, Table, TextInput, Title, Pagination, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { db, Product } from '@/utils/db';
-import { syncAll } from '@/utils/syncHelper';
 import { Link, useNavigate } from 'react-router-dom';
 import { CirclePlus } from 'lucide-react';
 
@@ -54,15 +53,7 @@ export function Products() {
   }, [pageSize]);
 
   useEffect(() => {
-    const performSync = async () => {
-      await syncAll();
-      fetchProducts(activePage, search);
-    };
-    performSync();
-
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SYNC_CATEGORIES' });
-    }
+    fetchProducts(activePage, search);
   }, [activePage, fetchProducts]);
 
   const handleSearch = () => {

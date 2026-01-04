@@ -3,7 +3,6 @@ import { MainLayout } from '../../../layouts/MainLayout';
 import { ActionIcon, Group, Table, Title, Pagination, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { db, Category } from '@/utils/db';
-import { syncCategories } from '@/utils/categorySync';
 import { Link, useNavigate } from 'react-router-dom';
 import { CirclePlus } from 'lucide-react';
 
@@ -42,17 +41,7 @@ export function CategoryList() {
 
     // Initial sync and setup listener for changes
     useEffect(() => {
-        const performSync = async () => {
-            await syncCategories();
-            fetchItems(activePage);
-        };
-
-        performSync();
-
-        // If the service worker is available, we can also request a sync
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SYNC_CATEGORIES' });
-        }
+        fetchItems(activePage);
     }, [activePage, fetchItems]);
 
     const totalPages = Math.ceil(totalCount / pageSize);

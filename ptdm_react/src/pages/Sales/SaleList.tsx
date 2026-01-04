@@ -3,10 +3,10 @@ import { MainLayout } from '../../layouts/MainLayout';
 import { ActionIcon, Group, Table, Title, Pagination, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { db, Sale } from '@/utils/db';
-import { syncAll } from '@/utils/syncHelper';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/utils/currency';
 import { CirclePlus } from 'lucide-react';
+import { syncAll } from '@/utils/syncHelper';
 
 export function SaleList() {
     const [items, setItems] = useState<Sale[]>([]);
@@ -19,19 +19,17 @@ export function SaleList() {
         try {
             const offset = (page - 1) * pageSize;
 
-            const collection = db.sales.filter(s => s.syncStatus !== 'pending-delete');
-            const total = await collection.count();
-            const data = await collection
-                .offset(offset)
-                .limit(pageSize)
-                .toArray();
+            const collection = await db.sales.filter(s => s.syncStatus !== 'pending-delete').reverse();
+            const sortedCollection = await collection.sortBy('updatedAt');
+            const total = sortedCollection.length;
+            const data = sortedCollection.slice(offset, offset + pageSize);
 
             // Sort by updatedAt (desc) as a proxy for date
-            data.sort((a, b) => {
-                const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-                const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-                return dateB - dateA;
-            });
+            // data.sort((a, b) => {
+            //     const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            //     const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            //     return dateB - dateA;
+            // });
 
             setItems(data);
             setTotalCount(total);
@@ -47,6 +45,7 @@ export function SaleList() {
         };
         performSync();
     }, [activePage, fetchItems]);
+
 
     const totalPages = Math.ceil(totalCount / pageSize);
 

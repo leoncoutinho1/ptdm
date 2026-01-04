@@ -3,7 +3,6 @@ import { MainLayout } from '../../../layouts/MainLayout';
 import { ActionIcon, Group, Table, Title, Pagination, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { db, Checkout } from '@/utils/db';
-import { syncCategories } from '@/utils/categorySync';
 import { Link, useNavigate } from 'react-router-dom';
 import { CirclePlus } from 'lucide-react';
 
@@ -35,15 +34,7 @@ export function CheckoutList() {
     }, [pageSize]);
 
     useEffect(() => {
-        const performSync = async () => {
-            await syncCategories();
-            fetchItems(activePage);
-        };
-        performSync();
-
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SYNC_CATEGORIES' });
-        }
+        fetchItems(activePage);
     }, [activePage, fetchItems]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
