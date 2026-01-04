@@ -98,7 +98,7 @@ export async function genericPush<T extends { id: string, updatedAt?: string, sy
 
                     await table.delete(itemId);
                     if (normalized && normalized.id && normalized.id !== '0') {
-                    await table.put({ ...normalized, syncStatus: 'synced' } as any);
+                        await table.put({ ...normalized, syncStatus: 'synced' } as any);
 
                         // If ID changed (typical for servers), update references in other tables
                         if (itemId !== normalized.id) {
@@ -148,7 +148,7 @@ export async function genericPull<T extends { id: string, updatedAt?: string, sy
                 .filter((item): item is any => item !== null && !!item.id && item.id !== '0');
 
             if (itemsToSave.length > 0) {
-            await table.bulkPut(itemsToSave as any[]);
+                await table.bulkPut(itemsToSave as any[]);
                 console.log(`Synced ${itemsToSave.length} ${endpoint} from server.`);
             }
         }
@@ -163,7 +163,8 @@ function prepareLocal(id: string | undefined, values: any): any {
     return {
         ...values,
         id: finalId,
-        syncStatus: 'pending-save'
+        syncStatus: 'pending-save',
+        updatedAt: new Date().toISOString()
     };
 }
 
@@ -190,7 +191,7 @@ export async function genericSubmit<T extends { id: string, syncStatus?: string 
                 const normalized = normalizeData(response);
                 await table.delete(localId as any);
                 if (normalized && normalized.id && normalized.id !== '0') {
-                await table.put({ ...normalized, syncStatus: 'synced' } as any);
+                    await table.put({ ...normalized, syncStatus: 'synced' } as any);
 
                     // Propagation here for online creates
                     if (localId !== normalized.id) {

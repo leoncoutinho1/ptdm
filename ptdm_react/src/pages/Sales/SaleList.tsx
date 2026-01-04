@@ -19,17 +19,19 @@ export function SaleList() {
         try {
             const offset = (page - 1) * pageSize;
 
-            const collection = await db.sales.filter(s => s.syncStatus !== 'pending-delete').reverse();
-            const sortedCollection = await collection.sortBy('updatedAt');
-            const total = sortedCollection.length;
-            const data = sortedCollection.slice(offset, offset + pageSize);
+            const allItems = await db.sales
+                .filter(s => s.syncStatus !== 'pending-delete')
+                .toArray();
 
-            // Sort by updatedAt (desc) as a proxy for date
-            // data.sort((a, b) => {
-            //     const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-            //     const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-            //     return dateB - dateA;
-            // });
+            // Sort by updatedAt or createdAt (desc)
+            allItems.sort((a, b) => {
+                const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+                const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                return dateB - dateA;
+            });
+
+            const total = allItems.length;
+            const data = allItems.slice(offset, offset + pageSize);
 
             setItems(data);
             setTotalCount(total);

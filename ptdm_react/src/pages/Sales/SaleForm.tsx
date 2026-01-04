@@ -294,7 +294,14 @@ export function SaleForm() {
         // Actually, SaleForm should stay open to show the print modal.
 
         const saleId = crypto.randomUUID();
-        const localSale: Sale = { ...saleData, id: saleId, syncStatus: 'pending-save' };
+        const now = new Date().toISOString();
+        const localSale: Sale = {
+            ...saleData,
+            id: saleId,
+            syncStatus: 'pending-save',
+            createdAt: now,
+            updatedAt: now
+        };
 
         try {
             await db.sales.put(localSale);
