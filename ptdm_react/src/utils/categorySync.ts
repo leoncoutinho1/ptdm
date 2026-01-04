@@ -1,6 +1,19 @@
 import { db, Category } from './db';
 import { apiRequest } from './apiHelper';
 
+// Helper to handle potential PascalCase or wrapped responses from .NET API
+function normalizeCategory(cat: any): Category {
+    // If the response is wrapped in a 'data' property (common in some API patterns)
+    const data = cat.data ? cat.data : cat;
+
+    return {
+        ...data,
+        id: String(data.id || data.Id || data.ID || ''),
+        description: data.description || data.Description || '',
+        updatedAt: data.updatedAt || data.UpdatedAt,
+    };
+}
+
 export async function pushLocalChanges() {
     if (!navigator.onLine) return;
 
@@ -28,12 +41,13 @@ export async function pushLocalChanges() {
                 const isNew = !item.updatedAt;
 
                 if (isNew) {
-                    const response = await apiRequest<Category>('category', 'POST', {
+                    const response = await apiRequest<any>('category', 'POST', {
                         description: item.description
                     });
+                    const normalized = normalizeCategory(response);
                     // Replace temporary local item with server item
                     await db.categories.delete(item.id);
-                    await db.categories.put({ ...response, syncStatus: 'synced' });
+                    await db.categories.put({ ...normalized, syncStatus: 'synced' });
                 } else {
                     await apiRequest(`category/${item.id}`, 'PUT', {
                         id: item.id,
@@ -73,7 +87,7 @@ export async function syncCategories() {
         if (response.data && response.data.length > 0) {
             // Mark items from API as synced
             const itemsToSave = response.data.map(cat => ({
-                ...cat,
+                ...normalizeCategory(cat),
                 syncStatus: 'synced' as const
             }));
             await db.categories.bulkPut(itemsToSave);

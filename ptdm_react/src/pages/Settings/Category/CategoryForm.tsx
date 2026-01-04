@@ -39,6 +39,19 @@ export function CategoryForm() {
         }
     }, [id, item]);
 
+    // Helper to handle potential PascalCase or wrapped responses from .NET API
+    function normalizeCategory(cat: any): Category {
+        // If the response is wrapped in a 'data' property (common in some API patterns)
+        const data = cat.data ? cat.data : cat;
+
+        return {
+            ...data,
+            id: String(data.id || data.Id || data.ID || ''),
+            description: data.description || data.Description || '',
+            updatedAt: data.updatedAt || data.UpdatedAt,
+        };
+    }
+
     const submit = async (values: CategoryValues) => {
         const categoryId = id || crypto.randomUUID();
         const categoryData: Category = {
@@ -57,10 +70,16 @@ export function CategoryForm() {
                     // Mark as synced if no error
                     await db.categories.update(categoryId, { syncStatus: 'synced' });
                 } else {
-                    const response = await apiRequest<Category>('category', 'POST', values);
+                    const response = await apiRequest<any>('category', 'POST', values);
+                    const normalized = normalizeCategory(response);
+
+                    if (!normalized.id) {
+                        throw new Error('API não retornou um ID válido para a nova categoria.');
+                    }
+
                     // Update local with server data (true ID and updatedAt)
                     await db.categories.delete(categoryId); // Delete the temporary local entry
-                    await db.categories.put({ ...response, syncStatus: 'synced' }); // Add the server-synced entry
+                    await db.categories.put({ ...normalized, syncStatus: 'synced' }); // Add the server-synced entry
                 }
             }
 
