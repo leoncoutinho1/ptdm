@@ -8,10 +8,14 @@ export default defineConfig({
     react(),
     tsconfigPaths(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       devOptions: {
         enabled: true,
+        type: 'module',
       },
       manifest: {
         name: 'Controle de Estoque',

@@ -5,6 +5,7 @@ import { MainLayout } from '../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { apiRequest } from '@/utils/apiHelper';
+import { db } from '@/utils/db';
 
 interface ProductFormValues {
   description: string;
@@ -37,11 +38,10 @@ export function ProductForm() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const result = await apiRequest<any>('category/listCategory');
-        const data = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
-        setCategories(data.map((cat: any) => ({ value: String(cat.id), label: cat.description })));
+        const localData = await db.categories.toArray();
+        setCategories(localData.map((cat: any) => ({ value: String(cat.id), label: cat.description })));
       } catch (err) {
-        console.error('Erro ao buscar categorias', err);
+        console.error('Erro ao buscar categorias localmente', err);
       }
     };
     fetchCategories();
