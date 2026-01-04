@@ -200,7 +200,7 @@ namespace ptdm.Service.Services
 
         public ErrorOr<ProductDTO> Delete(Guid id)
         {
-            var product = _context.Products.Where(p => p.Id == id).SingleOrDefault();
+            var product = _context.Products.Where(p => p.Id == id).Include(x => x.Barcodes).SingleOrDefault();
 
             if (product is null)
                 return Error.NotFound();
