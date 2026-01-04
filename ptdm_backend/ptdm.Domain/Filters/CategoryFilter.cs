@@ -8,6 +8,6 @@ public class CategoryFilter : CustomFilter
     public Guid? Id { get; set; }
     [QueryOperator(Operator = WhereOperator.Contains)]
     public string? Description { get; set; }
-    [QueryOperator(Operator = WhereOperator.GreaterThan)]
+    [QueryOperator(Operator = WhereOperator.GreaterThanOrEqualWhenNullable)]
     public DateTime? UpdatedAt { get; set; }
 }

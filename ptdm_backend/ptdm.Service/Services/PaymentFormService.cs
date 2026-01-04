@@ -61,7 +61,8 @@ public class PaymentFormService : IPaymentFormService
         PaymentForm paymentForm = new PaymentForm()
         {
             Description = dto.Description,
-            CreatedBy = GetUserId()
+            CreatedBy = GetUserId(),
+            UpdatedBy = GetUserId()
         };
         try
         {

@@ -58,7 +58,8 @@ namespace ptdm.Service.Services
             Category category = new Category
             {
                 Description = categoryDto.Description,
-                CreatedBy = GetUserId()
+                CreatedBy = GetUserId(),
+                UpdatedBy = GetUserId()
             };
 
             try

@@ -54,7 +54,8 @@ namespace ptdm.Service.Services
                 PaidValue = dto.PaidValue,
                 PaymentFormId = dto.PaymentFormId,
                 TotalValue = dto.TotalValue,
-                CreatedBy = GetUserId()
+                CreatedBy = GetUserId(),
+                UpdatedBy = GetUserId()
             };
             _context.Sales.Add(sale);
 

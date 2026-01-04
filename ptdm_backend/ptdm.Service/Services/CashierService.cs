@@ -61,7 +61,8 @@ public class CashierService : ICashierService
         Cashier cashier = new Cashier()
         {
             Name = dto.Name,
-            CreatedBy = GetUserId()
+            CreatedBy = GetUserId(),
+            UpdatedBy = GetUserId()
         };
         try
         {

@@ -107,7 +107,8 @@ namespace ptdm.Service.Services
                 Price = product.Price,
                 Quantity = product.Quantity,
                 CategoryId = product.CategoryId,
-                CreatedBy = GetUserId()
+                CreatedBy = GetUserId(),
+                UpdatedBy = GetUserId()
             };
 
             try

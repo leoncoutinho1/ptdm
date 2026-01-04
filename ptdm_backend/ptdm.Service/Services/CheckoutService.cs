@@ -61,7 +61,8 @@ public class CheckoutService : ICheckoutService
         Checkout checkout = new Checkout()
         {
             Name = dto.Name,
-            CreatedBy = GetUserId()
+            CreatedBy = GetUserId(),
+            UpdatedBy = GetUserId()
         };
         try
         {
