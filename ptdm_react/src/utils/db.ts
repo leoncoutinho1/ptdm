@@ -53,6 +53,11 @@ interface Sale extends Syncable {
     createdAt?: string;
 }
 
+interface SyncMeta {
+    id: string; // entity name or 'global'
+    lastSync: string;
+}
+
 const db = new Dexie('PtdmDatabase') as Dexie & {
     auth: EntityTable<AuthData, 'id'>;
     categories: EntityTable<Category, 'id'>;
@@ -61,18 +66,20 @@ const db = new Dexie('PtdmDatabase') as Dexie & {
     paymentForms: EntityTable<PaymentForm, 'id'>;
     products: EntityTable<Product, 'id'>;
     sales: EntityTable<Sale, 'id'>;
+    syncMeta: EntityTable<SyncMeta, 'id'>;
 };
 
 // Schema declaration:
-db.version(5).stores({
+db.version(6).stores({
     auth: 'id',
     categories: 'id, updatedAt, syncStatus',
     cashiers: 'id, updatedAt, syncStatus',
     checkouts: 'id, updatedAt, syncStatus',
     paymentForms: 'id, updatedAt, syncStatus',
     products: 'id, updatedAt, syncStatus, categoryId',
-    sales: 'id, updatedAt, syncStatus'
+    sales: 'id, updatedAt, syncStatus',
+    syncMeta: 'id'
 });
 
-export type { AuthData, Category, Cashier, Checkout, PaymentForm, Product, Sale };
+export type { AuthData, Category, Cashier, Checkout, PaymentForm, Product, Sale, SyncMeta };
 export { db };

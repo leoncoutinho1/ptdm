@@ -300,7 +300,6 @@ export function SaleForm() {
             id: saleId,
             syncStatus: 'pending-save',
             createdAt: now,
-            updatedAt: now
         };
 
         try {

@@ -102,6 +102,11 @@ export async function apiRequest<T>(
   };
 
   let res: Response;
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('Você está offline. Verifique sua conexão.');
+  }
+
   try {
     res = await fetch(url, {
       method,
@@ -109,9 +114,7 @@ export async function apiRequest<T>(
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (error) {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      throw new Error('Você está offline. Verifique sua conexão.');
-    }
+
     throw error;
   }
 

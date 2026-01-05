@@ -120,18 +120,22 @@ export async function genericPush<T extends { id: string, updatedAt?: string, sy
 export async function genericPull<T extends { id: string, updatedAt?: string, syncStatus?: string }>(
     table: EntityTable<T, 'id'>,
     endpoint: string,
-    listEndpoint?: string
+    listEndpoint?: string,
+    lastSyncOverride?: string
 ) {
     if (!navigator.onLine) return;
 
     try {
-        const syncedItems = await table
-            .where('syncStatus')
-            .equals('synced')
-            .sortBy('updatedAt' as any);
+        let lastSync = lastSyncOverride;
 
-        const lastItem = syncedItems.length > 0 ? syncedItems[syncedItems.length - 1] : null;
-        const lastSync = lastItem?.updatedAt || '0001-01-01T00:00:00Z';
+        if (!lastSync) {
+            const syncedItems = await table
+                .where('syncStatus')
+                .equals('synced')
+                .sortBy('updatedAt' as any);
+            const lastItem = syncedItems.length > 0 ? syncedItems[syncedItems.length - 1] : null;
+            lastSync = lastItem?.updatedAt || '0001-01-01T00:00:00Z';
+        }
 
         const finalEndpoint = listEndpoint || `${endpoint}/list${endpoint}`;
 
@@ -236,29 +240,37 @@ export async function genericDelete<T extends { id: string, syncStatus?: string 
 }
 
 export async function syncAll() {
-    if (!navigator.onLine) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
+    // Get last global sync time
+    const syncLog = await db.syncMeta.get('global');
+    const lastSync = syncLog?.lastSync || '0001-01-01T00:00:00Z';
+    const nowSync = new Date().toISOString();
 
     // Categories
     await genericPush(db.categories, 'category');
-    await genericPull(db.categories, 'category');
+    await genericPull(db.categories, 'category', undefined, lastSync);
 
     // Cashiers
     await genericPush(db.cashiers, 'cashier');
-    await genericPull(db.cashiers, 'cashier');
+    await genericPull(db.cashiers, 'cashier', undefined, lastSync);
 
     // Checkouts
     await genericPush(db.checkouts, 'checkout');
-    await genericPull(db.checkouts, 'checkout');
+    await genericPull(db.checkouts, 'checkout', undefined, lastSync);
 
     // Payment Forms
     await genericPush(db.paymentForms, 'paymentForm');
-    await genericPull(db.paymentForms, 'paymentForm', 'paymentForm/ListPaymentForm');
+    await genericPull(db.paymentForms, 'paymentForm', 'paymentForm/ListPaymentForm', lastSync);
 
     // Products
     await genericPush(db.products, 'product');
-    await genericPull(db.products, 'product', 'product/listproduct');
+    await genericPull(db.products, 'product', 'product/listproduct', lastSync);
 
     // Sales
     await genericPush(db.sales, 'sale');
-    await genericPull(db.sales, 'sale', 'sale/listSale');
+    await genericPull(db.sales, 'sale', 'sale/listSale', lastSync);
+
+    // Update global sync time
+    await db.syncMeta.put({ id: 'global', lastSync: nowSync });
 }
