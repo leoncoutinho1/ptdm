@@ -1,5 +1,5 @@
 import { db } from './db';
-import { apiRequest } from './apiHelper';
+import { apiRequest, checkConnectivity } from './apiHelper';
 import { EntityTable } from 'dexie';
 import { notifications } from '@mantine/notifications';
 
@@ -72,7 +72,7 @@ export async function genericPush<T extends { id: string, updatedAt?: string, sy
     table: EntityTable<T, 'id'>,
     endpoint: string
 ) {
-    if (!navigator.onLine) return;
+    if (!(await checkConnectivity())) return;
 
     const pendingItems = await table
         .where('syncStatus')
@@ -123,7 +123,7 @@ export async function genericPull<T extends { id: string, updatedAt?: string, sy
     listEndpoint?: string,
     lastSyncOverride?: string
 ) {
-    if (!navigator.onLine) return;
+    if (!(await checkConnectivity())) return;
 
     try {
         let lastSync = lastSyncOverride;
@@ -168,7 +168,6 @@ function prepareLocal(id: string | undefined, values: any): any {
         ...values,
         id: finalId,
         syncStatus: 'pending-save',
-        updatedAt: new Date().toISOString()
     };
 }
 
@@ -186,7 +185,7 @@ export async function genericSubmit<T extends { id: string, syncStatus?: string 
     try {
         await table.put(localData as any);
 
-        if (navigator.onLine) {
+        if (await checkConnectivity()) {
             if (id) {
                 await apiRequest(`${endpoint}/${id}`, 'PUT', { ...values, id });
                 await table.update(id as any, { syncStatus: 'synced' } as any);
@@ -207,7 +206,7 @@ export async function genericSubmit<T extends { id: string, syncStatus?: string 
 
         notifications.show({ color: 'green', title: 'Sucesso', message: 'Dados salvos e sincronizando.' });
         navigate(redirectPath);
-        if (navigator.onLine) syncAll();
+        if (await checkConnectivity()) syncAll();
     } catch (err) {
         console.error('Submit failed:', err);
         notifications.show({ color: 'blue', title: 'Offline', message: 'Salvo localmente. Será sincronizado em breve.' });
@@ -226,7 +225,7 @@ export async function genericDelete<T extends { id: string, syncStatus?: string 
     if (!window.confirm('Tem certeza que deseja excluir?')) return;
 
     try {
-        if (navigator.onLine) {
+        if (await checkConnectivity()) {
             await apiRequest(`${endpoint}/${id}`, 'DELETE');
             await table.delete(id as any);
         } else {
@@ -240,7 +239,7 @@ export async function genericDelete<T extends { id: string, syncStatus?: string 
 }
 
 export async function syncAll() {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    if (!(await checkConnectivity())) return;
 
     // Get last global sync time
     const syncLog = await db.syncMeta.get('global');

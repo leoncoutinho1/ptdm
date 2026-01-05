@@ -45,43 +45,55 @@ namespace ptdm.Service.Services
 
         public ErrorOr<SaleDTO> Create(SaleDTO dto)
         {
-            Sale sale = new Sale
+            using var transaction = _context.Database.BeginTransaction();
+            try
             {
-                CashierId = dto.CashierId,
-                CheckoutId = dto.CheckoutId,
-                OverallDiscount = dto.OverallDiscount,
-                ChangeValue = dto.ChangeValue,
-                PaidValue = dto.PaidValue,
-                PaymentFormId = dto.PaymentFormId,
-                TotalValue = dto.TotalValue,
-                CreatedBy = GetUserId(),
-                UpdatedBy = GetUserId()
-            };
-            _context.Sales.Add(sale);
-
-            _context.SaveChanges();
-
-            foreach (var sp in dto.SaleProducts)
-            {
-                _context.SaleProducts.Add(new SaleProduct
+                Sale sale = new Sale
                 {
-                    ProductId = sp.ProductId,
-                    UnitPrice = sp.UnitPrice,
-                    Quantity = sp.Quantity,
-                    Discount = sp.Discount,
-                    SaleId = sale.Id
-                });
+                    CashierId = dto.CashierId,
+                    CheckoutId = dto.CheckoutId,
+                    OverallDiscount = dto.OverallDiscount,
+                    ChangeValue = dto.ChangeValue,
+                    PaidValue = dto.PaidValue,
+                    PaymentFormId = dto.PaymentFormId,
+                    TotalValue = dto.TotalValue,
+                    CreatedBy = GetUserId(),
+                    UpdatedBy = GetUserId()
+                };
+                _context.Sales.Add(sale);
+                _context.SaveChanges();
 
-                var product = _context.Products.Where(x => x.Id == sp.ProductId).Include(x => x.Barcodes).SingleOrDefault();
-                product.Quantity -= sp.Quantity;
-                product.UpdatedBy = GetUserId();
-                product.UpdatedAt = DateTime.UtcNow;
-                _context.Products.Update(product);
+                foreach (var sp in dto.SaleProducts)
+                {
+                    _context.SaleProducts.Add(new SaleProduct
+                    {
+                        ProductId = sp.ProductId,
+                        UnitPrice = sp.UnitPrice,
+                        Quantity = sp.Quantity,
+                        Discount = sp.Discount,
+                        SaleId = sale.Id
+                    });
+
+                    var product = _context.Products.Where(x => x.Id == sp.ProductId).Include(x => x.Barcodes).SingleOrDefault();
+                    if (product != null)
+                    {
+                        product.Quantity -= sp.Quantity;
+                        product.UpdatedBy = GetUserId();
+                        product.UpdatedAt = DateTime.UtcNow;
+                        _context.Products.Update(product);
+                    }
+                }
+
+                _context.SaveChanges();
+                transaction.Commit();
+                
+                return (SaleDTO)sale;
             }
-
-            _context.SaveChanges();
-            
-            return (SaleDTO)sale;
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                return Error.Failure(description: $"Erro ao processar a venda: {ex.Message}");
+            }
         }
 
         public ErrorOr<SaleDTO> Delete(Guid id)

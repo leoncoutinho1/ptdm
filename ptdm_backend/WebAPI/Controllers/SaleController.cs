@@ -48,7 +48,7 @@ public class SaleController : ControllerBase
 
         return result.IsError 
             ? BadRequest(result.Errors) 
-            : Created();
+            : Ok(result);
     }
         
     [HttpDelete("{id}")]

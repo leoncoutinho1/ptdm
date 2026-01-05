@@ -104,6 +104,14 @@ export function ProductForm() {
   };
 
   const submit = async (values: ProductFormValues) => {
+    if (!values.description || !values.categoryId || !values.cost || !values.price || !values.quantity || !values.barcodes.length || !values.barcodes.every(code => code.trim())) {
+      notifications.show({
+        title: 'Erro',
+        message: 'Preencha todos os campos',
+        color: 'red'
+      });
+      return;
+    }
     await genericSubmit(db.products, 'product', id, values, navigate, '/products');
   };
 
@@ -132,10 +140,11 @@ export function ProductForm() {
             {...form.getInputProps('categoryId')}
             searchable
             clearable
+            required
           />
-          <NumberInput label="Custo" {...form.getInputProps('cost')} min={0} decimalScale={2} />
-          <NumberInput label="Preço" {...form.getInputProps('price')} min={0} decimalScale={2} />
-          <NumberInput label="Quantidade" {...form.getInputProps('quantity')} min={0} />
+          <NumberInput label="Custo" {...form.getInputProps('cost')} min={0} decimalScale={2} required />
+          <NumberInput label="Preço" {...form.getInputProps('price')} min={0} decimalScale={2} required />
+          <NumberInput label="Quantidade" {...form.getInputProps('quantity')} min={0} required />
 
           <Title order={5}>Códigos de barras</Title>
           {form.values.barcodes.map((code, idx) => (

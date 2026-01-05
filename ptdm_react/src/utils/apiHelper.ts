@@ -2,6 +2,28 @@ import { db } from './db';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export async function checkConnectivity(): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+
+  try {
+    const auth = await getAuthData();
+    const tenant = auth?.tenant || 'master';
+    // Use a lightweight endpoint to check connectivity
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const res = await fetch(`/api/${tenant}/Login/request`, {
+      method: 'HEAD',
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    return res.ok || res.status === 401; // 401 means reached the serve but unauthorized
+  } catch {
+    return false;
+  }
+}
+
 export function getTenant(): string {
   // Use self.location which works in both window and service worker context
   const path = typeof window !== 'undefined' ? window.location.pathname : (typeof self !== 'undefined' ? self.location.pathname : '');
@@ -50,7 +72,7 @@ export async function getAuthData() {
 
 async function refreshTokens(): Promise<TokenResponse | null> {
   // If navigator is available and we're offline, don't try
-  if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
+  if (!(await checkConnectivity())) return null;
 
   const auth = await getAuthData();
   if (!auth) return null;
@@ -103,7 +125,7 @@ export async function apiRequest<T>(
 
   let res: Response;
 
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+  if (!(await checkConnectivity())) {
     throw new Error('Você está offline. Verifique sua conexão.');
   }
 
@@ -138,7 +160,7 @@ export async function apiRequest<T>(
         }
       }
 
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (!(await checkConnectivity())) {
         throw new Error('Você está offline. Algumas operações podem não estar disponíveis.');
       }
 

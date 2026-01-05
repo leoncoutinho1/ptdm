@@ -26,6 +26,14 @@ public class LoginController : ControllerBase
         _configuration = configuration;
     }
 
+    [HttpGet("request")]
+    [HttpHead("request")]
+    [AllowAnonymous]
+    public IActionResult RequestTenant()
+    {
+        return Ok();
+    }
+
     [HttpPost("register")]
     public async Task<ActionResult> RegisterUser([FromBody] RegisterUserDTO model){
         if (!ModelState.IsValid){

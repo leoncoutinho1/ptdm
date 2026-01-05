@@ -44,7 +44,7 @@ public class CashierController : ControllerBase
         var result = _service.Create(cashier);
         return (result.IsError)
             ? BadRequest(result)
-            : Created();
+            : Ok(result);
     }
     
     [HttpPut("{id}")]

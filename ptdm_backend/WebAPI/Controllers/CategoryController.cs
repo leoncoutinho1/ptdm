@@ -42,7 +42,7 @@ public class CategoryController : ControllerBase
         var result = _service.Create(category);
         return (result.IsError)
             ? BadRequest(result)
-            : Created();
+            : Ok(result);
     }
 
     [HttpPut("{id}")]
@@ -55,7 +55,7 @@ public class CategoryController : ControllerBase
         var result = _service.Update(category);
         return (result.IsError)
             ? BadRequest(result)
-            : Ok(result.Value);
+            : Ok(result);
     }
 
     [HttpDelete("{id}")]

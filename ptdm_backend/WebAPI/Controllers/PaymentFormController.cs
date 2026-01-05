@@ -45,7 +45,7 @@ public class PaymentFormController : ControllerBase
         var result = _service.Create(dto);
         return (result.IsError)
             ? BadRequest(result)
-            : Created();
+            : Ok(result);
     }
 
     [HttpPut("{id}")]

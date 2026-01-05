@@ -88,31 +88,31 @@ namespace ptdm.Service.Services
 
         public ErrorOr<ProductDTO> Create(ProductDTO product)
         {
-            if (!product.Barcodes.Any() ||
-                (product.Barcodes.Count() == 1 && product.Barcodes.First() == String.Empty)
-            )
-            {
-                return Error.Failure(description: "É necessário informar ao menos um código.");
-            }
-            
-            var existCodes = _context.Barcodes.Where(x => product.Barcodes.Contains(x.Code)).AsNoTracking().ToList();
-            if (product.Barcodes.Count == existCodes.Count)
-                return Error.Failure(description: "O código informado já existe para outro produto");
+            using var transaction = _context.Database.BeginTransaction();
+            try {
+                if (!product.Barcodes.Any() ||
+                    (product.Barcodes.Count() == 1 && product.Barcodes.First() == String.Empty)
+                )
+                {
+                    return Error.Failure(description: "É necessário informar ao menos um código.");
+                }
+                
+                var existCodes = _context.Barcodes.Where(x => product.Barcodes.Contains(x.Code)).AsNoTracking().ToList();
+                if (product.Barcodes.Count == existCodes.Count)
+                    return Error.Failure(description: "O código informado já existe para outro produto");
 
-            Product p = new Product
-            {
-                Description = product.Description,
-                Cost = product.Cost,
-                ProfitMargin = product.Cost * 100 / product.Price,
-                Price = product.Price,
-                Quantity = product.Quantity,
-                CategoryId = product.CategoryId,
-                CreatedBy = GetUserId(),
-                UpdatedBy = GetUserId()
-            };
+                Product p = new Product
+                {
+                    Description = product.Description,
+                    Cost = product.Cost,
+                    ProfitMargin = product.Cost * 100 / product.Price,
+                    Price = product.Price,
+                    Quantity = product.Quantity,
+                    CategoryId = product.CategoryId,
+                    CreatedBy = GetUserId(),
+                    UpdatedBy = GetUserId()
+                };
 
-            try
-            {
                 _context.Products.Add(p);
                 _context.SaveChanges();
 
@@ -126,12 +126,14 @@ namespace ptdm.Service.Services
                         });
                 }
                 _context.SaveChanges();
-                return (ProductDTO)p;
+                transaction.Commit();
 
+                return (ProductDTO)p;
             }
             catch (Exception ex)
             {
-                return Error.Failure(description: "Product can't be created");
+                transaction.Rollback();
+                return Error.Failure(description: $"Erro ao processar a venda: {ex.Message}");
             }
         }
 

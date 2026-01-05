@@ -51,7 +51,7 @@ public class ProductController : ControllerBase
         var result = _service.Create(product);
         return (result.IsError)
             ? BadRequest(result)
-            : Created();
+            : Ok(result);
     }
 
     [HttpPut("{id}")]

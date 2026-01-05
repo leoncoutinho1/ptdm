@@ -5,7 +5,7 @@ import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Pap
 import { Eye, EyeOff, XCircle } from 'lucide-react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
-import { apiRequest } from '@/utils/apiHelper';
+import { apiRequest, checkConnectivity } from '@/utils/apiHelper';
 import { formatCurrency } from '@/utils/currency';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, Product, Cashier, Checkout, PaymentForm, Sale } from '@/utils/db';
@@ -305,7 +305,7 @@ export function SaleForm() {
         try {
             await db.sales.put(localSale);
 
-            if (navigator.onLine) {
+            if (await checkConnectivity()) {
                 const response = await apiRequest<any>('sale', 'POST', saleData);
                 const normalized = normalizeData(response);
                 await db.sales.delete(saleId);
