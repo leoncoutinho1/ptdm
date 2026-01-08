@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder';
 import { useForm } from '@mantine/form';
-import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Modal, Divider, Box, ScrollArea, ActionIcon, Accordion } from '@mantine/core';
+import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Divider, Box, ScrollArea, ActionIcon, Accordion, Modal } from '@mantine/core';
 import { Eye, EyeOff, XCircle } from 'lucide-react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
@@ -10,6 +10,8 @@ import { formatCurrency } from '@/utils/currency';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, Product, Cashier, Checkout, PaymentForm, Sale } from '@/utils/db';
 import { genericSubmit, normalizeData } from '@/utils/syncHelper';
+import { motion } from 'framer-motion';
+import { useConfirmAction } from '@/hooks/useConfirmModal';
 
 interface SaleItem {
     productId: string;
@@ -41,8 +43,12 @@ export function SaleForm() {
     const [amountPaid, setAmountPaid] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
     const [selectedProductValue, setSelectedProductValue] = useState<string | null>(null);
-    const [showPrintModal, setShowPrintModal] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
+    const [paymentModalOpened, setPaymentModalOpened] = useState(false);
+    const [tempPaidValue, setTempPaidValue] = useState(0);
+    const [shouldFocusSaveButton, setShouldFocusSaveButton] = useState(false);
+
+    const { openConfirmModal } = useConfirmAction();
 
     const form = useForm({
         initialValues: {
@@ -161,11 +167,6 @@ export function SaleForm() {
         }
     };
 
-    useEffect(() => {
-        if (showPrintModal && noPrintModalRef.current) {
-            setTimeout(() => noPrintModalRef.current?.focus(), 100);
-        }
-    }, [showPrintModal]);
 
     useEffect(() => {
         if (!isViewMode && quantityRef.current) {
@@ -185,8 +186,7 @@ export function SaleForm() {
         if (e.key === 'Enter') {
             e.preventDefault();
             if (quantity <= 0 && saleItems.length > 0) {
-                paidValueRef.current?.focus();
-                paidValueRef.current?.select();
+                openPaymentModal();
                 return;
             }
             searchProducts();
@@ -213,8 +213,7 @@ export function SaleForm() {
         let itemId = product?.id;
 
         if (!item && quantity <= 0 && saleItems.length > 0) {
-            paidValueRef.current?.focus();
-            paidValueRef.current?.select();
+            openPaymentModal();
             return;
         }
 
@@ -301,7 +300,7 @@ export function SaleForm() {
             syncStatus: 'pending-save',
             createdAt: now,
         };
-
+        resetForm();
         try {
             await db.sales.put(localSale);
 
@@ -315,11 +314,22 @@ export function SaleForm() {
             }
 
             notifications.show({ color: 'green', title: 'Sucesso', message: 'Venda registrada!' });
-            setShowPrintModal(true);
+            showPrintConfirmation();
         } catch (err) {
             notifications.show({ color: 'blue', title: 'Offline', message: 'Venda salva localmente.' });
-            setShowPrintModal(true);
+            showPrintConfirmation();
         }
+    };
+
+    const showPrintConfirmation = () => {
+        openConfirmModal({
+            title: 'Venda Finalizada',
+            message: 'Deseja imprimir o comprovante?',
+            confirmLabel: 'Sim, Imprimir',
+            cancelLabel: 'Não',
+            confirmColor: 'blue',
+            onConfirm: handlePrint,
+        });
     };
 
     const resetForm = () => {
@@ -328,12 +338,47 @@ export function SaleForm() {
         setSearchTerm('');
         setProductOptions([]);
         setQuantity(0);
-        setShowPrintModal(false);
+        setTempPaidValue(0);
         if (isViewMode) {
             navigate('/sales');
         } else {
             setTimeout(() => quantityRef.current?.focus(), 100);
         }
+    };
+
+    const openPaymentModal = () => {
+        if (tempPaidValue === 0) {
+            setTempPaidValue(totalSale);
+        }
+        setPaymentModalOpened(true);
+    };
+
+    const confirmPayment = () => {
+        setAmountPaid(tempPaidValue);
+        setPaymentModalOpened(false);
+        setShouldFocusSaveButton(true);
+    };
+
+    // Foca no botão Finalizar após fechar o modal de pagamento
+    useEffect(() => {
+        if (!paymentModalOpened && shouldFocusSaveButton) {
+            setTimeout(() => {
+                saveSaleRef.current?.focus();
+                setShouldFocusSaveButton(false);
+            }, 200);
+        }
+    }, [paymentModalOpened, shouldFocusSaveButton]);
+
+    const handlePaymentModalKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmPayment();
+        }
+    };
+
+    const handlePaymentInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+        // Seleciona todo o conteúdo quando o input recebe foco
+        e.target.select();
     };
 
     const handlePrint = async () => {
@@ -363,7 +408,6 @@ export function SaleForm() {
         } else {
             window.print();
         }
-        resetForm();
     };
 
     return (
@@ -460,16 +504,70 @@ export function SaleForm() {
                             </ScrollArea>
 
                             <Group align="flex-end" gap="md" py="md" style={{ flexShrink: 0 }}>
-                                <Group grow style={{ flex: 1 }} align="flex-end">
-                                    <NumberInput label="Vlr Pago" value={amountPaid} ref={paidValueRef} onChange={(val) => setAmountPaid(Number(val) || 0)} min={0} prefix="R$ " disabled={isViewMode} onKeyDown={handlePaidValueKeyDown} />
-                                    <Paper p="xs" withBorder style={{ backgroundColor: '#f8f9fa' }}>
-                                        <Text size="lg" fw={700} ta="center">Total: {formatCurrency(totalSale)}</Text>
+                                <Group grow style={{ flex: 1 }} align="stretch">
+                                    <Paper
+                                        p="xs"
+                                        withBorder
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            minHeight: 54,
+                                            flex: 1,
+                                            background: 'var(--mantine-color-green-light)',
+                                            borderColor: 'var(--mantine-color-green-outline)',
+                                            cursor: isViewMode ? 'default' : 'pointer'
+                                        }}
+                                        onClick={() => !isViewMode && openPaymentModal()}
+                                    >
+                                        <Stack gap={0} align="center">
+                                            <Text size="md" c="dimmed">Valor Pago</Text>
+                                            <Text size="lg" fw={700} style={{ fontSize: '2.5rem' }} c="var(--mantine-color-green-filled)">{formatCurrency(amountPaid)}</Text>
+                                        </Stack>
                                     </Paper>
-                                    <Paper p="xs" withBorder>
-                                        <Text size="sm" ta="center">Troco: {formatCurrency(change >= 0 ? change : 0)}</Text>
+                                    <Paper
+                                        p="xs"
+                                        withBorder
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            minHeight: 54,
+                                            flex: 1,
+                                            background: 'var(--mantine-color-blue-light)',
+                                            borderColor: 'var(--mantine-color-blue-outline)'
+                                        }}
+                                    >
+                                        <Stack gap={0} align="center">
+                                            <Text size="md" c="dimmed">Total</Text>
+                                            <Text size="lg" fw={700} style={{ fontSize: '2.5rem' }} c="var(--mantine-color-blue-filled)">{formatCurrency(totalSale)}</Text>
+                                        </Stack>
+                                    </Paper>
+                                    <Paper
+                                        p="xs"
+                                        withBorder
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            minHeight: 54,
+                                            flex: 1,
+                                            background: 'var(--mantine-color-yellow-light)',
+                                            borderColor: 'var(--mantine-color-yellow-outline)',
+                                        }}
+                                    >
+                                        <Stack gap={0} align="center">
+                                            <Text size="md" c="dimmed">Troco</Text>
+                                            <Text size="lg" fw={700} style={{ fontSize: '2.5rem' }} c="var(--mantine-color-yellow-filled)">{formatCurrency(change >= 0 ? change : 0)}</Text>
+                                        </Stack>
                                     </Paper>
                                 </Group>
-                                {!isViewMode && <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef}>Finalizar</Button>}
+                                {!isViewMode && (
+                                    <Stack gap="xs">
+                                        <Button size="lg" onClick={openPaymentModal} disabled={saleItems.length === 0} variant="light">Seguinte</Button>
+                                        <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef} style={{ minHeight: 54 }}>Finalizar</Button>
+                                    </Stack>
+                                )}
                             </Group>
                         </Stack>
                     </Grid.Col>
@@ -495,12 +593,62 @@ export function SaleForm() {
                 </Grid>
             </Box>
 
-            <Modal opened={showPrintModal} onClose={resetForm} title="Venda Finalizada" centered>
-                <Stack>
-                    <Text>Deseja imprimir o comprovante?</Text>
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={resetForm} ref={noPrintModalRef}>Não</Button>
-                        <Button color="blue" onClick={handlePrint}>Sim, Imprimir</Button>
+            <Modal
+                opened={paymentModalOpened}
+                onClose={() => setPaymentModalOpened(false)}
+                title="Informar Pagamento"
+                centered
+                size="sm"
+            >
+                <Stack gap="lg">
+                    <Paper
+                        p="xs"
+                        withBorder
+                        style={{
+                            background: 'var(--mantine-color-blue-light)',
+                            borderColor: 'var(--mantine-color-blue-outline)'
+                        }}
+                    >
+                        <Stack gap={0} align="center">
+                            <Text size="md" c="dimmed">Total da Venda</Text>
+                            <Text size="lg" style={{ fontSize: '2rem' }} fw={700} c="var(--mantine-color-blue-filled)">{formatCurrency(totalSale)}</Text>
+                        </Stack>
+                    </Paper>
+
+                    <NumberInput
+                        label="Valor Pago"
+                        value={tempPaidValue}
+                        onChange={(val) => setTempPaidValue(Number(val) || 0)}
+                        min={0}
+                        decimalScale={2}
+                        fixedDecimalScale={true}
+                        prefix="R$ "
+                        size="xl"
+                        styles={{ input: { fontSize: '2rem', textAlign: 'center' } }}
+                        onKeyDown={handlePaymentModalKeyDown}
+                        onFocus={handlePaymentInputFocus}
+                        data-autofocus
+                    />
+
+                    {tempPaidValue >= totalSale && (
+                        <Paper
+                            p="xs"
+                            withBorder
+                            style={{
+                                background: 'var(--mantine-color-green-light)',
+                                borderColor: 'var(--mantine-color-green-outline)'
+                            }}
+                        >
+                            <Stack gap={0} align="center">
+                                <Text size="md" c="dimmed">Troco</Text>
+                                <Text size="lg" fw={700} style={{ fontSize: '2rem' }} c="var(--mantine-color-green-filled)">{formatCurrency(tempPaidValue - totalSale)}</Text>
+                            </Stack>
+                        </Paper>
+                    )}
+
+                    <Group justify="flex-end" gap="xs">
+                        <Button variant="subtle" onClick={() => setPaymentModalOpened(false)}>Cancelar</Button>
+                        <Button onClick={confirmPayment}>Confirmar</Button>
                     </Group>
                 </Stack>
             </Modal>

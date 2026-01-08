@@ -16,6 +16,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SaleForm } from './pages/Sales/SaleForm';
 import { SaleList } from './pages/Sales/SaleList';
 import { getTenant } from './utils/apiHelper';
+import { ProductsByCategory } from './pages/Reports/ProductsByCategory/ProductsByCategory';
 
 // Redirect root to master/login
 if (window.location.pathname === '/' || window.location.pathname === '') {
@@ -38,6 +39,9 @@ const router = createBrowserRouter([
       { path: '/sales', element: <SaleList /> },
       { path: '/sales/new', element: <SaleForm /> },
       { path: '/sales/:id', element: <SaleForm /> },
+
+      // Reports routes
+      { path: '/reports/productsByCategory', element: <ProductsByCategory /> },
 
       // Settings routes
       { path: '/settings/payment-forms', element: <PaymentFormList /> },

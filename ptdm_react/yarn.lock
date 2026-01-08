@@ -2429,6 +2429,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mantine/dates@npm:^8.3.11":
+  version: 8.3.11
+  resolution: "@mantine/dates@npm:8.3.11"
+  dependencies:
+    clsx: "npm:^2.1.1"
+  peerDependencies:
+    "@mantine/core": 8.3.11
+    "@mantine/hooks": 8.3.11
+    dayjs: ">=1.0.0"
+    react: ^18.x || ^19.x
+    react-dom: ^18.x || ^19.x
+  checksum: 10c0/ef98f0aea0bb171a00b3d3f506c4a62005c783682b21e4db2a748befbfd9bd32a1c5d7b1c7f234c24ac461d681fa887e46ea7c3d9aab280476e672472f22a47c
+  languageName: node
+  linkType: hard
+
 "@mantine/form@npm:^8.3.9":
   version: 8.3.9
   resolution: "@mantine/form@npm:8.3.9"
@@ -2447,6 +2462,18 @@ __metadata:
   peerDependencies:
     react: ^18.x || ^19.x
   checksum: 10c0/c414ea2b8b725a40a3115cbd1346d43f68b350a1b6472295a72e346c19bc06b524b13915dbeda73a0f29c391868413ff77bc2afeb8b28a1c950945bc725ad50c
+  languageName: node
+  linkType: hard
+
+"@mantine/modals@npm:^8.3.11":
+  version: 8.3.11
+  resolution: "@mantine/modals@npm:8.3.11"
+  peerDependencies:
+    "@mantine/core": 8.3.11
+    "@mantine/hooks": 8.3.11
+    react: ^18.x || ^19.x
+    react-dom: ^18.x || ^19.x
+  checksum: 10c0/ab1bf34d549f213b88c1bdaf3437cf4cee392d8885ed763a70296e7dff42a9f5c2fb2e6010315303d117b00468b9ab3de39a2ba2136ecd301c91147f952d01e8
   languageName: node
   linkType: hard
 
@@ -4480,6 +4507,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dayjs@npm:^1.11.19":
+  version: 1.11.19
+  resolution: "dayjs@npm:1.11.19"
+  checksum: 10c0/7d8a6074a343f821f81ea284d700bd34ea6c7abbe8d93bce7aba818948957c1b7f56131702e5e890a5622cdfc05dcebe8aed0b8313bdc6838a594d7846b0b000
+  languageName: node
+  linkType: hard
+
 "debug@npm:4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4":
   version: 4.3.4
   resolution: "debug@npm:4.3.4"
@@ -5721,6 +5755,28 @@ __metadata:
     cross-spawn: "npm:^7.0.6"
     signal-exit: "npm:^4.0.1"
   checksum: 10c0/8986e4af2430896e65bc2788d6679067294d6aee9545daefc84923a0a4b399ad9c7a3ea7bd8c0b2b80fdf4a92de4c69df3f628233ff3224260e9c1541a9e9ed3
+  languageName: node
+  linkType: hard
+
+"framer-motion@npm:^12.24.10":
+  version: 12.24.10
+  resolution: "framer-motion@npm:12.24.10"
+  dependencies:
+    motion-dom: "npm:^12.24.10"
+    motion-utils: "npm:^12.24.10"
+    tslib: "npm:^2.4.0"
+  peerDependencies:
+    "@emotion/is-prop-valid": "*"
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+  peerDependenciesMeta:
+    "@emotion/is-prop-valid":
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 10c0/9739d33910469d09ddd1eb481a86d3462704550821409704498bc4972e77dcb6f28f7870bae254e11406d869f3bbcb83d922218b0f68b107ad0575b769082dcb
   languageName: node
   linkType: hard
 
@@ -7594,6 +7650,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"motion-dom@npm:^12.24.10":
+  version: 12.24.10
+  resolution: "motion-dom@npm:12.24.10"
+  dependencies:
+    motion-utils: "npm:^12.24.10"
+  checksum: 10c0/5564013ecc634d977fcfde53925e0f127f44de1333895b4fc00c60270240b11cb430751f10ba8d8ecac0666abe9b1b192d29bac6759d408818720785729ae20c
+  languageName: node
+  linkType: hard
+
+"motion-utils@npm:^12.24.10":
+  version: 12.24.10
+  resolution: "motion-utils@npm:12.24.10"
+  checksum: 10c0/b73e2e414480b0b162a5cbc9195856d113b5e7c23a055b1613143176694fdfabe87a6a41c3c2f205549e368ca541b609455344bd774d7d836f09a551562042e2
+  languageName: node
+  linkType: hard
+
 "ms@npm:2.1.2":
   version: 2.1.2
   resolution: "ms@npm:2.1.2"
@@ -8206,8 +8278,10 @@ __metadata:
     "@eslint/js": "npm:^9.37.0"
     "@ianvs/prettier-plugin-sort-imports": "npm:^4.7.0"
     "@mantine/core": "npm:8.3.9"
+    "@mantine/dates": "npm:^8.3.11"
     "@mantine/form": "npm:^8.3.9"
     "@mantine/hooks": "npm:8.3.9"
+    "@mantine/modals": "npm:^8.3.11"
     "@mantine/notifications": "npm:^8.3.9"
     "@point-of-sale/receipt-printer-encoder": "npm:^3.0.3"
     "@storybook/addon-themes": "npm:^10.0.0"
@@ -8221,11 +8295,13 @@ __metadata:
     "@types/react": "npm:^19.2.2"
     "@types/react-dom": "npm:^19.2.1"
     "@vitejs/plugin-react": "npm:^5.0.4"
+    dayjs: "npm:^1.11.19"
     dexie: "npm:4.2.1"
     eslint: "npm:^9.37.0"
     eslint-config-mantine: "npm:^4.0.3"
     eslint-plugin-jsx-a11y: "npm:^6.10.2"
     eslint-plugin-react: "npm:^7.37.5"
+    framer-motion: "npm:^12.24.10"
     identity-obj-proxy: "npm:^3.0.0"
     jsdom: "npm:^27.0.0"
     lucide-react: "npm:^0.562.0"
@@ -9947,6 +10023,13 @@ __metadata:
   version: 2.6.2
   resolution: "tslib@npm:2.6.2"
   checksum: 10c0/e03a8a4271152c8b26604ed45535954c0a45296e32445b4b87f8a5abdb2421f40b59b4ca437c4346af0f28179780d604094eb64546bee2019d903d01c6c19bdb
+  languageName: node
+  linkType: hard
+
+"tslib@npm:^2.4.0":
+  version: 2.8.1
+  resolution: "tslib@npm:2.8.1"
+  checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
   languageName: node
   linkType: hard
 

@@ -1,13 +1,13 @@
 import { Button, Group, useMantineColorScheme } from '@mantine/core';
+import { LucideMoon, LucideSun } from 'lucide-react';
 
 export function ColorSchemeToggle() {
   const { setColorScheme } = useMantineColorScheme();
 
   return (
-    <Group justify="center" mt="xl">
-      <Button onClick={() => setColorScheme('light')}>Light</Button>
-      <Button onClick={() => setColorScheme('dark')}>Dark</Button>
-      <Button onClick={() => setColorScheme('auto')}>Auto</Button>
+    <Group justify="center" mt="0.5rem">
+      <LucideSun onClick={() => setColorScheme('light')} />
+      <LucideMoon onClick={() => setColorScheme('dark')} />
     </Group>
   );
 }

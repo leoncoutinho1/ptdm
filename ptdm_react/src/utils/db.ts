@@ -32,6 +32,7 @@ interface PaymentForm extends Syncable {
 interface Product extends Syncable {
     description: string;
     cost: number;
+    profitMargin: number;
     price: number;
     quantity: number;
     barcodes: string[];
