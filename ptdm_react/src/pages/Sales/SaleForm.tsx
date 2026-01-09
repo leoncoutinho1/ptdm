@@ -394,18 +394,60 @@ export function SaleForm() {
 
         const finalEncoded = result.rule().align('right').text(`TOTAL: ${formatCurrency(totalSale)}`).newline().text(`PAGO: ${formatCurrency(amountPaid)}`).newline().text(`TROCO: ${formatCurrency(change >= 0 ? change : 0)}`).newline().rule().align('center').text('Obrigado pela preferência!').newline().cut().encode();
 
-        if ('serial' in navigator) {
-            try {
-                const port = await (navigator as any).serial.requestPort();
-                await port.open({ baudRate: 9600 });
-                const writer = port.writable.getWriter();
-                await writer.write(finalEncoded);
-                await writer.releaseLock();
-                await port.close();
-            } catch (error) {
-                console.error('Erro na impressora:', error);
+        // Converte Uint8Array para Array normal
+        const byteArray = Array.from(finalEncoded);
+
+        try {
+            // Tenta enviar para a API ESC/POS em localhost:3031
+            const response = await fetch('http://localhost:3031/api/printer/print', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ byteArray }),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Impressão enviada com sucesso:', result);
+                notifications.show({
+                    color: 'green',
+                    title: 'Sucesso',
+                    message: 'Cupom enviado para impressora!'
+                });
+                return;
+            } else {
+                throw new Error('Falha ao enviar para impressora via API');
             }
-        } else {
+        } catch (apiError) {
+            console.warn('Erro ao usar API de impressão:', apiError);
+
+            // Fallback 1: Tenta usar Web Serial API
+            if ('serial' in navigator) {
+                try {
+                    const port = await (navigator as any).serial.requestPort();
+                    await port.open({ baudRate: 9600 });
+                    const writer = port.writable.getWriter();
+                    await writer.write(finalEncoded);
+                    await writer.releaseLock();
+                    await port.close();
+                    notifications.show({
+                        color: 'green',
+                        title: 'Sucesso',
+                        message: 'Cupom impresso via Serial!'
+                    });
+                    return;
+                } catch (serialError) {
+                    console.error('Erro na impressora serial:', serialError);
+                }
+            }
+
+            // Fallback 2: window.print()
+            notifications.show({
+                color: 'yellow',
+                title: 'Atenção',
+                message: 'Usando impressão padrão do navegador'
+            });
             window.print();
         }
     };
