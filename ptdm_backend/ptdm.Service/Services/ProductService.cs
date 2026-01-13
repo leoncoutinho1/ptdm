@@ -21,7 +21,7 @@ namespace ptdm.Service.Services
 {
     public interface IProductService
     {
-        ErrorOr<ProductDTO> Create(ProductDTO product);
+        ErrorOr<ProductDTO> Create(ProductInsertDTO product);
         ErrorOr<ProductDTO> Delete(Guid id);
         ErrorOr<ProductDTO> Get(Guid id);
         ResultList<ProductDTO> GetProductByDescOrBarcode(string text);
@@ -54,6 +54,8 @@ namespace ptdm.Service.Services
                 .Where(x => x.Barcodes.Any(barcode => barcode.Code == text))
                 .Include(x => x.Barcodes)
                 .Include(x => x.Category)
+                .Include(x => x.ComponentProducts)
+                    .ThenInclude(cp => cp.ComponentProduct)
                 .AsNoTracking();
 
             if (products.Count() == 1)
@@ -65,6 +67,8 @@ namespace ptdm.Service.Services
                 .Where(x => x.Description.ToUpper().Contains(text.ToUpper()))
                 .Include(x => x.Barcodes)
                 .Include(x => x.Category)
+                .Include(x => x.ComponentProducts)
+                    .ThenInclude(cp => cp.ComponentProduct)
                 .AsNoTracking();
                         
             return new ResultList<ProductDTO>(products.Select(x => (ProductDTO)x).ToList(), products.Count());
@@ -72,7 +76,14 @@ namespace ptdm.Service.Services
 
         public ResultList<ProductDTO> ListProduct(ProductFilter filters)
         {
-            var products = _context.Products.Filter(filters).Sort(filters).Include(x => x.Barcodes).Include(x => x.Category).AsNoTracking();
+            var products = _context.Products
+                .Filter(filters)
+                .Sort(filters)
+                .Include(x => x.Barcodes)
+                .Include(x => x.Category)
+                .Include(x => x.ComponentProducts)
+                    .ThenInclude(cp => cp.ComponentProduct)
+                .AsNoTracking();
             var count = products.Count();
 
             return new ResultList<ProductDTO>(products.Paginate(filters).Select(x => (ProductDTO)x).ToList(), count);
@@ -82,11 +93,18 @@ namespace ptdm.Service.Services
         {
             var filters = new ProductFilter();
             filters.Id = id;
-            var products = _context.Products.Apply(filters).Include(x => x.Barcodes).Include(x => x.Category).AsNoTracking().SingleOrDefault();
+            var products = _context.Products
+                .Apply(filters)
+                .Include(x => x.Barcodes)
+                .Include(x => x.Category)
+                .Include(x => x.ComponentProducts)
+                    .ThenInclude(cp => cp.ComponentProduct)
+                .AsNoTracking()
+                .SingleOrDefault();
             return (products != null) ? (ProductDTO)products : Error.NotFound(description: "Product not found");
         }
 
-        public ErrorOr<ProductDTO> Create(ProductDTO product)
+        public ErrorOr<ProductDTO> Create(ProductInsertDTO product)
         {
             using var transaction = _context.Database.BeginTransaction();
             try {
@@ -109,12 +127,45 @@ namespace ptdm.Service.Services
                     Price = product.Price,
                     Quantity = product.Quantity,
                     CategoryId = product.CategoryId,
+                    Composite = product.Composite,
                     CreatedBy = GetUserId(),
                     UpdatedBy = GetUserId()
                 };
 
                 _context.Products.Add(p);
                 _context.SaveChanges();
+
+                // Adicionar componentes se for produto composto
+                if (product.Composite && product.ComponentProducts != null && product.ComponentProducts.Any())
+                {
+                    foreach (var component in product.ComponentProducts)
+                    {
+                        // Validar se o componente existe
+                        var componentExists = _context.Products.Any(x => x.Id == component.ComponentProductId);
+                        if (!componentExists)
+                        {
+                            transaction.Rollback();
+                            return Error.Failure(description: $"Produto componente {component.ComponentProductId} não encontrado");
+                        }
+
+                        // Validar auto-referência
+                        if (component.ComponentProductId == p.Id)
+                        {
+                            transaction.Rollback();
+                            return Error.Failure(description: "Um produto não pode ser componente de si mesmo");
+                        }
+
+                        _context.ProductCompositions.Add(new ProductComposition
+                        {
+                            CompositeProductId = p.Id,
+                            ComponentProductId = component.ComponentProductId,
+                            Quantity = component.Quantity,
+                            CreatedBy = GetUserId(),
+                            UpdatedBy = GetUserId()
+                        });
+                    }
+                    _context.SaveChanges();
+                }
 
                 foreach (var barcode in product.Barcodes)
                 {
@@ -154,8 +205,53 @@ namespace ptdm.Service.Services
             p.Price = product.Price;
             p.Quantity = product.Quantity;
             p.CategoryId = product.CategoryId;
+            p.Composite = product.Composite;
             p.UpdatedBy = GetUserId();
             p.UpdatedAt = DateTime.UtcNow;
+
+            // Atualizar componentes se for produto composto
+            if (product.Composite && product.ComponentProducts != null)
+            {
+                // Remover componentes existentes
+                var existingComponents = _context.ProductCompositions
+                    .Where(pc => pc.CompositeProductId == product.Id)
+                    .ToList();
+                _context.ProductCompositions.RemoveRange(existingComponents);
+
+                // Adicionar novos componentes
+                foreach (var component in product.ComponentProducts)
+                {
+                    // Validar se o componente existe
+                    var componentExists = _context.Products.Any(x => x.Id == component.ComponentProductId);
+                    if (!componentExists)
+                    {
+                        return Error.Failure(description: $"Produto componente {component.ComponentProductId} não encontrado");
+                    }
+
+                    // Validar auto-referência
+                    if (component.ComponentProductId == product.Id)
+                    {
+                        return Error.Failure(description: "Um produto não pode ser componente de si mesmo");
+                    }
+
+                    _context.ProductCompositions.Add(new ProductComposition
+                    {
+                        CompositeProductId = product.Id,
+                        ComponentProductId = component.ComponentProductId,
+                        Quantity = component.Quantity,
+                        CreatedBy = GetUserId(),
+                        UpdatedBy = GetUserId()
+                    });
+                }
+            }
+            else if (!product.Composite)
+            {
+                // Se deixou de ser composto, remover todos os componentes
+                var existingComponents = _context.ProductCompositions
+                    .Where(pc => pc.CompositeProductId == product.Id)
+                    .ToList();
+                _context.ProductCompositions.RemoveRange(existingComponents);
+            }
 
             var codes = _context.Barcodes.Where(x => product.Barcodes.Contains(x.Code) || x.ProductId == product.Id);
             var existCode = 0;

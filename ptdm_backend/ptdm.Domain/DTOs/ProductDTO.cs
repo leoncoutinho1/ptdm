@@ -15,5 +15,7 @@ public class ProductDTO
     public DateTime CreatedAt { get; set; } 
     public string? ImageUrl { get; set; } = String.Empty;
     public bool IsActive { get; set; } = true;
+    public bool Composite { get; set; } = false;
     public virtual ICollection<string> Barcodes { get; set; }
+    public virtual ICollection<ProductCompositionDTO>? ComponentProducts { get; set; }
 }

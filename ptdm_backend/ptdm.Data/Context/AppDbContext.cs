@@ -19,6 +19,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Checkout> Checkouts { get; set; }
     public DbSet<Barcode> Barcodes { get; set; }
     public DbSet<Category> Categories { get; set; }
+    public DbSet<ProductComposition> ProductCompositions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +32,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         new ProductEntityTypeConfiguration().Configure(modelBuilder.Entity<Product>());
         new SaleEntityTypeConfiguration().Configure(modelBuilder.Entity<Sale>());
         new SaleProductEntityTypeConfiguration().Configure(modelBuilder.Entity<SaleProduct>());
+        new ProductCompositionEntityTypeConfiguration().Configure(modelBuilder.Entity<ProductComposition>());
     }
 
 }

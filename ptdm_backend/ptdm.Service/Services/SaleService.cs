@@ -74,13 +74,45 @@ namespace ptdm.Service.Services
                         SaleId = sale.Id
                     });
 
-                    var product = _context.Products.Where(x => x.Id == sp.ProductId).Include(x => x.Barcodes).SingleOrDefault();
+                    var product = _context.Products
+                        .Where(x => x.Id == sp.ProductId)
+                        .Include(x => x.Barcodes)
+                        .Include(x => x.ComponentProducts)
+                            .ThenInclude(cp => cp.ComponentProduct)
+                        .SingleOrDefault();
+                    
                     if (product != null)
                     {
+                        // Decrementar estoque do produto principal
                         product.Quantity -= sp.Quantity;
                         product.UpdatedBy = GetUserId();
                         product.UpdatedAt = DateTime.UtcNow;
                         _context.Products.Update(product);
+
+                        // Se for produto composto, decrementar estoque dos componentes
+                        if (product.Composite && product.ComponentProducts != null && product.ComponentProducts.Any())
+                        {
+                            foreach (var component in product.ComponentProducts)
+                            {
+                                var componentProduct = component.ComponentProduct;
+                                if (componentProduct != null)
+                                {
+                                    var quantityToDeduct = component.Quantity * sp.Quantity;
+                                    
+                                    // Validar estoque disponível
+                                    if (componentProduct.Quantity < quantityToDeduct)
+                                    {
+                                        transaction.Rollback();
+                                        return Error.Failure(description: $"Estoque insuficiente de {componentProduct.Description}. Disponível: {componentProduct.Quantity}, Necessário: {quantityToDeduct}");
+                                    }
+                                    
+                                    componentProduct.Quantity -= quantityToDeduct;
+                                    componentProduct.UpdatedBy = GetUserId();
+                                    componentProduct.UpdatedAt = DateTime.UtcNow;
+                                    _context.Products.Update(componentProduct);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -104,10 +136,35 @@ namespace ptdm.Service.Services
 
             foreach (var sale_product in sale.SaleProducts)
             {
-                var product = _context.Products.FirstOrDefault(x => x.Id == sale_product.ProductId);
+                var product = _context.Products
+                    .Where(x => x.Id == sale_product.ProductId)
+                    .Include(x => x.ComponentProducts)
+                        .ThenInclude(cp => cp.ComponentProduct)
+                    .FirstOrDefault();
+                
                 if (product is null)
                     continue;
+                
+                // Reverter estoque do produto principal
                 product.Quantity += sale_product.Quantity;
+                
+                // Se for produto composto, reverter estoque dos componentes
+                if (product.Composite && product.ComponentProducts != null && product.ComponentProducts.Any())
+                {
+                    foreach (var component in product.ComponentProducts)
+                    {
+                        var componentProduct = component.ComponentProduct;
+                        if (componentProduct != null)
+                        {
+                            var quantityToRestore = component.Quantity * sale_product.Quantity;
+                            componentProduct.Quantity += quantityToRestore;
+                            componentProduct.UpdatedBy = GetUserId();
+                            componentProduct.UpdatedAt = DateTime.UtcNow;
+                            _context.Products.Update(componentProduct);
+                        }
+                    }
+                }
+                
                 _context.SaleProducts.Remove(sale_product);
             }
 

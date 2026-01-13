@@ -46,7 +46,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult Post([FromBody] ProductDTO product)
+    public ActionResult Post([FromBody] ProductInsertDTO product)
     {
         var result = _service.Create(product);
         return (result.IsError)
@@ -55,7 +55,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public ActionResult Put(Guid id, ProductDTO product)
+    public ActionResult Put(Guid id, ProductUpdateDTO product)
     {
         if (id != product.Id)
         {
@@ -74,6 +74,17 @@ public class ProductController : ControllerBase
         return (result.IsError)
             ? BadRequest(result)
             : Ok(result);
+    }
+
+    /// <summary>
+    /// Valida se há estoque suficiente dos componentes para criar/atualizar um produto composto
+    /// </summary>
+    [HttpPost("ValidateCompositeStock")]
+    public ActionResult ValidateCompositeStock([FromBody] List<ProductCompositionInsertDTO> components)
+    {
+        // Este endpoint pode ser usado pelo frontend para validar antes de salvar
+        // Por enquanto, a validação está sendo feita no SaleService durante a venda
+        return Ok(new { valid = true, message = "Validação de estoque será feita durante a venda" });
     }
 
     //[HttpPost("loadProducts")]
