@@ -10,6 +10,7 @@ public class ProductDTO
     public Double Price { get; set; }
     public Double ProfitMargin { get; set; }
     public Double Quantity { get; set; }
+    public string Unit { get; set; }
     public Guid? CategoryId { get; set; }
     public string? CategoryDescription { get; set; }
     public DateTime CreatedAt { get; set; } 

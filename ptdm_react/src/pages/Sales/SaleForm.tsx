@@ -373,7 +373,7 @@ export function SaleForm() {
 
         saleItems.forEach((item) => {
             const description = item.product.description.substring(0, 48);
-            const qtyPrice = `${item.quantity} x ${formatCurrency(item.unitPrice)}`;
+            const qtyPrice = `${item.quantity} ${item.product.unit} x ${formatCurrency(item.unitPrice)}`;
             const total = formatCurrency(item.totalPrice);
             result.text(description).newline()
                 .text(qtyPrice.padEnd(38))
@@ -638,7 +638,7 @@ export function SaleForm() {
                                     {saleItems.map((item, index) => (
                                         <Box key={index}>
                                             <Text size="xs">{item.product.description}</Text>
-                                            <Group justify="space-between"><Text size="xs">{item.quantity}x</Text><Text size="xs">{formatCurrency(item.totalPrice)}</Text></Group>
+                                            <Group justify="space-between"><Text size="xs">{item.quantity} {item.product.unit} x</Text><Text size="xs">{formatCurrency(item.totalPrice)}</Text></Group>
                                         </Box>
                                     ))}
                                     <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />

@@ -8,6 +8,7 @@ public class ProductUpdateDTO
     public Double Price { get; set; }
     public Double ProfitMargin { get; set; }
     public Double Quantity { get; set; }
+    public string Unit { get; set; } = String.Empty;
     public Guid? CategoryId { get; set; }
     public string? CategoryDescription { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -27,6 +28,7 @@ public class ProductUpdateDTO
             Price = dto.Price,
             ProfitMargin = dto.ProfitMargin,
             Quantity = dto.Quantity,
+            Unit = dto.Unit,
             CategoryId = dto.CategoryId,
             ImageUrl = dto.ImageUrl,
             IsActive = dto.IsActive,

@@ -4,6 +4,7 @@ export interface IProductDTO {
     cost: number;
     price: number;
     profitMargin: number;
+    unit: string;
     quantity: number;
     createdAt: Date;
     imageUrl: string;

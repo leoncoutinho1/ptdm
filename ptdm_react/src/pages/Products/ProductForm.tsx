@@ -23,6 +23,7 @@ interface ProductFormValues {
   profitMargin: number;
   price: number;
   quantity: number;
+  unit: string;
   barcodes: string[];
   categoryId: string;
   composite: boolean;
@@ -51,6 +52,7 @@ export function ProductForm() {
       profitMargin: 0,
       price: 0,
       quantity: 0,
+      unit: '',
       barcodes: [],
       categoryId: '',
       composite: false,
@@ -78,6 +80,7 @@ export function ProductForm() {
         profitMargin: Number(product.profitMargin ?? 0),
         price: Number(product.price ?? 0),
         quantity: Number(product.quantity ?? 0),
+        unit: String((product as any).unit ?? ''),
         barcodes: Array.isArray((product as any).barcodes)
           ? ((product as any).barcodes as string[]).filter(b => b.trim() !== '')
           : (product?.barcodes ? [String(product.barcodes)].filter(b => b.trim() !== '') : []),
@@ -97,6 +100,7 @@ export function ProductForm() {
             profitMargin: Number(found.profitMargin ?? 0),
             price: Number(found.price ?? 0),
             quantity: Number(found.quantity ?? 0),
+            unit: String((found as any).unit ?? ''),
             barcodes: Array.isArray(found.barcodes) ? found.barcodes.filter(b => b.trim() !== '') : [],
             categoryId: String(found.categoryId ?? ''),
             composite: Boolean((found as any).composite ?? false),
@@ -250,7 +254,7 @@ export function ProductForm() {
   const submit = async (values: ProductFormValues) => {
     const validBarcodes = values.barcodes.filter(code => code.trim() !== '');
 
-    if (!values.description || !values.categoryId || !values.cost || !values.price || !values.quantity || validBarcodes.length === 0) {
+    if (!values.description || !values.categoryId || !values.cost || !values.price || !values.quantity || !values.unit || validBarcodes.length === 0) {
       notifications.show({
         title: 'Erro',
         message: 'Preencha todos os campos e adicione pelo menos um código de barras',
@@ -353,12 +357,26 @@ export function ProductForm() {
                   onBlur={handlePriceBlur}
                 />
               </Grid.Col>
-              <Grid.Col span={3}>
+              <Grid.Col span={2}>
                 <NumberInput
                   label="Quantidade"
                   {...form.getInputProps('quantity')}
                   min={0}
                   decimalScale={3}
+                  required
+                />
+              </Grid.Col>
+              <Grid.Col span={1}>
+                <Select
+                  label="Unidade"
+                  placeholder="UN"
+                  {...form.getInputProps('unit')}
+                  data={[
+                    { value: 'UN', label: 'UN' },
+                    { value: 'KG', label: 'KG' },
+                    { value: 'LT', label: 'LT' },
+                    { value: 'PC', label: 'PC' }
+                  ]}
                   required
                 />
               </Grid.Col>

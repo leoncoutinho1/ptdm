@@ -10,6 +10,7 @@ public class Product : BaseModel
     public Double Price { get; set; }
     public Double ProfitMargin { get; set; }
     public Double Quantity { get; set; }
+    public string Unit { get; set; } = String.Empty;
     public string? ImageUrl { get; set; } = String.Empty;
     public bool IsActive { get; set; } = true;
     
@@ -44,6 +45,7 @@ public class Product : BaseModel
             ProfitMargin = p.ProfitMargin,
             Price = p.Price,
             Quantity = p.Quantity,
+            Unit = p.Unit,
             CategoryId = p.CategoryId,
             CategoryDescription = p.Category?.Description,
             CreatedAt = p.CreatedAt,

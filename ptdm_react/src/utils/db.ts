@@ -35,6 +35,7 @@ interface Product extends Syncable {
     profitMargin: number;
     price: number;
     quantity: number;
+    unit: string;
     barcodes: string[];
     categoryId: string;
 }
