@@ -30,7 +30,6 @@ export function SaleForm() {
     const productSelectRef = useRef<HTMLInputElement>(null);
     const paidValueRef = useRef<HTMLInputElement>(null);
     const saveSaleRef = useRef<HTMLButtonElement>(null);
-    const noPrintModalRef = useRef<HTMLButtonElement>(null);
 
     const [paymentForms, setPaymentForms] = useState<PaymentForm[]>([]);
     const [cashiers, setCashiers] = useState<Cashier[]>([]);
@@ -43,9 +42,6 @@ export function SaleForm() {
     const [isSearching, setIsSearching] = useState(false);
     const [selectedProductValue, setSelectedProductValue] = useState<string | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
-    const [paymentModalOpened, setPaymentModalOpened] = useState(false);
-    const [tempPaidValue, setTempPaidValue] = useState(0);
-    const [shouldFocusSaveButton, setShouldFocusSaveButton] = useState(false);
 
     const { openConfirmModal } = useConfirmAction();
 
@@ -179,7 +175,7 @@ export function SaleForm() {
         if (e.key === 'Enter') {
             e.preventDefault();
             if (quantity <= 0 && saleItems.length > 0) {
-                openPaymentModal();
+                paidValueRef.current?.focus();
                 return;
             }
             searchProducts();
@@ -189,7 +185,6 @@ export function SaleForm() {
     const handlePaidValueKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (amountPaid === 0) setAmountPaid(totalSale);
             saveSaleRef.current?.focus();
         }
     };
@@ -204,11 +199,6 @@ export function SaleForm() {
     const addProductToSale = (product?: Product) => {
         let item = product;
         let itemId = product?.id;
-
-        if (!item && quantity <= 0 && saleItems.length > 0) {
-            openPaymentModal();
-            return;
-        }
 
         if (!item) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'Selecione um produto primeiro' });
@@ -316,47 +306,11 @@ export function SaleForm() {
         setSearchTerm('');
         setProductOptions([]);
         setQuantity(0);
-        setTempPaidValue(0);
         if (isViewMode) {
             navigate('/sales');
         } else {
             setTimeout(() => quantityRef.current?.focus(), 100);
         }
-    };
-
-    const openPaymentModal = () => {
-        if (tempPaidValue === 0) {
-            setTempPaidValue(totalSale);
-        }
-        setPaymentModalOpened(true);
-    };
-
-    const confirmPayment = () => {
-        setAmountPaid(tempPaidValue);
-        setPaymentModalOpened(false);
-        setShouldFocusSaveButton(true);
-    };
-
-    // Foca no botão Finalizar após fechar o modal de pagamento
-    useEffect(() => {
-        if (!paymentModalOpened && shouldFocusSaveButton) {
-            setTimeout(() => {
-                saveSaleRef.current?.focus();
-                setShouldFocusSaveButton(false);
-            }, 200);
-        }
-    }, [paymentModalOpened, shouldFocusSaveButton]);
-
-    const handlePaymentModalKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            confirmPayment();
-        }
-    };
-
-    const handlePaymentInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-        // Seleciona todo o conteúdo quando o input recebe foco
-        e.target.select();
     };
 
     const handlePrint = async () => {
@@ -470,8 +424,39 @@ export function SaleForm() {
     return (
         <MainLayout>
             <Box style={{ height: '95vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <Group justify="space-between" mb="md" style={{ flexShrink: 0 }}>
+                <Group justify="space-between" mb="md" style={{ flexShrink: 0 }} align="flex-end">
                     <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
+
+                    <Group gap="xs" style={{ flex: 1, maxWidth: '600px' }}>
+                        <Select
+                            placeholder="Forma de Pagamento"
+                            data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
+                            {...form.getInputProps('paymentFormId')}
+                            required
+                            disabled={isViewMode}
+                            size="xs"
+                            style={{ flex: 1, minWidth: '150px' }}
+                        />
+                        <Select
+                            placeholder="Operador"
+                            data={cashiers.map(c => ({ value: String(c.id), label: c.name }))}
+                            {...form.getInputProps('cashierId')}
+                            required
+                            disabled={isViewMode}
+                            size="xs"
+                            style={{ flex: 1, minWidth: '150px' }}
+                        />
+                        <Select
+                            placeholder="Terminal"
+                            data={checkouts.map(ch => ({ value: String(ch.id), label: ch.name }))}
+                            {...form.getInputProps('checkoutId')}
+                            required
+                            disabled={isViewMode}
+                            size="xs"
+                            style={{ flex: 1, minWidth: '150px' }}
+                        />
+                    </Group>
+
                     <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)}>
                         {showReceipt ? <Eye size={20} /> : <EyeOff size={20} />}
                     </ActionIcon>
@@ -480,39 +465,6 @@ export function SaleForm() {
                 <Grid align="stretch" style={{ flex: 1, height: '92vh' }} gutter="xs">
                     <Grid.Col span={showReceipt ? { base: 9 } : 12} style={{ display: 'flex', flexDirection: 'column', height: '92vh' }}>
                         <Stack gap="md" style={{ height: '92vh' }}>
-                            <Accordion variant="separated" defaultValue="config" style={{ flexShrink: 0 }}>
-                                <Accordion.Item value="config">
-                                    <Accordion.Control style={{ maxHeight: '2rem' }}>Dados da Venda</Accordion.Control>
-                                    <Accordion.Panel>
-                                        <Group grow>
-                                            <Select
-                                                label="Forma de Pagamento"
-                                                placeholder="Selecione"
-                                                data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
-                                                {...form.getInputProps('paymentFormId')}
-                                                required
-                                                disabled={isViewMode}
-                                            />
-                                            <Select
-                                                label="Operador"
-                                                placeholder="Selecione"
-                                                data={cashiers.map(c => ({ value: String(c.id), label: c.name }))}
-                                                {...form.getInputProps('cashierId')}
-                                                required
-                                                disabled={isViewMode}
-                                            />
-                                            <Select
-                                                label="Terminal de Caixa"
-                                                placeholder="Selecione"
-                                                data={checkouts.map(ch => ({ value: String(ch.id), label: ch.name }))}
-                                                {...form.getInputProps('checkoutId')}
-                                                required
-                                                disabled={isViewMode}
-                                            />
-                                        </Group>
-                                    </Accordion.Panel>
-                                </Accordion.Item>
-                            </Accordion>
 
                             {!isViewMode && (
                                 <Group align="flex-end" style={{ flexShrink: 0 }}>
@@ -560,8 +512,8 @@ export function SaleForm() {
                                 </Table>
                             </ScrollArea>
 
-                            <Group align="flex-end" gap="md" py="md" style={{ flexShrink: 0 }}>
-                                <Group grow style={{ flex: 1 }} align="stretch">
+                            <Stack gap="md" py="md" style={{ flexShrink: 0 }}>
+                                <Group justify="flex-end">
                                     <Paper
                                         p="xs"
                                         withBorder
@@ -570,27 +522,7 @@ export function SaleForm() {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             minHeight: 54,
-                                            flex: 1,
-                                            background: 'var(--mantine-color-green-light)',
-                                            borderColor: 'var(--mantine-color-green-outline)',
-                                            cursor: isViewMode ? 'default' : 'pointer'
-                                        }}
-                                        onClick={() => !isViewMode && openPaymentModal()}
-                                    >
-                                        <Stack gap={0} align="center">
-                                            <Text size="md" c="dimmed">Valor Pago</Text>
-                                            <Text size="lg" fw={700} style={{ fontSize: '2.5rem' }} c="var(--mantine-color-green-filled)">{formatCurrency(amountPaid)}</Text>
-                                        </Stack>
-                                    </Paper>
-                                    <Paper
-                                        p="xs"
-                                        withBorder
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: 54,
-                                            flex: 1,
+                                            width: '50%',
                                             background: 'var(--mantine-color-blue-light)',
                                             borderColor: 'var(--mantine-color-blue-outline)'
                                         }}
@@ -600,32 +532,52 @@ export function SaleForm() {
                                             <Text size="lg" fw={700} style={{ fontSize: '2.5rem' }} c="var(--mantine-color-blue-filled)">{formatCurrency(totalSale)}</Text>
                                         </Stack>
                                     </Paper>
-                                    <Paper
-                                        p="xs"
-                                        withBorder
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: 54,
-                                            flex: 1,
-                                            background: 'var(--mantine-color-yellow-light)',
-                                            borderColor: 'var(--mantine-color-yellow-outline)',
-                                        }}
-                                    >
-                                        <Stack gap={0} align="center">
-                                            <Text size="md" c="dimmed">Troco</Text>
-                                            <Text size="lg" fw={700} style={{ fontSize: '2.5rem' }} c="var(--mantine-color-yellow-filled)">{formatCurrency(change >= 0 ? change : 0)}</Text>
-                                        </Stack>
-                                    </Paper>
                                 </Group>
+
                                 {!isViewMode && (
-                                    <Stack gap="xs">
-                                        <Button size="lg" onClick={openPaymentModal} disabled={saleItems.length === 0} variant="light">Seguinte</Button>
-                                        <Button size="lg" onClick={submitSale} disabled={saleItems.length === 0} ref={saveSaleRef} style={{ minHeight: 54 }}>Finalizar</Button>
-                                    </Stack>
+                                    <Group align="flex-end" gap="md">
+                                        <NumberInput
+                                            label="Valor Pago"
+                                            value={amountPaid}
+                                            onChange={(val) => setAmountPaid(Number(val) || 0)}
+                                            min={0}
+                                            decimalScale={2}
+                                            fixedDecimalScale={true}
+                                            prefix="R$ "
+                                            size="lg"
+                                            style={{ flex: 1 }}
+                                            ref={paidValueRef}
+                                            onKeyDown={handlePaidValueKeyDown}
+                                        />
+                                        <NumberInput
+                                            label="Troco"
+                                            value={change >= 0 ? change : 0}
+                                            min={0}
+                                            decimalScale={2}
+                                            fixedDecimalScale={true}
+                                            prefix="R$ "
+                                            size="lg"
+                                            style={{ flex: 1 }}
+                                            readOnly
+                                            styles={{
+                                                input: {
+                                                    cursor: 'default',
+                                                    backgroundColor: 'var(--mantine-color-body)',
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            size="lg"
+                                            onClick={submitSale}
+                                            disabled={saleItems.length === 0}
+                                            ref={saveSaleRef}
+                                            style={{ minHeight: 54, alignSelf: 'flex-end' }}
+                                        >
+                                            Finalizar
+                                        </Button>
+                                    </Group>
                                 )}
-                            </Group>
+                            </Stack>
                         </Stack>
                     </Grid.Col>
 
@@ -638,7 +590,7 @@ export function SaleForm() {
                                     {saleItems.map((item, index) => (
                                         <Box key={index}>
                                             <Text size="xs">{item.product.description}</Text>
-                                            <Group justify="space-between"><Text size="xs">{item.quantity} {item.product.unit} x</Text><Text size="xs">{formatCurrency(item.totalPrice)}</Text></Group>
+                                            <Group justify="space-between"><Text size="xs">{item.quantity} {item.product.unit} x {formatCurrency(item.unitPrice)}</Text><Text size="xs">{formatCurrency(item.totalPrice)}</Text></Group>
                                         </Box>
                                     ))}
                                     <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
@@ -650,65 +602,7 @@ export function SaleForm() {
                 </Grid>
             </Box>
 
-            <Modal
-                opened={paymentModalOpened}
-                onClose={() => setPaymentModalOpened(false)}
-                title="Informar Pagamento"
-                centered
-                size="sm"
-            >
-                <Stack gap="lg">
-                    <Paper
-                        p="xs"
-                        withBorder
-                        style={{
-                            background: 'var(--mantine-color-blue-light)',
-                            borderColor: 'var(--mantine-color-blue-outline)'
-                        }}
-                    >
-                        <Stack gap={0} align="center">
-                            <Text size="md" c="dimmed">Total da Venda</Text>
-                            <Text size="lg" style={{ fontSize: '2rem' }} fw={700} c="var(--mantine-color-blue-filled)">{formatCurrency(totalSale)}</Text>
-                        </Stack>
-                    </Paper>
 
-                    <NumberInput
-                        label="Valor Pago"
-                        value={tempPaidValue}
-                        onChange={(val) => setTempPaidValue(Number(val) || 0)}
-                        min={0}
-                        decimalScale={2}
-                        fixedDecimalScale={true}
-                        prefix="R$ "
-                        size="xl"
-                        styles={{ input: { fontSize: '2rem', textAlign: 'center' } }}
-                        onKeyDown={handlePaymentModalKeyDown}
-                        onFocus={handlePaymentInputFocus}
-                        data-autofocus
-                    />
-
-                    {tempPaidValue >= totalSale && (
-                        <Paper
-                            p="xs"
-                            withBorder
-                            style={{
-                                background: 'var(--mantine-color-green-light)',
-                                borderColor: 'var(--mantine-color-green-outline)'
-                            }}
-                        >
-                            <Stack gap={0} align="center">
-                                <Text size="md" c="dimmed">Troco</Text>
-                                <Text size="lg" fw={700} style={{ fontSize: '2rem' }} c="var(--mantine-color-green-filled)">{formatCurrency(tempPaidValue - totalSale)}</Text>
-                            </Stack>
-                        </Paper>
-                    )}
-
-                    <Group justify="flex-end" gap="xs">
-                        <Button variant="subtle" onClick={() => setPaymentModalOpened(false)}>Cancelar</Button>
-                        <Button onClick={confirmPayment}>Confirmar</Button>
-                    </Group>
-                </Stack>
-            </Modal>
         </MainLayout>
     );
 }

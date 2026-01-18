@@ -254,7 +254,7 @@ export function ProductForm() {
   const submit = async (values: ProductFormValues) => {
     const validBarcodes = values.barcodes.filter(code => code.trim() !== '');
 
-    if (!values.description || !values.categoryId || !values.cost || !values.price || !values.quantity || !values.unit || validBarcodes.length === 0) {
+    if (!values.description || !values.categoryId || !values.cost || !values.price || !values.unit || validBarcodes.length === 0) {
       notifications.show({
         title: 'Erro',
         message: 'Preencha todos os campos e adicione pelo menos um código de barras',
@@ -361,9 +361,7 @@ export function ProductForm() {
                 <NumberInput
                   label="Quantidade"
                   {...form.getInputProps('quantity')}
-                  min={0}
                   decimalScale={3}
-                  required
                 />
               </Grid.Col>
               <Grid.Col span={1}>
