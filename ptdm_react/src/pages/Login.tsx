@@ -7,6 +7,7 @@ import { notifications } from '@mantine/notifications';
 import { useContext } from "react";
 import { apiRequest, saveAuthData, getTenant } from '@/utils/apiHelper';
 import { useNavigate } from "react-router-dom";
+import { syncAllWorker } from "@/utils/syncHelperWorker";
 
 const defaultValues: IAuthenticate = {
     email: '',
@@ -30,6 +31,15 @@ export function Login(props: PaperProps) {
             const tenant = getTenant();
             await saveAuthData(data.accessToken, data.refreshToken, tenant);
             setIsAuth(true);
+
+            // Aguardar um momento para garantir que os tokens sejam salvos no IndexedDB
+            // antes de iniciar a sincronização
+            setTimeout(() => {
+                syncAllWorker().catch(err => {
+                    console.error('Erro ao sincronizar após login:', err);
+                });
+            }, 500);
+
             navigate("/home");
         } catch (err) {
             notifications.show({ color: 'red', title: 'Erro ao realizar login', message: String(err) });

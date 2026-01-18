@@ -6,7 +6,6 @@ import { db, Sale } from '@/utils/db';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/utils/currency';
 import { CirclePlus } from 'lucide-react';
-import { syncAll } from '@/utils/syncHelper';
 
 export function SaleList() {
     const [items, setItems] = useState<Sale[]>([]);
@@ -41,11 +40,7 @@ export function SaleList() {
     }, [pageSize]);
 
     useEffect(() => {
-        const performSync = async () => {
-            await syncAll();
-            fetchItems(activePage);
-        };
-        performSync();
+        fetchItems(activePage);
     }, [activePage, fetchItems]);
 
 

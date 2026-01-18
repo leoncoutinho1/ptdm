@@ -7,8 +7,12 @@ import { ModalsProvider } from '@mantine/modals';
 import { Router } from './Router';
 import { theme } from './theme';
 import { Notifications } from '@mantine/notifications';
+import { useSyncWorker } from './hooks/useSyncWorker';
 
 export default function App() {
+  // Start background sync worker
+  useSyncWorker();
+
   return (
     <MantineProvider theme={theme}>
       <ModalsProvider>

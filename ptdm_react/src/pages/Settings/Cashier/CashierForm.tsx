@@ -3,11 +3,10 @@ import { useForm } from '@mantine/form';
 import { Button, Group, Stack, TextInput, Title, ActionIcon } from '@mantine/core';
 import { MainLayout } from '../../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
-import { apiRequest } from '@/utils/apiHelper';
 import { db } from '@/utils/db';
 import { genericSubmit, genericDelete } from '@/utils/syncHelper';
 import { Trash2 } from 'lucide-react';
+import { useConfirmDelete } from '@/hooks/useConfirmModal';
 
 interface CashierValues {
     id?: string;
@@ -30,10 +29,9 @@ export function CashierForm() {
         if (item) {
             form.setValues({ name: item.name });
         } else if (id) {
-            apiRequest<CashierValues>(`cashier/${id}`).then((found) => {
-                const data = (found as any).data || found;
-                if (data) form.setValues({ name: data.name || data.Name });
-            }).catch(err => notifications.show({ color: 'red', title: 'Erro', message: String(err) }));
+            db.cashiers.get(id).then((found) => {
+                if (found) form.setValues({ name: found.name });
+            });
         }
     }, [id, item]);
 
@@ -41,8 +39,16 @@ export function CashierForm() {
         await genericSubmit(db.cashiers, 'cashier', id, values, navigate, '/settings/cashiers');
     };
 
-    const handleDelete = async () => {
-        await genericDelete(db.cashiers, 'cashier', id, navigate, '/settings/cashiers');
+    const { openDeleteModal } = useConfirmDelete();
+
+    const handleDelete = () => {
+        openDeleteModal({
+            title: 'Excluir Operador',
+            message: 'Tem certeza que deseja excluir este operador? Esta ação não pode ser desfeita.',
+            onConfirm: async () => {
+                await genericDelete(db.cashiers, 'cashier', id, navigate, '/settings/cashiers');
+            },
+        });
     };
 
     return (

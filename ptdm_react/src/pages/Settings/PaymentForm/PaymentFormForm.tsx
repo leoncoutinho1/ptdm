@@ -3,11 +3,10 @@ import { useForm } from '@mantine/form';
 import { Button, Group, Stack, TextInput, Title, ActionIcon } from '@mantine/core';
 import { MainLayout } from '../../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
-import { apiRequest } from '@/utils/apiHelper';
 import { db } from '@/utils/db';
 import { genericSubmit, genericDelete } from '@/utils/syncHelper';
 import { Trash2 } from 'lucide-react';
+import { useConfirmDelete } from '@/hooks/useConfirmModal';
 
 interface PaymentFormValues {
     id?: string;
@@ -30,10 +29,9 @@ export function PaymentFormForm() {
         if (item) {
             form.setValues({ description: item.description });
         } else if (id) {
-            apiRequest<PaymentFormValues>(`paymentform/${id}`).then((found) => {
-                const data = (found as any).data || found;
-                if (data) form.setValues({ description: data.description || data.Description });
-            }).catch(err => notifications.show({ color: 'red', title: 'Erro', message: String(err) }));
+            db.paymentForms.get(id).then((found) => {
+                if (found) form.setValues({ description: found.description });
+            });
         }
     }, [id, item]);
 
@@ -41,8 +39,16 @@ export function PaymentFormForm() {
         await genericSubmit(db.paymentForms, 'paymentform', id, values, navigate, '/settings/payment-forms');
     };
 
-    const handleDelete = async () => {
-        await genericDelete(db.paymentForms, 'paymentform', id, navigate, '/settings/payment-forms');
+    const { openDeleteModal } = useConfirmDelete();
+
+    const handleDelete = () => {
+        openDeleteModal({
+            title: 'Excluir Forma de Pagamento',
+            message: 'Tem certeza que deseja excluir esta forma de pagamento? Esta ação não pode ser desfeita.',
+            onConfirm: async () => {
+                await genericDelete(db.paymentForms, 'paymentform', id, navigate, '/settings/payment-forms');
+            },
+        });
     };
 
     return (

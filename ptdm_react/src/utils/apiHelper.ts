@@ -71,16 +71,11 @@ export async function getAuthData() {
 }
 
 async function refreshTokens(): Promise<TokenResponse | null> {
-  // If navigator is available and we're offline, don't try
-  if (!(await checkConnectivity())) return null;
-
   const auth = await getAuthData();
-  if (!auth) return null;
+  if (auth) {
+    const { accessToken, refreshToken, tenant } = auth;
+    const url = `/api/${tenant}/Login/refresh`;
 
-  const { accessToken, refreshToken, tenant } = auth;
-  const url = `/api/${tenant}/Login/refresh`;
-
-  try {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -94,10 +89,14 @@ async function refreshTokens(): Promise<TokenResponse | null> {
       await saveAuthData(data.accessToken, data.refreshToken, tenant);
       return data;
     }
-  } catch (error) {
-    console.error('Token refresh failed', error);
   }
-  return null;
+
+  await clearAuthData();
+  if (typeof window !== 'undefined') {
+    const currentTenant = getTenant();
+    window.location.href = `/${currentTenant}/login`;
+  }
+  throw new Error('Sessão expirada. Faça login novamente.');
 }
 
 export async function apiRequest<T>(
@@ -125,61 +124,41 @@ export async function apiRequest<T>(
 
   let res: Response;
 
-  if (!(await checkConnectivity())) {
-    throw new Error('Você está offline. Verifique sua conexão.');
-  }
+  res = await fetch(url, {
+    method,
+    headers: getHeaders(token),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
 
-  try {
-    res = await fetch(url, {
-      method,
-      headers: getHeaders(token),
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-  } catch (error) {
-
-    throw error;
-  }
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      const newTokens = await refreshTokens();
-      if (newTokens) {
-        const newRes = await fetch(url, {
-          method,
-          headers: getHeaders(newTokens.accessToken),
-          body: body !== undefined ? JSON.stringify(body) : undefined,
-        });
-
-        if (newRes.ok) {
-          const ct = newRes.headers.get('content-type') || '';
-          if (ct.includes('application/json')) {
-            return (await newRes.json()) as T;
-          }
-          const text = await newRes.text();
-          return text as unknown as T;
-        }
-      }
-
-      if (!(await checkConnectivity())) {
-        throw new Error('Você está offline. Algumas operações podem não estar disponíveis.');
-      }
-
-      await clearAuthData();
-      if (typeof window !== 'undefined') {
-        const currentTenant = getTenant();
-        window.location.href = `/${currentTenant}/login`;
-      }
-      throw new Error('Sessão expirada. Faça login novamente.');
+  if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      return (await res.json()) as T;
     }
-
-    const msg = await res.text();
-    throw new Error(msg || `HTTP ${res.status}`);
+    const text = await res.text();
+    return text as unknown as T;
   }
 
-  const ct = res.headers.get('content-type') || '';
-  if (ct.includes('application/json')) {
-    return (await res.json()) as T;
+  if (res.status === 401) {
+    const newTokens = await refreshTokens();
+    if (newTokens) {
+      const newRes = await fetch(url, {
+        method,
+        headers: getHeaders(newTokens.accessToken),
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+
+      if (newRes.ok) {
+        const ct = newRes.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          return (await newRes.json()) as T;
+        }
+        const text = await newRes.text();
+        return text as unknown as T;
+      }
+    }
   }
-  const text = await res.text();
-  return text as unknown as T;
+
+  const msg = await res.text();
+  throw new Error(msg || `HTTP ${res.status}`);
 }

@@ -5,7 +5,6 @@ import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Pap
 import { Eye, EyeOff, XCircle } from 'lucide-react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
-import { apiRequest, checkConnectivity } from '@/utils/apiHelper';
 import { formatCurrency } from '@/utils/currency';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, Product, Cashier, Checkout, PaymentForm, Sale } from '@/utils/db';
@@ -87,12 +86,7 @@ export function SaleForm() {
         if (id) {
             const fetchSale = async () => {
                 try {
-                    let sale = await db.sales.get(id);
-
-                    if (!sale) {
-                        const result = await apiRequest<any>(`sale/${id}`);
-                        sale = result.value || result.data || result;
-                    }
+                    const sale = await db.sales.get(id);
 
                     if (sale) {
                         form.setValues({
@@ -102,7 +96,6 @@ export function SaleForm() {
                         });
 
                         if (Array.isArray(sale.saleProducts)) {
-                            // We might need to fetch products to show descriptions if they are not details
                             const items = await Promise.all(sale.saleProducts.map(async (item: any) => {
                                 const prod = await db.products.get(item.productId);
                                 return {
@@ -288,10 +281,6 @@ export function SaleForm() {
             changeValue: amountPaid > 0 ? change : 0
         };
 
-        // For sales, we don't necessarily want to navigate away immediately if printing is needed
-        // But genericSubmit does navigate. I'll use a custom logic or just allow it.
-        // Actually, SaleForm should stay open to show the print modal.
-
         const saleId = crypto.randomUUID();
         const now = new Date().toISOString();
         const localSale: Sale = {
@@ -303,21 +292,10 @@ export function SaleForm() {
         resetForm();
         try {
             await db.sales.put(localSale);
-
-            if (await checkConnectivity()) {
-                const response = await apiRequest<any>('sale', 'POST', saleData);
-                const normalized = normalizeData(response);
-                await db.sales.delete(saleId);
-                if (normalized && normalized.id && normalized.id !== '0') {
-                    await db.sales.put({ ...normalized, syncStatus: 'synced' } as any);
-                }
-            }
-
             notifications.show({ color: 'green', title: 'Sucesso', message: 'Venda registrada!' });
             showPrintConfirmation();
         } catch (err) {
-            notifications.show({ color: 'blue', title: 'Offline', message: 'Venda salva localmente.' });
-            showPrintConfirmation();
+            notifications.show({ color: 'red', title: 'Erro', message: 'Falha ao salvar venda.' });
         }
     };
 
@@ -382,17 +360,50 @@ export function SaleForm() {
     };
 
     const handlePrint = async () => {
-        const encoder = new ReceiptPrinterEncoder({ language: 'esc-pos', width: 32 });
-        const result = encoder.initialize().align('center').text('*** CUPOM DE VENDA ***').newline().text(new Date().toLocaleString("pt-BR")).newline().rule().align('left');
+        const encoder = new ReceiptPrinterEncoder({ language: 'esc-pos', width: 48 });
+        const result = encoder.initialize()
+            .align('left')
+            .bold(true)
+            .size('large')
+            .text(('*** PADARIA TREM DE MINAS ***').padStart(10))
+            .newline()
+            .text(new Date().toLocaleString("pt-BR"))
+            .newline()
+            .rule();
 
         saleItems.forEach((item) => {
-            const description = item.product.description.substring(0, 32);
+            const description = item.product.description.substring(0, 48);
             const qtyPrice = `${item.quantity} x ${formatCurrency(item.unitPrice)}`;
             const total = formatCurrency(item.totalPrice);
-            result.text(description).newline().text(qtyPrice.padEnd(20)).text(total.padStart(12)).newline();
+            result.text(description).newline()
+                .text(qtyPrice.padEnd(38))
+                .text(total.padStart(10))
+                .newline();
         });
 
-        const finalEncoded = result.rule().align('right').text(`TOTAL: ${formatCurrency(totalSale)}`).newline().text(`PAGO: ${formatCurrency(amountPaid)}`).newline().text(`TROCO: ${formatCurrency(change >= 0 ? change : 0)}`).newline().rule().align('center').text('Obrigado pela preferência!').newline().cut().encode();
+        const finalEncoded = result.rule()
+            .align('right')
+            .text(`TOTAL: ${formatCurrency(totalSale)}`)
+            .newline()
+            .text(`PAGO: ${formatCurrency(amountPaid)}`)
+            .newline()
+            .text(`TROCO: ${formatCurrency(change >= 0 ? change : 0)}`)
+            .newline()
+            .rule()
+            .align('center')
+            .text('Obrigado pela preferência!')
+            .newline()
+            .text('')
+            .newline()
+            .text('')
+            .newline()
+            .text('')
+            .newline()
+            .rule()
+            .newline()
+            .text('')
+            .cut()
+            .encode();
 
         // Converte Uint8Array para Array normal
         const byteArray = Array.from(finalEncoded);
@@ -406,7 +417,8 @@ export function SaleForm() {
             },
             body: JSON.stringify({
                 data: byteArray,
-                jobName: 'Cupom de Venda'
+                jobName: 'Cupom de Venda',
+                defaultPrinter: true
             })
         });
 

@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { syncAll } from './utils/syncHelper';
+import { syncAllWorker } from './utils/syncHelperWorker';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -17,12 +17,7 @@ self.addEventListener('install', () => {
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        Promise.all([
-            self.clients.claim(),
-            syncAll() // Initial sync on activate
-        ])
-    );
+    event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('message', (event) => {
@@ -31,7 +26,7 @@ self.addEventListener('message', (event) => {
     }
 
     if (event.data && event.data.type === 'SYNC_CATEGORIES') {
-        event.waitUntil(syncAll());
+        event.waitUntil(syncAllWorker());
     }
 });
 
@@ -39,6 +34,6 @@ self.addEventListener('message', (event) => {
 self.addEventListener('periodicsync', (event) => {
     const syncEvent = event as PeriodicSyncEvent;
     if (syncEvent.tag === 'sync-categories') {
-        syncEvent.waitUntil(syncAll());
+        syncEvent.waitUntil(syncAllWorker());
     }
 });

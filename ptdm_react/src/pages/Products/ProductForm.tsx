@@ -4,7 +4,6 @@ import { Button, Group, NumberInput, Select, Stack, TextInput, Title, ActionIcon
 import { MainLayout } from '../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
-import { apiRequest } from '@/utils/apiHelper';
 import { db } from '@/utils/db';
 import { genericSubmit, genericDelete } from '@/utils/syncHelper';
 import { Trash2 } from 'lucide-react';
@@ -102,26 +101,6 @@ export function ProductForm() {
             categoryId: String(found.categoryId ?? ''),
             composite: Boolean((found as any).composite ?? false),
             componentProducts: Array.isArray((found as any).componentProducts) ? (found as any).componentProducts : []
-          });
-        } else {
-          // Fallback to API
-          apiRequest<any>(`product/listproduct`).then(data => {
-            const foundApi = Array.isArray(data) ? data.find((p: any) => String(p.id) === String(id)) : undefined;
-            if (foundApi) {
-              form.setValues({
-                description: foundApi.description || foundApi.Description,
-                cost: Number(foundApi.cost || foundApi.Cost || 0),
-                profitMargin: Number(foundApi.profitMargin || foundApi.ProfitMargin || 0),
-                price: Number(foundApi.price || foundApi.Price || 0),
-                quantity: Number(foundApi.quantity || foundApi.Quantity || 0),
-                barcodes: Array.isArray(foundApi.barcodes)
-                  ? foundApi.barcodes.filter((b: string) => b.trim() !== '')
-                  : (foundApi.barcode ? [foundApi.barcode].filter((b: string) => b.trim() !== '') : []),
-                categoryId: String(foundApi.categoryId || foundApi.CategoryId || ''),
-                composite: Boolean(foundApi.composite || foundApi.Composite || false),
-                componentProducts: Array.isArray(foundApi.componentProducts) ? foundApi.componentProducts : []
-              });
-            }
           });
         }
       });

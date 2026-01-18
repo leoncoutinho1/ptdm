@@ -14,6 +14,8 @@ declare module '@point-of-sale/receipt-printer-encoder' {
         rule(options?: { character?: string; width?: number }): this;
         cut(type?: 'full' | 'partial'): this;
         encode(): Uint8Array;
+        bold(enabled: boolean): this;
+        size(size: 'small' | 'normal' | 'large'): this;
 
         // Add other methods if needed based on common thermal printer libs
         line(value: string): this;

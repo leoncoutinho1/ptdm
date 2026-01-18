@@ -3,11 +3,10 @@ import { useForm } from '@mantine/form';
 import { Button, Group, Stack, TextInput, Title, ActionIcon } from '@mantine/core';
 import { MainLayout } from '../../../layouts/MainLayout';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
-import { apiRequest } from '@/utils/apiHelper';
 import { db } from '@/utils/db';
 import { genericSubmit, genericDelete } from '@/utils/syncHelper';
 import { Trash2 } from 'lucide-react';
+import { useConfirmDelete } from '@/hooks/useConfirmModal';
 
 interface CheckoutValues {
     id?: string;
@@ -30,10 +29,9 @@ export function CheckoutForm() {
         if (item) {
             form.setValues({ name: item.name });
         } else if (id) {
-            apiRequest<CheckoutValues>(`checkout/${id}`).then((found) => {
-                const data = (found as any).data || found;
-                if (data) form.setValues({ name: data.name || data.Name });
-            }).catch(err => notifications.show({ color: 'red', title: 'Erro', message: String(err) }));
+            db.checkouts.get(id).then((found) => {
+                if (found) form.setValues({ name: found.name });
+            });
         }
     }, [id, item]);
 
@@ -41,8 +39,16 @@ export function CheckoutForm() {
         await genericSubmit(db.checkouts, 'checkout', id, values, navigate, '/settings/checkouts');
     };
 
-    const handleDelete = async () => {
-        await genericDelete(db.checkouts, 'checkout', id, navigate, '/settings/checkouts');
+    const { openDeleteModal } = useConfirmDelete();
+
+    const handleDelete = () => {
+        openDeleteModal({
+            title: 'Excluir Terminal',
+            message: 'Tem certeza que deseja excluir este terminal? Esta ação não pode ser desfeita.',
+            onConfirm: async () => {
+                await genericDelete(db.checkouts, 'checkout', id, navigate, '/settings/checkouts');
+            },
+        });
     };
 
     return (

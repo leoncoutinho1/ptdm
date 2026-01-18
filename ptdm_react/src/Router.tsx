@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Products } from './pages/Products/Products';
 import { ProductForm } from './pages/Products/ProductForm';
+import { Settings } from './pages/Settings/Settings';
 import { PaymentFormList } from './pages/Settings/PaymentForm/PaymentFormList';
 import { PaymentFormForm } from './pages/Settings/PaymentForm/PaymentFormForm';
 import { CashierList } from './pages/Settings/Cashier/CashierList';
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
       { path: '/reports/productsByCategory', element: <ProductsByCategory /> },
 
       // Settings routes
+      { path: '/settings', element: <Settings /> },
       { path: '/settings/payment-forms', element: <PaymentFormList /> },
       { path: '/settings/payment-forms/new', element: <PaymentFormForm /> },
       { path: '/settings/payment-forms/:id', element: <PaymentFormForm /> },
