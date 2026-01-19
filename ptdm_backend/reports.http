@@ -1,0 +1,47 @@
+### Relatório de Produtos - Testes
+
+@baseUrl = http://localhost:5000
+@token = seu-token-aqui
+
+### 1. Gerar Relatório de Produtos (Todas as Categorias)
+POST {{baseUrl}}/Reports/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### 2. Gerar Relatório de Produtos (Categorias Específicas)
+POST {{baseUrl}}/Reports/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoryIds": [
+    "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "4fa85f64-5717-4562-b3fc-2c963f66afa7"
+  ]
+}
+
+### 3. Obter Dados do Relatório em JSON (Todas as Categorias)
+POST {{baseUrl}}/Reports/products/data
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### 4. Obter Dados do Relatório em JSON (Categorias Específicas)
+POST {{baseUrl}}/Reports/products/data
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoryIds": [
+    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  ]
+}
+
+### 5. Teste sem Autenticação (deve retornar 401)
+POST {{baseUrl}}/Reports/products
+Content-Type: application/json
+
+{}

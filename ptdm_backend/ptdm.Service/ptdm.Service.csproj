@@ -10,6 +10,7 @@
     <PackageReference Include="AspNetCore.IQueryable.Extensions" Version="8.0.0" />
     <PackageReference Include="ErrorOr" Version="2.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
+    <PackageReference Include="QuestPDF" Version="2025.12.3" />
   </ItemGroup>
 
   <ItemGroup>

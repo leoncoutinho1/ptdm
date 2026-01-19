@@ -12,6 +12,7 @@ namespace ptdm.Api.DI
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<ISaleService, SaleService>();
             services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<IReportService, ReportService>();
         }
     }
 }
