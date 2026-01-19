@@ -1,51 +1,35 @@
-import { db } from './db';
 import { EntityTable } from 'dexie';
 import { notifications } from '@mantine/notifications';
 
-// Helper for casing and wrapped responses
-export function normalizeData(item: any): any {
-    if (!item) return null;
-
-    // Handle standard .NET Result wrappers (data, value, or the item itself)
-    const data = item.data !== undefined ? item.data : (item.value !== undefined ? item.value : item);
-
-    if (!data || typeof data !== 'object') return null;
-
-    return {
-        ...data,
-        id: String(data.id || data.Id || data.ID || ''),
-        description: data.description || data.Description,
-        name: data.name || data.Name,
-        updatedAt: data.updatedAt || data.UpdatedAt,
-        createdAt: data.createdAt || data.CreatedAt,
-        // Product specific
-        cost: data.cost !== undefined ? data.cost : data.Cost,
-        price: data.price !== undefined ? data.price : data.Price,
-        quantity: data.quantity !== undefined ? data.quantity : data.Quantity,
-        barcodes: data.barcodes || data.Barcodes || (data.barcode || data.Barcode ? [data.barcode || data.Barcode] : []),
-        categoryId: String(data.categoryId || data.CategoryId || ''),
-        // Sale specific
-        paymentFormId: String(data.paymentFormId || data.PaymentFormId || ''),
-        cashierId: String(data.cashierId || data.CashierId || ''),
-        checkoutId: String(data.checkoutId || data.CheckoutId || ''),
-        totalValue: data.totalValue !== undefined ? data.totalValue : data.TotalValue,
-        paidValue: data.paidValue !== undefined ? data.paidValue : data.PaidValue,
-        changeValue: data.changeValue !== undefined ? data.changeValue : data.ChangeValue,
-        saleProducts: data.saleProducts || data.SaleProducts,
-    };
-}
-
 // Helper to prepare local data with generic UUID and pending status
-function prepareLocal(id: string | undefined, values: any): any {
+async function prepareLocal<T extends { id: string, updatedAt?: string, createdAt?: string }>(
+    table: EntityTable<T, 'id'>,
+    id: string | undefined,
+    values: any
+): Promise<any> {
     const finalId = id || crypto.randomUUID();
+
+    // If editing an existing item, preserve updatedAt and createdAt
+    if (id) {
+        const existing = await table.get(id as any);
+        return {
+            ...values,
+            id: finalId,
+            updatedAt: existing?.updatedAt,
+            createdAt: existing?.createdAt,
+            syncStatus: 'pending-update',
+        };
+    }
+
+    // New item
     return {
         ...values,
         id: finalId,
-        syncStatus: 'pending-save',
+        syncStatus: 'pending-create',
     };
 }
 
-export async function genericSubmit<T extends { id: string, syncStatus?: string }>(
+export async function genericSubmit<T extends { id: string, syncStatus?: string, updatedAt?: string, createdAt?: string }>(
     table: EntityTable<T, 'id'>,
     endpoint: string,
     id: string | undefined,
@@ -53,7 +37,7 @@ export async function genericSubmit<T extends { id: string, syncStatus?: string 
     navigate: (path: string) => void,
     redirectPath: string
 ) {
-    const localData = prepareLocal(id, values);
+    const localData = await prepareLocal(table, id, values);
     await table.put(localData as any);
     notifications.show({ color: 'blue', title: 'Offline', message: 'Salvo localmente. Será sincronizado em breve.' });
     navigate(redirectPath);

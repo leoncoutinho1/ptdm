@@ -139,8 +139,30 @@ export function ProductForm() {
     }
   };
 
-  const addBarcode = (barcode: string) => {
+  const addBarcode = async (barcode: string) => {
     if (barcode.trim()) {
+      // Verificar se o código de barras já existe em outro produto
+      const existingProducts = await db.products
+        .filter(p =>
+          Array.isArray(p.barcodes) &&
+          p.barcodes.some(b => b.toLowerCase() === barcode.trim().toLowerCase()) &&
+          p.syncStatus !== 'pending-delete' && // Ignora produtos marcados para exclusão
+          p.id !== id // Ignora o próprio produto em caso de edição
+        )
+        .toArray();
+
+      if (existingProducts.length > 0) {
+        const existingProduct = existingProducts[0];
+        notifications.show({
+          title: 'Código de barras duplicado',
+          message: `O código de barras "${barcode}" já está cadastrado no produto "${existingProduct.description}"`,
+          color: 'red',
+          autoClose: 5000
+        });
+        setBarcodeInput('');
+        return;
+      }
+
       const currentBarcodes = form.values.barcodes.filter(b => b.trim() !== '');
       form.setFieldValue('barcodes', [...currentBarcodes, barcode.trim()]);
       setBarcodeInput('');
@@ -261,6 +283,29 @@ export function ProductForm() {
         color: 'red'
       });
       return;
+    }
+
+    // Verificar se algum código de barras já existe em outro produto
+    for (const barcode of validBarcodes) {
+      const existingProducts = await db.products
+        .filter(p =>
+          Array.isArray(p.barcodes) &&
+          p.barcodes.some(b => b.toLowerCase() === barcode.toLowerCase()) &&
+          p.syncStatus !== 'pending-delete' && // Ignora produtos marcados para exclusão
+          p.id !== id // Ignora o próprio produto em caso de edição
+        )
+        .toArray();
+
+      if (existingProducts.length > 0) {
+        const existingProduct = existingProducts[0];
+        notifications.show({
+          title: 'Código de barras duplicado',
+          message: `O código de barras "${barcode}" já está cadastrado no produto "${existingProduct.description}"`,
+          color: 'red',
+          autoClose: 5000
+        });
+        return;
+      }
     }
 
     // Enviar apenas os códigos de barras válidos e componentProducts no formato correto

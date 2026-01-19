@@ -1,15 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder';
 import { useForm } from '@mantine/form';
-import { Button, Group, NumberInput, Select, Stack, Table, TextInput, Title, Paper, Text, Grid, Divider, Box, ScrollArea, ActionIcon, Accordion, Modal } from '@mantine/core';
+import { Button, Group, NumberInput, Select, Stack, Table, Title, Paper, Text, Grid, Divider, Box, ScrollArea, ActionIcon } from '@mantine/core';
 import { Eye, EyeOff, XCircle } from 'lucide-react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
 import { formatCurrency } from '@/utils/currency';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db, Product, Cashier, Checkout, PaymentForm, Sale } from '@/utils/db';
-import { genericSubmit, normalizeData } from '@/utils/syncHelper';
-import { motion } from 'framer-motion';
 import { useConfirmAction } from '@/hooks/useConfirmModal';
 
 interface SaleItem {
@@ -276,7 +274,7 @@ export function SaleForm() {
         const localSale: Sale = {
             ...saleData,
             id: saleId,
-            syncStatus: 'pending-save',
+            syncStatus: 'pending-create',
             createdAt: now,
         };
         resetForm();

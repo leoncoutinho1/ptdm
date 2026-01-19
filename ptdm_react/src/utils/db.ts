@@ -9,8 +9,9 @@ interface AuthData {
 
 interface Syncable {
     id: string;
+    createdAt?: string;
     updatedAt?: string;
-    syncStatus?: 'synced' | 'pending-save' | 'pending-delete';
+    syncStatus?: 'synced' | 'pending-create' | 'pending-update' | 'pending-delete';
 }
 
 interface Category extends Syncable {
@@ -52,7 +53,6 @@ interface Sale extends Syncable {
         quantity: number;
         unitPrice: number;
     }[];
-    createdAt?: string;
 }
 
 interface SyncMeta {
