@@ -73,6 +73,14 @@ function normalizeProduct(item: any): any {
         unit: data.unit || data.Unit || 'UN',
         barcodes: data.barcodes || data.Barcodes || (data.barcode || data.Barcode ? [data.barcode || data.Barcode] : []),
         categoryId: String(data.categoryId || data.CategoryId || ''),
+        composite: !!(data.composite || data.Composite),
+        componentProducts: (data.componentProducts || data.ComponentProducts || []).map((cp: any) => ({
+            componentProductId: String(cp.componentProductId || cp.ComponentProductId || ''),
+            componentProductDescription: cp.componentProductDescription || cp.ComponentProductDescription || '',
+            quantity: cp.quantity !== undefined ? cp.quantity : cp.Quantity,
+            componentProductPrice: cp.componentProductPrice !== undefined ? cp.componentProductPrice : cp.ComponentProductPrice,
+            componentProductCost: cp.componentProductCost !== undefined ? cp.componentProductCost : cp.ComponentProductCost,
+        })),
         updatedAt: data.updatedAt || data.UpdatedAt,
         createdAt: data.createdAt || data.CreatedAt,
     };
@@ -131,6 +139,24 @@ async function propagateIdChange(entityName: string, oldId: string, newId: strin
         await db.sales.where('paymentFormId').equals(oldId).modify({ paymentFormId: newId });
     }
     if (entityName === 'product') {
+        // Update components in other products
+        const products = await db.products.toArray();
+        for (const p of products) {
+            if (p.componentProducts && p.componentProducts.length > 0) {
+                let changed = false;
+                const updatedComponents = p.componentProducts.map(cp => {
+                    if (String(cp.componentProductId) === String(oldId)) {
+                        changed = true;
+                        return { ...cp, componentProductId: newId };
+                    }
+                    return cp;
+                });
+                if (changed) {
+                    await db.products.update(p.id, { componentProducts: updatedComponents });
+                }
+            }
+        }
+
         // Nested array for products in sales
         const sales = await db.sales.toArray();
         for (const sale of sales) {

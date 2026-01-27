@@ -22,6 +22,7 @@ export function useConfirmDelete() {
             children: message,
             labels: { confirm: confirmLabel, cancel: cancelLabel },
             confirmProps: { color: 'red' },
+            cancelProps: { autoFocus: true },
             onConfirm,
         });
     };
@@ -53,6 +54,7 @@ export function useConfirmAction() {
             children: message,
             labels: { confirm: confirmLabel, cancel: cancelLabel },
             confirmProps: { color: confirmColor },
+            cancelProps: { 'data-autofocus': true },
             onConfirm,
         });
     };

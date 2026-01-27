@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from '@mantine/form';
 import { Button, Group, NumberInput, Select, Stack, TextInput, Title, ActionIcon, Paper, Grid, Pill, InputBase, Checkbox, Modal, Table } from '@mantine/core';
 import { MainLayout } from '../../layouts/MainLayout';
@@ -44,6 +44,8 @@ export function ProductForm() {
   const [componentSearchTerm, setComponentSearchTerm] = useState('');
   const [componentOptions, setComponentOptions] = useState<any[]>([]);
   const [selectedComponentValue, setSelectedComponentValue] = useState<string | null>(null);
+  const qtyComponentRef = useRef<HTMLInputElement>(null);
+  const searchComponentInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProductFormValues>({
     initialValues: {
@@ -273,6 +275,19 @@ export function ProductForm() {
     }
   };
 
+  useEffect(() => {
+    if (composeModalOpened) {
+      setTimeout(() => {
+        setComponentSearchTerm('');
+        setComponentQuantity(1);
+        setSelectedComponentValue(null);
+        setComponentOptions([]);
+        qtyComponentRef.current?.focus();
+        qtyComponentRef.current?.select();
+      }, 50);
+    }
+  }, [composeModalOpened]);
+
   const submit = async (values: ProductFormValues) => {
     const validBarcodes = values.barcodes.filter(code => code.trim() !== '');
 
@@ -370,7 +385,7 @@ export function ProductForm() {
               </Grid.Col>
             </Grid>
             <Grid>
-              <Grid.Col span={3}>
+              <Grid.Col span={2}>
                 <NumberInput
                   label="Custo"
                   {...form.getInputProps('cost')}
@@ -378,20 +393,22 @@ export function ProductForm() {
                   decimalScale={2}
                   prefix='R$ '
                   required
+                  onFocus={(e) => e.target.select()}
                   onBlur={handleCostBlur}
                 />
               </Grid.Col>
-              <Grid.Col span={3}>
+              <Grid.Col span={2}>
                 <NumberInput
                   label="Margem (%)"
                   {...form.getInputProps('profitMargin')}
                   min={0}
                   decimalScale={2}
                   required
+                  onFocus={(e) => e.target.select()}
                   onBlur={handleProfitMarginBlur}
                 />
               </Grid.Col>
-              <Grid.Col span={3}>
+              <Grid.Col span={2}>
                 <NumberInput
                   label="Preço"
                   {...form.getInputProps('price')}
@@ -399,17 +416,20 @@ export function ProductForm() {
                   decimalScale={2}
                   prefix='R$ '
                   required
+                  onFocus={(e) => e.target.select()}
                   onBlur={handlePriceBlur}
                 />
               </Grid.Col>
+              <Grid.Col span={2}></Grid.Col>
               <Grid.Col span={2}>
                 <NumberInput
                   label="Quantidade"
                   {...form.getInputProps('quantity')}
                   decimalScale={3}
+                  onFocus={(e) => e.target.select()}
                 />
               </Grid.Col>
-              <Grid.Col span={1}>
+              <Grid.Col span={2}>
                 <Select
                   label="Unidade"
                   placeholder="UN"
@@ -527,6 +547,14 @@ export function ProductForm() {
               fixedDecimalScale={false}
               step={0.01}
               style={{ width: 100 }}
+              onFocus={(e) => e.target.select()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  searchComponentInputRef.current?.focus();
+                }
+              }}
+              ref={qtyComponentRef}
             />
             <Select
               label="Buscar Produto"
@@ -540,6 +568,7 @@ export function ProductForm() {
               filter={({ options }) => options}
               style={{ flex: 1 }}
               clearable
+              ref={searchComponentInputRef}
               onKeyDown={handleComponentSearchKeyDown}
             />
           </Group>

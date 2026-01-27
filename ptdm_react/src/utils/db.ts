@@ -10,7 +10,9 @@ interface AuthData {
 interface Syncable {
     id: string;
     createdAt?: string;
+    createdBy?: string;
     updatedAt?: string;
+    updatedBy?: string;
     syncStatus?: 'synced' | 'pending-create' | 'pending-update' | 'pending-delete';
 }
 
@@ -39,6 +41,14 @@ interface Product extends Syncable {
     unit: string;
     barcodes: string[];
     categoryId: string;
+    composite: boolean;
+    componentProducts?: {
+        componentProductId: string;
+        componentProductDescription?: string;
+        quantity: number;
+        componentProductPrice?: number;
+        componentProductCost?: number;
+    }[];
 }
 
 interface Sale extends Syncable {

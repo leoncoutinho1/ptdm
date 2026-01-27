@@ -18,6 +18,7 @@ namespace ptdm.Data.Context.EntitiesConfiguration
             builder.Property(p => p.Price).IsRequired();
             builder.Property(p => p.Quantity).IsRequired();
             builder.Property(p => p.Unit).IsRequired().HasMaxLength(2);
+            builder.Property(p => p.Composite).IsRequired();
         }
     }
 }

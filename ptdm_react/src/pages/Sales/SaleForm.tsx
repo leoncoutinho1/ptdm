@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder';
 import { useForm } from '@mantine/form';
 import { Button, Group, NumberInput, Select, Stack, Table, Title, Paper, Text, Grid, Divider, Box, ScrollArea, ActionIcon } from '@mantine/core';
-import { Eye, EyeOff, XCircle } from 'lucide-react';
+import { Eye, EyeOff, XCircle, Printer } from 'lucide-react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
 import { formatCurrency } from '@/utils/currency';
@@ -174,6 +174,7 @@ export function SaleForm() {
             e.preventDefault();
             if (quantity <= 0 && saleItems.length > 0) {
                 paidValueRef.current?.focus();
+                setTimeout(() => paidValueRef.current?.select(), 100);
                 return;
             }
             searchProducts();
@@ -231,7 +232,7 @@ export function SaleForm() {
         setSelectedProductValue(null);
         setQuantity(0);
         quantityRef.current?.focus();
-        quantityRef.current?.select();
+        setTimeout(() => quantityRef.current?.select(), 100);
     };
 
     const removeItem = (productId: string) => {
@@ -455,9 +456,21 @@ export function SaleForm() {
                         />
                     </Group>
 
-                    <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)}>
-                        {showReceipt ? <Eye size={20} /> : <EyeOff size={20} />}
-                    </ActionIcon>
+                    <Group gap="xs">
+                        {isViewMode && (
+                            <Button
+                                variant="light"
+                                leftSection={<Printer size={18} />}
+                                onClick={handlePrint}
+                                size="xs"
+                            >
+                                Imprimir Cupom
+                            </Button>
+                        )}
+                        <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)}>
+                            {showReceipt ? <Eye size={20} /> : <EyeOff size={20} />}
+                        </ActionIcon>
+                    </Group>
                 </Group>
 
                 <Grid align="stretch" style={{ flex: 1, height: '92vh' }} gutter="xs">
