@@ -37,6 +37,7 @@ interface ConfirmActionOptions {
     cancelLabel?: string;
     confirmColor?: string;
     onConfirm: () => void | Promise<void>;
+    onCancel?: () => void | Promise<void>;
 }
 
 export function useConfirmAction() {
@@ -47,6 +48,8 @@ export function useConfirmAction() {
         cancelLabel = 'Cancelar',
         confirmColor = 'blue',
         onConfirm,
+        onCancel,
+
     }: ConfirmActionOptions) => {
         modals.openConfirmModal({
             title,
@@ -56,6 +59,7 @@ export function useConfirmAction() {
             confirmProps: { color: confirmColor },
             cancelProps: { 'data-autofocus': true },
             onConfirm,
+            onCancel,
         });
     };
 

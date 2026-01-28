@@ -296,6 +296,7 @@ export function SaleForm() {
             cancelLabel: 'Não',
             confirmColor: 'blue',
             onConfirm: handlePrint,
+            onCancel: () => quantityRef.current?.focus()
         });
     };
 
@@ -307,12 +308,11 @@ export function SaleForm() {
         setQuantity(0);
         if (isViewMode) {
             navigate('/sales');
-        } else {
-            setTimeout(() => quantityRef.current?.focus(), 100);
         }
     };
 
     const handlePrint = async () => {
+        quantityRef.current?.focus();
         const encoder = new ReceiptPrinterEncoder({ language: 'esc-pos', width: 48 });
         const result = encoder.initialize()
             .align('left')
