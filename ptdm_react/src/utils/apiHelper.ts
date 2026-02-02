@@ -10,7 +10,7 @@ export async function checkConnectivity(): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    const res = await fetch(`/api/Login/request`, {
+    const res = await fetch(`/stock/api/Login/request`, {
       method: 'HEAD',
       signal: controller.signal
     });
@@ -89,7 +89,7 @@ async function refreshTokens(): Promise<TokenResponse | null> {
   const auth = await getAuthData();
   if (auth) {
     const { accessToken, refreshToken } = auth;
-    const url = `/api/Login/refresh`;
+    const url = `/stock/api/Login/refresh`;
 
     const res = await fetch(url, {
       method: 'POST',
@@ -123,7 +123,7 @@ export async function apiRequest<T>(
   const token = auth?.accessToken || null;
 
   const cleanRoute = route.replace(/^\//, '');
-  const url = `/api/${cleanRoute}`;
+  const url = `/stock/api/${cleanRoute}`;
 
   const getHeaders = (t: string | null) => {
     const h: Record<string, string> = {};

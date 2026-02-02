@@ -43,14 +43,14 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': {
+      '/stock/api': {
         target: 'http://localhost:5215',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (path) => path.replace(/^\/stock\/api/, ''),
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {
             const url = req.url || '';
-            console.log('Proxying:', url, '->', 'http://localhost:5215' + url.replace(/^\/api/, ''))
+            console.log('Proxying:', url, '->', 'http://localhost:5215' + url.replace(/^\/stock\/api/, ''))
           })
         }
       },
