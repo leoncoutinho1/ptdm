@@ -6,31 +6,45 @@ export async function checkConnectivity(): Promise<boolean> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
 
   try {
-    const auth = await getAuthData();
-    const tenant = auth?.tenant || 'master';
     // Use a lightweight endpoint to check connectivity
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    const res = await fetch(`/api/${tenant}/Login/request`, {
+    const res = await fetch(`/api/Login/request`, {
       method: 'HEAD',
       signal: controller.signal
     });
 
     clearTimeout(timeoutId);
-    return res.ok || res.status === 401; // 401 means reached the serve but unauthorized
+    return res.ok || res.status === 401; // 401 means reached the server but unauthorized
   } catch {
     return false;
   }
 }
 
-export function getTenant(): string {
-  // Use self.location which works in both window and service worker context
-  const path = typeof window !== 'undefined' ? window.location.pathname : (typeof self !== 'undefined' ? self.location.pathname : '');
-  const pathParts = path.split('/');
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
 
-  if (pathParts.length >= 2 && pathParts[1] && pathParts[1] !== 'api') {
-    return pathParts[1];
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function getTenant(): string {
+  if (typeof localStorage !== 'undefined') {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      const payload = parseJwt(token);
+      if (payload && payload.tenant) return payload.tenant;
+    }
+    const tenant = localStorage.getItem('tenant');
+    if (tenant) return tenant;
   }
   return 'master';
 }
@@ -44,6 +58,7 @@ export async function saveAuthData(accessToken: string, refreshToken: string, te
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('tenant', tenant);
   }
   await db.auth.put({ id: 'current_auth', accessToken, refreshToken, tenant });
 }
@@ -73,8 +88,8 @@ export async function getAuthData() {
 async function refreshTokens(): Promise<TokenResponse | null> {
   const auth = await getAuthData();
   if (auth) {
-    const { accessToken, refreshToken, tenant } = auth;
-    const url = `/api/${tenant}/Login/refresh`;
+    const { accessToken, refreshToken } = auth;
+    const url = `/api/Login/refresh`;
 
     const res = await fetch(url, {
       method: 'POST',
@@ -86,15 +101,15 @@ async function refreshTokens(): Promise<TokenResponse | null> {
 
     if (res.ok) {
       const data: TokenResponse = await res.json();
-      await saveAuthData(data.accessToken, data.refreshToken, tenant);
+      // Tenant remains the same
+      await saveAuthData(data.accessToken, data.refreshToken, auth.tenant);
       return data;
     }
   }
 
   await clearAuthData();
   if (typeof window !== 'undefined') {
-    const currentTenant = getTenant();
-    window.location.href = `/${currentTenant}/login`;
+    window.location.href = `/stock/login`;
   }
   throw new Error('Sessão expirada. Faça login novamente.');
 }
@@ -106,10 +121,9 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const auth = await getAuthData();
   const token = auth?.accessToken || null;
-  const tenant = auth?.tenant || getTenant();
 
   const cleanRoute = route.replace(/^\//, '');
-  const url = `/api/${tenant}/${cleanRoute}`;
+  const url = `/api/${cleanRoute}`;
 
   const getHeaders = (t: string | null) => {
     const h: Record<string, string> = {};

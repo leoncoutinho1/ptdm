@@ -25,20 +25,9 @@ namespace ptdm.Api.Services
             // Validar se o tenant foi extraído pelo Middleware (armazenado em Items ou PathBase)
             // Ou tentar extrair manualmente se o middleware não estiver em uso
             string tenant = null;
-
             if (httpContext.Items.TryGetValue("Tenant", out var tenantObj) && tenantObj is string t)
             {
                 tenant = t;
-            }
-            else
-            {
-                // Fallback: tentar extrair do Path caso o middleware não tenha rodado
-                var path = httpContext.Request.Path.Value;
-                var segments = path?.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                if (segments != null && segments.Length > 0)
-                {
-                    tenant = segments[0];
-                }
             }
 
             if (!string.IsNullOrEmpty(tenant))

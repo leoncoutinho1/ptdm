@@ -11,7 +11,8 @@ import { syncAllWorker } from "@/utils/syncHelperWorker";
 
 const defaultValues: IAuthenticate = {
     email: '',
-    password: ''
+    password: '',
+    tenant: ''
 }
 
 export function Login(props: PaperProps) {
@@ -21,15 +22,15 @@ export function Login(props: PaperProps) {
         initialValues: defaultValues,
         validate: {
             email: (val) => (/^\S+@\S+$/.test(val) ? null : 'Invalid email'),
-            password: (val) => (val.length < 8 ? 'Password should include at least 6 characters' : null),
+            password: (val) => (val.length < 8 ? 'Password should include at least 8 characters' : null),
+            tenant: (val) => (val.length === 0 ? 'Tenant is required' : null),
         },
     });
 
     const authenticate = async (form: IAuthenticate) => {
         try {
-            const data = await apiRequest<{ accessToken: string; refreshToken: string }>('login/authenticate', 'POST', form);
-            const tenant = getTenant();
-            await saveAuthData(data.accessToken, data.refreshToken, tenant);
+            const data = await apiRequest<{ accessToken: string; refreshToken: string }>('Login/authenticate', 'POST', form);
+            await saveAuthData(data.accessToken, data.refreshToken, form.tenant);
             setIsAuth(true);
 
             // Aguardar um momento para garantir que os tokens sejam salvos no IndexedDB
@@ -76,6 +77,16 @@ export function Login(props: PaperProps) {
                         value={form.values.password}
                         onChange={(event) => form.setFieldValue('password', event.currentTarget.value)}
                         error={form.errors.password && 'Password should include at least 8 characters'}
+                        radius="md"
+                    />
+
+                    <TextInput
+                        required
+                        label="Tenant"
+                        placeholder="Your tenant name"
+                        value={form.values.tenant}
+                        onChange={(event) => form.setFieldValue('tenant', event.currentTarget.value)}
+                        error={form.errors.tenant && 'Tenant is required'}
                         radius="md"
                     />
                 </Stack>

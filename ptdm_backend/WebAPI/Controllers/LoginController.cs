@@ -52,8 +52,11 @@ public class LoginController : ControllerBase
             return BadRequest(result.Errors);
         }
 
+        // Set tenant in HttpContext items
+        HttpContext.Items["Tenant"] = model.Tenant;
+
         await _signInManager.SignInAsync(user, false);
-        return Ok(await GenerateToken(user));
+        return Ok(await GenerateToken(user, model.Tenant));
     }
 
     [HttpPost("authenticate")]
@@ -66,8 +69,11 @@ public class LoginController : ControllerBase
         var result = await _signInManager.PasswordSignInAsync(userInfo.Email, userInfo.Password, isPersistent: false, lockoutOnFailure: false);
 
         if (result.Succeeded){
+            // Set tenant in HttpContext items so TenantService can find it
+            HttpContext.Items["Tenant"] = userInfo.Tenant;
+
             var user = await _userManager.FindByEmailAsync(userInfo.Email);
-            return Ok(await GenerateToken(user));
+            return Ok(await GenerateToken(user, userInfo.Tenant));
         } else {
             ModelState.AddModelError(string.Empty, "Login inválido");
             return BadRequest(ModelState);
@@ -112,6 +118,13 @@ public class LoginController : ControllerBase
             return BadRequest("Invalid access token or refresh token");
         }
 
+        // Set tenant in HttpContext items from token claims
+        var tenant = principal.FindFirstValue("tenant");
+        if (!string.IsNullOrEmpty(tenant))
+        {
+            HttpContext.Items["Tenant"] = tenant;
+        }
+
         var newAccessToken = CreateToken(principal.Claims.ToList());
         var newRefreshToken = GenerateRefreshToken();
 
@@ -125,12 +138,13 @@ public class LoginController : ControllerBase
         });
     }
 
-    private async Task<TokenDTO> GenerateToken(ApplicationUser user) {
+    private async Task<TokenDTO> GenerateToken(ApplicationUser user, string tenant) {
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, user.UserName ?? ""),
             new Claim(JwtRegisteredClaimNames.Sub, user.Email ?? ""),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("tenant", tenant)
         };
 
         var token = CreateToken(claims);

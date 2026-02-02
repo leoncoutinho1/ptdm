@@ -19,9 +19,9 @@ import { SaleList } from './pages/Sales/SaleList';
 import { getTenant } from './utils/apiHelper';
 import { ProductsByCategory } from './pages/Reports/ProductsByCategory/ProductsByCategory';
 
-// Redirect root to master/login
-if (window.location.pathname === '/' || window.location.pathname === '') {
-  window.location.href = '/ptdm/login';
+// Redirect root to login if not handled by router
+if (window.location.pathname === '/stock' || window.location.pathname === '/stock/') {
+  window.location.href = '/stock/login';
 }
 
 const tenant = getTenant();
@@ -63,9 +63,7 @@ const router = createBrowserRouter([
       { path: '/settings/checkouts/:id', element: <CheckoutForm /> }
     ]
   }
-], {
-  basename: `/${tenant}`
-});
+], { basename: '/stock' });
 
 export function Router() {
 

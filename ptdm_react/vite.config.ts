@@ -4,6 +4,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: '/stock/',
   plugins: [
     react(),
     tsconfigPaths(),
@@ -20,7 +21,7 @@ export default defineConfig({
       manifest: {
         name: 'Controle de Estoque',
         short_name: 'PDV',
-        start_url: '/',
+        start_url: '/stock/',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#1e40af',
