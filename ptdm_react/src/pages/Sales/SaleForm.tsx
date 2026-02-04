@@ -423,10 +423,10 @@ export function SaleForm() {
     return (
         <MainLayout>
             <Box style={{ height: '95vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <Group justify="space-between" mb="md" style={{ flexShrink: 0 }} align="flex-end">
+                <Group justify="space-between" mb="md" style={{ flexShrink: 0 }} align="flex-start">
                     <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
 
-                    <Group gap="xs" style={{ flex: 1, maxWidth: '600px' }}>
+                    <Group gap="xs" style={{ flex: 1, maxWidth: '600px', paddingTop: '0.2rem' }}>
                         <Select
                             placeholder="Forma de Pagamento"
                             data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
@@ -526,21 +526,18 @@ export function SaleForm() {
                             <Stack gap="md" py="md" style={{ flexShrink: 0 }}>
                                 <Group justify="flex-end">
                                     <Paper
-                                        p="xs"
                                         withBorder
                                         style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: 54,
-                                            width: '50%',
-                                            background: 'var(--mantine-color-blue-light)',
-                                            borderColor: 'var(--mantine-color-blue-outline)'
+                                            minHeight: 48,
+                                            width: '45%',
+                                            background: 'var(--mantine-color-red-light)',
+                                            borderColor: 'var(--mantine-color-red-outline)',
+                                            padding: '0 1rem'
                                         }}
                                     >
-                                        <Stack gap={0} align="center">
-                                            <Text size="md" c="dimmed">Total</Text>
-                                            <Text size="lg" fw={700} style={{ fontSize: '2.5rem' }} c="var(--mantine-color-blue-filled)">{formatCurrency(totalSale)}</Text>
+                                        <Stack gap={0} align="start" style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                            <Text size="md" c="var(--mantine-color-red-filled)" fw={500} style={{ fontSize: '1.8rem', alignSelf: 'baseline', paddingTop: '2rem' }}>Total</Text>
+                                            <Text size="lg" fw={700} style={{ fontSize: '3.5rem' }} c="var(--mantine-color-red-filled)">{formatCurrency(totalSale)}</Text>
                                         </Stack>
                                     </Paper>
                                 </Group>
