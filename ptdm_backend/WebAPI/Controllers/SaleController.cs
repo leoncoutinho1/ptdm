@@ -41,7 +41,7 @@ public class SaleController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult Post([FromBody] SaleDTO saleDto)
+    public ActionResult Post([FromBody] SaleInsertDTO saleDto)
     {
         
         var result = _service.Create(saleDto);

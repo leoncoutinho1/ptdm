@@ -21,7 +21,7 @@ namespace ptdm.Service.Services
 {
     public interface ISaleService
     {
-        ErrorOr<SaleDTO> Create(SaleDTO sale);
+        ErrorOr<SaleDTO> Create(SaleInsertDTO sale);
         ErrorOr<SaleDTO> Delete(Guid id);
         ErrorOr<SaleDTO> Get(Guid id);
         ResultList<SaleDTO> ListSale(SaleFilter filters);
@@ -43,7 +43,7 @@ namespace ptdm.Service.Services
             return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
         }
 
-        public ErrorOr<SaleDTO> Create(SaleDTO dto)
+        public ErrorOr<SaleDTO> Create(SaleInsertDTO dto)
         {
             using var transaction = _context.Database.BeginTransaction();
             try
@@ -70,7 +70,7 @@ namespace ptdm.Service.Services
                         ProductId = sp.ProductId,
                         UnitPrice = sp.UnitPrice,
                         Quantity = sp.Quantity,
-                        Discount = sp.Discount,
+                        Discount = sp.Discount ?? 0,
                         SaleId = sale.Id
                     });
 
