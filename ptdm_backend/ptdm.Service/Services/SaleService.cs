@@ -100,11 +100,11 @@ namespace ptdm.Service.Services
                                     var quantityToDeduct = component.Quantity * sp.Quantity;
                                     
                                     // Validar estoque disponível
-                                    if (componentProduct.Quantity < quantityToDeduct)
-                                    {
-                                        transaction.Rollback();
-                                        return Error.Failure(description: $"Estoque insuficiente de {componentProduct.Description}. Disponível: {componentProduct.Quantity}, Necessário: {quantityToDeduct}");
-                                    }
+                                    //if (componentProduct.Quantity < quantityToDeduct)
+                                    //{
+                                    //    transaction.Rollback();
+                                    //    return Error.Failure(description: $"Estoque insuficiente de {componentProduct.Description}. Disponível: {componentProduct.Quantity}, Necessário: {quantityToDeduct}");
+                                    //}
                                     
                                     componentProduct.Quantity -= quantityToDeduct;
                                     componentProduct.UpdatedBy = GetUserId();
