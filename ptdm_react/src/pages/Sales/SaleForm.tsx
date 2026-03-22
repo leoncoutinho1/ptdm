@@ -184,6 +184,9 @@ export function SaleForm() {
     const handlePaidValueKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
+            if (amountPaid === 0) {
+                setAmountPaid(totalSale)
+            }
             saveSaleRef.current?.focus();
         }
     };
@@ -237,6 +240,9 @@ export function SaleForm() {
 
     const removeItem = (productId: string) => {
         setSaleItems(saleItems.filter(item => item.productId !== productId));
+        setAmountPaid(0);
+        quantityRef.current?.focus();
+        setTimeout(() => quantityRef.current?.select(), 100);
     };
 
     const totalSale = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
