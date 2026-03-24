@@ -272,8 +272,8 @@ export function SaleForm() {
                 unitPrice: item.unitPrice,
             })),
             totalValue: totalSale,
-            paidValue: amountPaid > 0 ? amountPaid : totalSale,
-            changeValue: amountPaid > 0 ? change : 0
+            paidValue: totalSale,
+            changeValue: 0
         };
 
         const saleId = crypto.randomUUID();
@@ -293,6 +293,27 @@ export function SaleForm() {
             notifications.show({ color: 'red', title: 'Erro', message: 'Falha ao salvar venda.' });
         }
     };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && saleItems.length > 0) {
+            openConfirmModal({
+                title: 'Cancelar venda',
+                message: 'Deseja cancelar essa venda?',
+                confirmLabel: 'Sim',
+                cancelLabel: 'Não',
+                confirmColor: 'blue',
+                onConfirm: () => resetForm(),
+                onCancel: () => quantityRef.current?.focus()
+            });
+        }
+    };
+   
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+          document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [handleKeyDown]);
 
     const showPrintConfirmation = () => {
         openConfirmModal({
@@ -485,7 +506,15 @@ export function SaleForm() {
 
                             {!isViewMode && (
                                 <Group align="flex-end" style={{ flexShrink: 0 }}>
-                                    <NumberInput label="Qtd" value={quantity} onChange={(val) => setQuantity(Number(val) || 0)} min={0} style={{ width: 80 }} ref={quantityRef} onKeyDown={handleQuantityKeyDown} />
+                                    <NumberInput 
+                                        label="Qtd" 
+                                        value={quantity} 
+                                        onChange={(val) => setQuantity(Number(val) || 0)} 
+                                        min={0} 
+                                        style={{ width: 80 }} 
+                                        ref={quantityRef} 
+                                        onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                                        onKeyDown={handleQuantityKeyDown} />
                                     <Select
                                         label="Buscar Produto"
                                         placeholder="Pesquisar..."
@@ -553,6 +582,7 @@ export function SaleForm() {
                                         <NumberInput
                                             label="Valor Pago"
                                             value={amountPaid}
+                                            onFocus={(e) => setTimeout(() => e.target.select(), 100)}
                                             onChange={(val) => setAmountPaid(Number(val) || 0)}
                                             min={0}
                                             decimalScale={2}
@@ -565,7 +595,7 @@ export function SaleForm() {
                                         />
                                         <NumberInput
                                             label="Troco"
-                                            value={change >= 0 ? change : 0}
+                                            value={amountPaid > 0 ? change : 0}
                                             min={0}
                                             decimalScale={2}
                                             fixedDecimalScale={true}
