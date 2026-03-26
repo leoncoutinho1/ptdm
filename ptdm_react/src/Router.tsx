@@ -16,15 +16,13 @@ import { CheckoutForm } from './pages/Settings/Checkout/CheckoutForm';
 import { AuthProvider } from './contexts/AuthContext';
 import { SaleForm } from './pages/Sales/SaleForm';
 import { SaleList } from './pages/Sales/SaleList';
-import { getTenant } from './utils/apiHelper';
-import { ProductsByCategory } from './pages/Reports/ProductsByCategory/ProductsByCategory';
+import { ProductsReport } from './pages/Reports/Products/ProductsReport';
 
 // Redirect root to login if not handled by router
 if (window.location.pathname === '/stock' || window.location.pathname === '/stock/') {
   window.location.href = '/stock/login';
 }
 
-const tenant = getTenant();
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   {
@@ -42,7 +40,7 @@ const router = createBrowserRouter([
       { path: '/sales/:id', element: <SaleForm /> },
 
       // Reports routes
-      { path: '/reports/productsByCategory', element: <ProductsByCategory /> },
+      { path: '/reports/ProductsReport', element: <ProductsReport /> },
 
       // Settings routes
       { path: '/settings', element: <Settings /> },

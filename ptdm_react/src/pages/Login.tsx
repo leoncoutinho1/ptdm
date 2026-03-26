@@ -5,7 +5,7 @@ import { Group, PasswordInput, TextInput, Text, Button, Stack, Paper, PaperProps
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useContext } from "react";
-import { apiRequest, saveAuthData, getTenant } from '@/utils/apiHelper';
+import { apiRequest, saveAuthData } from '@/utils/apiHelper';
 import { useNavigate } from "react-router-dom";
 import { syncAllWorker } from "@/utils/syncHelperWorker";
 
@@ -85,7 +85,7 @@ export function Login(props: PaperProps) {
                         label="Tenant"
                         placeholder="Your tenant name"
                         value={form.values.tenant}
-                        onChange={(event) => form.setFieldValue('tenant', event.currentTarget.value)}
+                        onChange={(event) => form.setFieldValue('tenant', event.currentTarget.value.toLowerCase())}
                         error={form.errors.tenant && 'Tenant is required'}
                         radius="md"
                     />

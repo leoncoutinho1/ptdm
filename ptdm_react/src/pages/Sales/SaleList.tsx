@@ -72,7 +72,7 @@ export function SaleList() {
                         ) : (
                             items.map((item: Sale) => (
                                 <Table.Tr key={item.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/sales/${item.id}`, { state: { item } })}>
-                                    <Table.Td>{item.createdAt ? new Date(item.createdAt).toLocaleString("pt-BR") : 'Pendente'}</Table.Td>
+                                    <Table.Td>{item.saleDate ? new Date(item.saleDate).toLocaleString("pt-BR") : 'Data não informada'}</Table.Td>
                                     <Table.Td>{formatCurrency(item.totalValue)}</Table.Td>
                                     <Table.Td>{item.syncStatus === 'synced' ? 'Sincronizado' : 'Offline'}</Table.Td>
                                 </Table.Tr>

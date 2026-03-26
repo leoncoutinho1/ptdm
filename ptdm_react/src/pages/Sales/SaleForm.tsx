@@ -16,6 +16,7 @@ interface SaleItem {
     unitPrice: number;
     quantity: number;
     totalPrice: number;
+    order: number;
 }
 
 export function SaleForm() {
@@ -28,6 +29,7 @@ export function SaleForm() {
     const productSelectRef = useRef<HTMLInputElement>(null);
     const paidValueRef = useRef<HTMLInputElement>(null);
     const saveSaleRef = useRef<HTMLButtonElement>(null);
+    const discountRef = useRef<HTMLInputElement>(null);
 
     const [paymentForms, setPaymentForms] = useState<PaymentForm[]>([]);
     const [cashiers, setCashiers] = useState<Cashier[]>([]);
@@ -40,6 +42,10 @@ export function SaleForm() {
     const [isSearching, setIsSearching] = useState(false);
     const [selectedProductValue, setSelectedProductValue] = useState<string | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
+    const [discount, setDiscount] = useState(0);
+
+    const searchIdRef = useRef(0);
+    const searchTermRef = useRef('');
 
     const { openConfirmModal } = useConfirmAction();
 
@@ -125,18 +131,22 @@ export function SaleForm() {
     }, [form.values.checkoutId]);
 
     const searchProducts = async () => {
-        if (!searchTerm || searchTerm.length < 1) {
+        const currentTerm = searchTermRef.current;
+        if (!currentTerm || currentTerm.length < 1) {
             setProductOptions([]);
             return;
         }
 
+        const currentSearchId = ++searchIdRef.current;
         setIsSearching(true);
         try {
-            const lowerSearch = searchTerm.toLowerCase();
+            const lowerSearch = currentTerm.toLowerCase();
             const foundById = await db.products
                 .filter(p =>
                     (Array.isArray(p.barcodes) && p.barcodes.some(b => b.toLowerCase() === lowerSearch))
                 ).toArray();
+
+            if (currentSearchId !== searchIdRef.current) return;
 
             if (foundById.length === 1) {
                 addProductToSale(foundById[0]);
@@ -145,12 +155,17 @@ export function SaleForm() {
                     .filter(p =>
                         p.description.toLowerCase().includes(lowerSearch)
                     ).toArray();
+                
+                if (currentSearchId !== searchIdRef.current) return;
                 setProductOptions(foundByDescription);
             }
         } catch (err) {
+            if (currentSearchId !== searchIdRef.current) return;
             notifications.show({ color: 'red', title: 'Erro ao buscar produto', message: String(err) });
         } finally {
-            setIsSearching(false);
+            if (currentSearchId === searchIdRef.current) {
+                setIsSearching(false);
+            }
         }
     };
 
@@ -173,11 +188,18 @@ export function SaleForm() {
         if (e.key === 'Enter') {
             e.preventDefault();
             if (quantity <= 0 && saleItems.length > 0) {
-                paidValueRef.current?.focus();
-                setTimeout(() => paidValueRef.current?.select(), 100);
+                discountRef.current?.focus();
+                setTimeout(() => discountRef.current?.select(), 100);
                 return;
             }
             searchProducts();
+        }
+    };
+
+    const handleDiscountKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            paidValueRef.current?.focus();
         }
     };
 
@@ -226,14 +248,18 @@ export function SaleForm() {
                 quantity,
                 unitPrice: item.price,
                 totalPrice: quantity * item.price,
+                order: (saleItems.length + 1)
             };
             setSaleItems([...saleItems, newItem]);
         }
 
+        searchIdRef.current++;
         setSearchTerm('');
+        searchTermRef.current = '';
         setProductOptions([]);
         setSelectedProductValue(null);
         setQuantity(0);
+        setIsSearching(false);
         quantityRef.current?.focus();
         setTimeout(() => quantityRef.current?.select(), 100);
     };
@@ -245,7 +271,7 @@ export function SaleForm() {
         setTimeout(() => quantityRef.current?.select(), 100);
     };
 
-    const totalSale = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const totalSale = saleItems.reduce((sum, item) => sum + item.totalPrice, 0) - discount;
     const change = amountPaid - totalSale;
 
     const submitSale = async () => {
@@ -257,10 +283,10 @@ export function SaleForm() {
             return;
         }
 
-        if (amountPaid > 0 && amountPaid < totalSale) {
-            notifications.show({ color: 'yellow', title: 'Atenção', message: 'Valor pago insuficiente' });
-            return;
-        }
+        // if (amountPaid > 0 && amountPaid < totalSale) {
+        //     notifications.show({ color: 'yellow', title: 'Atenção', message: 'Valor pago insuficiente' });
+        //     return;
+        // }
 
         const saleData = {
             paymentFormId: form.values.paymentFormId,
@@ -281,6 +307,7 @@ export function SaleForm() {
         const localSale: Sale = {
             ...saleData,
             id: saleId,
+            saleDate: now,
             syncStatus: 'pending-create',
             createdAt: now,
         };
@@ -328,14 +355,19 @@ export function SaleForm() {
     };
 
     const resetForm = () => {
+        searchIdRef.current++;
         setSaleItems([]);
         setAmountPaid(0);
         setSearchTerm('');
+        searchTermRef.current = '';
         setProductOptions([]);
         setQuantity(0);
+        setIsSearching(false);
+        setDiscount(0);
         if (isViewMode) {
             navigate('/sales');
         }
+        quantityRef.current?.focus();
     };
 
     const handlePrint = async () => {
@@ -414,43 +446,12 @@ export function SaleForm() {
         } else {
             throw new Error('Falha ao enviar para impressora via API');
         }
-        // } catch (apiError) {
-        //     console.warn('Erro ao usar API de impressão:', apiError);
-
-        //     // Fallback 1: Tenta usar Web Serial API
-        //     if ('serial' in navigator) {
-        //         try {
-        //             const port = await (navigator as any).serial.requestPort();
-        //             await port.open({ baudRate: 9600 });
-        //             const writer = port.writable.getWriter();
-        //             await writer.write(finalEncoded);
-        //             await writer.releaseLock();
-        //             await port.close();
-        //             notifications.show({
-        //                 color: 'green',
-        //                 title: 'Sucesso',
-        //                 message: 'Cupom impresso via Serial!'
-        //             });
-        //             return;
-        //         } catch (serialError) {
-        //             console.error('Erro na impressora serial:', serialError);
-        //         }
-        //     }
-
-        //     // Fallback 2: window.print()
-        //     notifications.show({
-        //         color: 'yellow',
-        //         title: 'Atenção',
-        //         message: 'Usando impressão padrão do navegador'
-        //     });
-        //     window.print();
-        // }
     };
 
     return (
         <MainLayout>
-            <Box style={{ height: '95vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <Group justify="space-between" mb="md" style={{ flexShrink: 0 }} align="flex-start">
+            <Box style={{ display: 'flex', flexDirection: 'column', height: '93vh' }}>
+                <Group justify="space-between" mb="md" align="flex-start">
                     <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
 
                     <Group gap="xs" style={{ flex: 1, maxWidth: '600px', paddingTop: '0.2rem' }}>
@@ -500,9 +501,9 @@ export function SaleForm() {
                     </Group>
                 </Group>
 
-                <Grid align="stretch" style={{ flex: 1, height: '92vh' }} gutter="xs">
-                    <Grid.Col span={showReceipt ? { base: 9 } : 12} style={{ display: 'flex', flexDirection: 'column', height: '92vh' }}>
-                        <Stack gap="md" style={{ height: '92vh' }}>
+                <Grid style={{ flex: 1, minHeight: 0, height: '100%' }} styles={{ inner: { height: '100%' } }} gutter="xs">
+                    <Grid.Col span={showReceipt ? { base: 5 } : 8} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <Stack gap="md" style={{ marginRight: '1rem', height: '100%' }}>
 
                             {!isViewMode && (
                                 <Group align="flex-end" style={{ flexShrink: 0 }}>
@@ -521,7 +522,10 @@ export function SaleForm() {
                                         searchable
                                         searchValue={searchTerm}
                                         value={selectedProductValue}
-                                        onSearchChange={setSearchTerm}
+                                        onSearchChange={(val) => {
+                                            setSearchTerm(val);
+                                            searchTermRef.current = val;
+                                        }}
                                         onChange={handleProductSelect}
                                         data={productOptions.map(p => ({ value: String(p.id), label: p.description }))}
                                         filter={({ options }) => options}
@@ -545,7 +549,7 @@ export function SaleForm() {
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
-                                        {saleItems.map((item) => (
+                                        {saleItems.sort((a, b) => a.order - b.order).reverse().map((item) => (
                                             <Table.Tr key={item.productId}>
                                                 <Table.Td>{item.product?.description}</Table.Td>
                                                 <Table.Td>{item.quantity}</Table.Td>
@@ -557,8 +561,81 @@ export function SaleForm() {
                                     </Table.Tbody>
                                 </Table>
                             </ScrollArea>
-
-                            <Stack gap="md" py="md" style={{ flexShrink: 0 }}>
+                        </Stack>
+                    </Grid.Col>
+                    <Grid.Col span={4} style={{ height: '100%'}}>
+                        {!isViewMode && (
+                            <Stack gap="md" style={{ display: 'flex', flexDirection: 'column', justifyContent:'space-between', height: '100%' }}>
+                                <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 1 }}>
+                                    <NumberInput
+                                        label="Desconto"
+                                        value={discount}
+                                        onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                                        onChange={(val) => setDiscount(Number(val) || 0)}
+                                        min={0}
+                                        decimalScale={2}
+                                        fixedDecimalScale={true}
+                                        prefix="R$ "
+                                        size="md"
+                                        ref={discountRef}
+                                        onKeyDown={handleDiscountKeyDown}
+                                    />
+                                    <NumberInput
+                                        label="Valor Pago"
+                                        value={amountPaid}
+                                        onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                                        onChange={(val) => setAmountPaid(Number(val) || 0)}
+                                        min={0}
+                                        decimalScale={2}
+                                        fixedDecimalScale={true}
+                                        prefix="R$ "
+                                        size="md"
+                                        ref={paidValueRef}
+                                        onKeyDown={handlePaidValueKeyDown}
+                                    />
+                                    <NumberInput
+                                        label="Troco"
+                                        value={amountPaid > 0 ? change : 0}
+                                        min={0}
+                                        decimalScale={2}
+                                        fixedDecimalScale={true}
+                                        prefix="R$ "
+                                        size="md"
+                                        readOnly
+                                        styles={{
+                                            input: {
+                                                cursor: 'default',
+                                                backgroundColor: 'var(--mantine-color-body)',
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '10px' }}>
+                                    <Text size="md" c="var(--mantine-color-red-filled)" fw={500} style={{ fontSize: '1.8rem', alignSelf: 'baseline', paddingTop: '1rem' }}>Total</Text>
+                                    <Paper
+                                        withBorder
+                                        style={{
+                                            background: 'var(--mantine-color-red-light)',
+                                            borderColor: 'var(--mantine-color-red-outline)',
+                                            padding: '0 1rem',
+                                            marginTop: '-1rem'
+                                        }}
+                                    >
+                                        <Text size="md" fw={700} style={{ fontSize: '3.5rem', width: '100%', textAlign: 'right' }} c="var(--mantine-color-red-filled)">{formatCurrency(totalSale)}</Text>
+                                    </Paper>
+                                    <Button
+                                        size="lg"
+                                        onClick={submitSale}
+                                        disabled={saleItems.length === 0}
+                                        ref={saveSaleRef}
+                                    >
+                                        Finalizar
+                                    </Button>
+                                </div>
+                            </Stack>
+                        )}
+                    </Grid.Col>
+                            {/* <Stack gap="md" py="md" style={{ flexShrink: 0 }}>
                                 <Group justify="flex-end">
                                     <Paper
                                         withBorder
@@ -621,13 +698,10 @@ export function SaleForm() {
                                         </Button>
                                     </Group>
                                 )}
-                            </Stack>
-                        </Stack>
-                    </Grid.Col>
-
+                            </Stack> */}
                     {showReceipt && (
                         <Grid.Col span={{ base: 3 }}>
-                            <Paper shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', height: '90vh', overflowY: 'auto' }}>
+                            <Paper shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', overflowY: 'auto' }}>
                                 <Stack gap="xs">
                                     <Text ta="center" fw={700}>*** CUPOM ***</Text>
                                     <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />

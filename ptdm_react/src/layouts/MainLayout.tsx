@@ -1,4 +1,4 @@
-import { AppShell, Burger, Group, NavLink, Stack, Title, Divider } from '@mantine/core';
+import { AppShell, Burger, NavLink, Stack, Divider } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Link, useNavigate } from 'react-router-dom';
 import { ReactNode } from 'react';
@@ -60,7 +60,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
             <NavLink label="Relatórios" leftSection={<BarChart3 size={18} />} >
               <NavLink
                 component={Link}
-                to="/reports/productsByCategory"
+                to="/reports/productsReport"
                 label="Produtos por categoria"
                 onClick={() => toggle()}
                 leftSection={<Package size={18} />}

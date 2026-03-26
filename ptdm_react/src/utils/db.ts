@@ -58,6 +58,7 @@ interface Sale extends Syncable {
   totalValue: number;
   paidValue: number;
   changeValue: number;
+  saleDate: string;
   saleProducts: {
     productId: string;
     quantity: number;

@@ -10,5 +10,6 @@ export interface ISaleDTO {
     overallDiscount: number;
     paymentFormId: string | number;
     createdAt: Date;
+    saleDate: string;
     saleProducts: ISaleProductDTO[];
 }

@@ -109,6 +109,7 @@ function normalizeSale(item: any): any {
     saleProducts: data.saleProducts || data.SaleProducts || [],
     updatedAt: data.updatedAt || data.UpdatedAt,
     createdAt: data.createdAt || data.CreatedAt,
+    saleDate: data.saleDate || data.SaleDate,
   };
 }
 
