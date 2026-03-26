@@ -13,6 +13,7 @@ public class Sale : BaseModel
     public Double ChangeValue { get; set; } = 0;
     public Double OverallDiscount { get; set; } = 0;
     public Guid PaymentFormId { get; set; }
+    public DateTime? SaleDate { get; set; } = DateTime.Now;
     public virtual PaymentForm? PaymentForm { get; set; }
     public virtual IEnumerable<SaleProduct> SaleProducts { get; set; }
 
@@ -29,6 +30,7 @@ public class Sale : BaseModel
             OverallDiscount = sale.OverallDiscount,
             PaymentFormId = sale.PaymentFormId,
             CreatedAt = sale.CreatedAt,
+            SaleDate = sale.SaleDate,
             SaleProducts = sale.SaleProducts.Select(x => (SaleProductDTO)x).ToList()
         };
     }

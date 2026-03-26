@@ -24,6 +24,7 @@ namespace ptdm.Data.Context.EntitiesConfiguration
             builder.Property(p => p.PaidValue).IsRequired().HasDefaultValue(0);
             builder.Property(p => p.ChangeValue).IsRequired().HasDefaultValue(0);
             builder.Property(p => p.OverallDiscount).IsRequired().HasDefaultValue(0);
+            builder.Property(p => p.SaleDate);
         }
     }
 }

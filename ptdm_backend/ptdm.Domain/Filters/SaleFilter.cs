@@ -10,6 +10,8 @@ namespace ptdm.Domain.Filters
         public Guid? CashierId { get; set; }
         public Guid? PaymentFormId { get; set; }
         [QueryOperator(Operator = WhereOperator.GreaterThanOrEqualWhenNullable)]
-        public DateTime? UpdatedAt { get; set; }
+        public DateTime? InitialSaleDate { get; set; }
+        [QueryOperator(Operator = WhereOperator.LessThanOrEqualWhenNullable)]
+        public DateTime? FinalSaleDate { get; set; }
     }
 }

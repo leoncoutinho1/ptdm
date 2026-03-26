@@ -11,5 +11,6 @@ public class SaleDTO
     public Double OverallDiscount { get; set; }
     public Guid PaymentFormId { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? SaleDate { get; set; }
     public IEnumerable<SaleProductDTO> SaleProducts { get; set; }
 }
