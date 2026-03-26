@@ -5,6 +5,7 @@ import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Package, ShoppingCart, BarChart3, Settings, CreditCard, Users, FolderTree, Monitor, LogOut } from 'lucide-react';
 import { ColorSchemeToggle } from '@/components/ColorSchemeToggle/ColorSchemeToggle';
+import { db } from '@/utils/db';
 
 export function MainLayout({ children }: { children: ReactNode }) {
   const [opened, { toggle }] = useDisclosure(false);
@@ -12,11 +13,11 @@ export function MainLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = () => {
     // Limpa todos os dados de autenticação
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('tenant');
     localStorage.removeItem('permissions');
-
+    db.auth.clear();
     // Redireciona para a página de login
     navigate('/login');
   };
