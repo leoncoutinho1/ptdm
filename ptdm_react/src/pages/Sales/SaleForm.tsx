@@ -269,6 +269,7 @@ export function SaleForm() {
         setSaleItems(saleItems.filter(item => item.productId !== productId));
         setAmountPaid(0);
         quantityRef.current?.focus();
+        setQuantity(0);
         setTimeout(() => quantityRef.current?.select(), 100);
     };
 
@@ -565,8 +566,8 @@ export function SaleForm() {
                         </Stack>
                     </Grid.Col>
                     <Grid.Col span={4} style={{ height: '100%'}}>
-                        {!isViewMode && (
-                            <Stack gap="md" style={{ display: 'flex', flexDirection: 'column', justifyContent:'space-between', height: '100%' }}>
+                        <Stack gap="md" style={{ display: 'flex', flexDirection: 'column', justifyContent:'space-between', height: '100%' }}>
+                            {!isViewMode && (
                                 <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 1 }}>
                                     <NumberInput
                                         label="Desconto"
@@ -611,19 +612,21 @@ export function SaleForm() {
                                         }}
                                     />
                                 </div>
-                                <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '10px' }}>
-                                    <Text size="md" c="var(--mantine-color-red-filled)" fw={500} style={{ fontSize: '1.8rem', alignSelf: 'baseline', paddingTop: '1rem' }}>Total</Text>
-                                    <Paper
-                                        withBorder
-                                        style={{
-                                            background: 'var(--mantine-color-red-light)',
-                                            borderColor: 'var(--mantine-color-red-outline)',
-                                            padding: '0 1rem',
-                                            marginTop: '-1rem'
-                                        }}
-                                    >
-                                        <Text size="md" fw={700} style={{ fontSize: '3.5rem', width: '100%', textAlign: 'right' }} c="var(--mantine-color-red-filled)">{formatCurrency(totalSale)}</Text>
-                                    </Paper>
+                            )}
+                            <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '10px' }}>
+                                <Text size="md" c="var(--mantine-color-red-filled)" fw={500} style={{ fontSize: '1.8rem', alignSelf: 'baseline', paddingTop: '1rem' }}>Total</Text>
+                                <Paper
+                                    withBorder
+                                    style={{
+                                        background: 'var(--mantine-color-red-light)',
+                                        borderColor: 'var(--mantine-color-red-outline)',
+                                        padding: '0 1rem',
+                                        marginTop: '-1rem'
+                                    }}
+                                >
+                                    <Text size="md" fw={700} style={{ fontSize: '3.5rem', width: '100%', textAlign: 'right' }} c="var(--mantine-color-red-filled)">{formatCurrency(totalSale)}</Text>
+                                </Paper>
+                                {!isViewMode && (
                                     <Button
                                         size="lg"
                                         onClick={submitSale}
@@ -632,9 +635,10 @@ export function SaleForm() {
                                     >
                                         Finalizar
                                     </Button>
-                                </div>
-                            </Stack>
-                        )}
+                                )}
+                            </div>
+                        </Stack>
+                        
                     </Grid.Col>
                             {/* <Stack gap="md" py="md" style={{ flexShrink: 0 }}>
                                 <Group justify="flex-end">
