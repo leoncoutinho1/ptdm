@@ -96,7 +96,7 @@ export function SaleForm() {
                         });
 
                         if (Array.isArray(sale.saleProducts)) {
-                            const items = await Promise.all(sale.saleProducts.map(async (item: any) => {
+                            const items = await Promise.all(sale.saleProducts.map(async (item: any, index: number) => {
                                 const prod = await db.products.get(item.productId);
                                 return {
                                     productId: item.productId,
@@ -104,6 +104,7 @@ export function SaleForm() {
                                     unitPrice: item.unitPrice,
                                     quantity: item.quantity,
                                     totalPrice: item.quantity * item.unitPrice,
+                                    order: index
                                 };
                             }));
                             setSaleItems(items);
