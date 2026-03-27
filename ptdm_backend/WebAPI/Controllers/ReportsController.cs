@@ -61,4 +61,47 @@ public class ReportsController : ControllerBase
             return BadRequest(new { error = "Erro ao obter dados do relatório", message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Gera relatório de vendas em PDF, sumarizado por dia e agrupado por categoria
+    /// </summary>
+    /// <param name="request">Filtros: data inicial, data final, ids de categorias (opcionais)</param>
+    /// <returns>Arquivo PDF do relatório de vendas</returns>
+    [HttpPost("sales")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult GenerateSaleReport([FromBody] SaleReportRequestDTO request)
+    {
+        try
+        {
+            var pdfBytes = _reportService.GenerateSaleReport(request);
+            var fileName = $"relatorio_vendas_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Erro ao gerar relatório de vendas", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtém dados do relatório de vendas em formato JSON, sumarizado por dia e agrupado por categoria
+    /// </summary>
+    /// <param name="request">Filtros: data inicial, data final, ids de categorias (opcionais)</param>
+    /// <returns>Dados estruturados do relatório de vendas</returns>
+    [HttpPost("sales/data")]
+    [ProducesResponseType(typeof(SaleReportDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult<SaleReportDTO> GetSaleReportData([FromBody] SaleReportRequestDTO request)
+    {
+        try
+        {
+            var reportData = _reportService.GetSaleReportData(request);
+            return Ok(reportData);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Erro ao obter dados do relatório de vendas", message = ex.Message });
+        }
+    }
 }

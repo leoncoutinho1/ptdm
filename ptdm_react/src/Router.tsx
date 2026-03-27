@@ -17,6 +17,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SaleForm } from './pages/Sales/SaleForm';
 import { SaleList } from './pages/Sales/SaleList';
 import { ProductsReport } from './pages/Reports/Products/ProductsReport';
+import { SalesReport } from './pages/Reports/Sales/SalesReport';
 
 // Redirect root to login if not handled by router
 if (window.location.pathname === '/stock' || window.location.pathname === '/stock/') {
@@ -41,6 +42,7 @@ const router = createBrowserRouter([
 
       // Reports routes
       { path: '/reports/ProductsReport', element: <ProductsReport /> },
+      { path: '/reports/SalesReport', element: <SalesReport /> },
 
       // Settings routes
       { path: '/settings', element: <Settings /> },

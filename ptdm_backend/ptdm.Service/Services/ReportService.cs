@@ -167,6 +167,264 @@ public class ReportService : IReportService
         return document.GeneratePdf();
     }
 
+    public SaleReportDTO GetSaleReportData(SaleReportRequestDTO request)
+    {
+        // Normaliza a data final para incluir o dia inteiro
+        var finalDate = request.FinalDate.HasValue
+            ? request.FinalDate.Value.Date.AddDays(1).AddTicks(-1)
+            : (DateTime?)null;
+
+        var query = _context.Sales
+            .Include(s => s.SaleProducts)
+                .ThenInclude(sp => sp.Product)
+                    .ThenInclude(p => p!.Category)
+            .AsNoTracking()
+            .Where(s => s.SaleDate.HasValue);
+
+        // Filtro de data inicial
+        if (request.InitialDate.HasValue)
+            query = query.Where(s => s.SaleDate >= request.InitialDate.Value.Date);
+
+        // Filtro de data final
+        if (finalDate.HasValue)
+            query = query.Where(s => s.SaleDate <= finalDate.Value);
+
+        // Filtro de categoria: manter apenas vendas que tenham ao menos um produto na(s) categoria(s) selecionada(s)
+        if (request.CategoryIds != null && request.CategoryIds.Any())
+        {
+            query = query.Where(s => s.SaleProducts.Any(sp =>
+                sp.Product != null &&
+                sp.Product.CategoryId.HasValue &&
+                request.CategoryIds.Contains(sp.Product.CategoryId.Value)));
+        }
+
+        var sales = query.ToList();
+
+        // Agrupar por dia
+        var dayGroups = sales
+            .GroupBy(s => s.SaleDate!.Value.Date)
+            .OrderBy(g => g.Key);
+
+        var days = new List<SaleReportDayDTO>();
+
+        foreach (var dayGroup in dayGroups)
+        {
+            // Coletar todos os SaleProducts do dia, filtrando por categoria se necessário
+            var saleProducts = dayGroup
+                .SelectMany(s => s.SaleProducts)
+                .Where(sp => sp.Product != null)
+                .Where(sp =>
+                    request.CategoryIds == null ||
+                    !request.CategoryIds.Any() ||
+                    (sp.Product!.CategoryId.HasValue && request.CategoryIds.Contains(sp.Product.CategoryId.Value)))
+                .ToList();
+
+            // Agrupar por categoria
+            var categoryGroups = saleProducts
+                .GroupBy(sp => sp.Product!.Category?.Description ?? "Sem Categoria")
+                .OrderBy(g => g.Key);
+
+            var categories = categoryGroups.Select(catGroup =>
+            {
+                // Agrupar por produto dentro da categoria (apenas no modo detalhado)
+                var productItems = request.Detailed
+                    ? catGroup
+                        .GroupBy(sp => sp.Product!.Description)
+                        .Select(pg => new SaleReportProductItemDTO
+                        {
+                            ProductDescription = pg.Key,
+                            CategoryDescription = catGroup.Key,
+                            TotalQuantity = pg.Sum(x => x.Quantity),
+                            TotalValue = pg.Sum(x => x.Quantity * x.UnitPrice),
+                            TotalDiscount = pg.Sum(x => x.Discount)
+                        })
+                        .OrderBy(p => p.ProductDescription)
+                        .ToList()
+                    : new List<SaleReportProductItemDTO>();
+
+                var catTotalValue    = catGroup.Sum(x => x.Quantity * x.UnitPrice);
+                var catTotalDiscount = catGroup.Sum(x => x.Discount);
+                var catTotalQty      = catGroup.Sum(x => x.Quantity);
+
+                return new SaleReportDayCategoryDTO
+                {
+                    CategoryDescription  = catGroup.Key,
+                    Products             = productItems,
+                    CategoryTotalQuantity = catTotalQty,
+                    CategoryTotalValue   = catTotalValue,
+                    CategoryTotalDiscount = catTotalDiscount
+                };
+            }).ToList();
+
+            days.Add(new SaleReportDayDTO
+            {
+                Date = dayGroup.Key,
+                Categories = categories,
+                DayTotalValue = categories.Sum(c => c.CategoryTotalValue),
+                DayTotalDiscount = categories.Sum(c => c.CategoryTotalDiscount)
+            });
+        }
+
+        return new SaleReportDTO
+        {
+            Days = days,
+            GrandTotalValue = days.Sum(d => d.DayTotalValue),
+            GrandTotalDiscount = days.Sum(d => d.DayTotalDiscount),
+            GeneratedAt = DateTime.Now,
+            InitialDate = request.InitialDate,
+            FinalDate = request.FinalDate,
+            Detailed = request.Detailed
+        };
+    }
+
+    public byte[] GenerateSaleReport(SaleReportRequestDTO request)
+    {
+        var reportData = GetSaleReportData(request);
+
+        var periodLabel = (reportData.InitialDate.HasValue || reportData.FinalDate.HasValue)
+            ? $"{reportData.InitialDate?.ToString("dd/MM/yyyy") ?? "?"} até {reportData.FinalDate?.ToString("dd/MM/yyyy") ?? "?"}"
+            : "Período completo";
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(2, Unit.Centimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10));
+
+                page.Header()
+                    .Column(col =>
+                    {
+                        col.Item().Text("Relatório de Vendas")
+                            .SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
+                        col.Item().Text($"Período: {periodLabel}")
+                            .FontSize(10).FontColor(Colors.Grey.Darken2);
+                    });
+
+                page.Content()
+                    .PaddingVertical(1, Unit.Centimetre)
+                    .Column(column =>
+                    {
+                        column.Spacing(10);
+
+                        column.Item().Row(row =>
+                        {
+                            row.RelativeItem().Text($"Data de Geração: {reportData.GeneratedAt:dd/MM/yyyy HH:mm}");
+                        });
+
+                        column.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+                        foreach (var day in reportData.Days)
+                        {
+                            // Cabeçalho do dia
+                            column.Item().PaddingTop(10)
+                                .Background(Colors.Blue.Lighten4)
+                                .Padding(5)
+                                .Text($"📅  {day.Date:dd/MM/yyyy (dddd)}")
+                                .SemiBold().FontSize(13).FontColor(Colors.Blue.Darken3);
+
+                            foreach (var category in day.Categories)
+                            {
+                                // Título da categoria
+                                column.Item().PaddingTop(6).PaddingLeft(10)
+                                    .Text(category.CategoryDescription)
+                                    .SemiBold().FontSize(11).FontColor(Colors.Blue.Darken2);
+
+                                if (request.Detailed)
+                                {
+                                    // Tabela de produtos (modo detalhado)
+                                    column.Item().PaddingLeft(10).Table(table =>
+                                    {
+                                        table.ColumnsDefinition(columns =>
+                                        {
+                                            columns.RelativeColumn(5); // Produto
+                                            columns.RelativeColumn(2); // Qtd
+                                            columns.RelativeColumn(2.5f); // Valor
+                                            columns.RelativeColumn(2.5f); // Desconto
+                                        });
+
+                                        table.Header(header =>
+                                        {
+                                            header.Cell().Element(CellStyle).Text("Produto").SemiBold();
+                                            header.Cell().Element(CellStyle).AlignRight().Text("Qtd").SemiBold();
+                                            header.Cell().Element(CellStyle).AlignRight().Text("Total (R$)").SemiBold();
+                                            header.Cell().Element(CellStyle).AlignRight().Text("Desconto (R$)").SemiBold();
+                                        });
+
+                                        foreach (var product in category.Products)
+                                        {
+                                            table.Cell().Element(CellStyle).Text(product.ProductDescription);
+                                            table.Cell().Element(CellStyle).AlignRight().Text($"{product.TotalQuantity:N2}");
+                                            table.Cell().Element(CellStyle).AlignRight().Text($"R$ {product.TotalValue:N2}");
+                                            table.Cell().Element(CellStyle).AlignRight().Text($"R$ {product.TotalDiscount:N2}");
+                                        }
+                                    });
+
+                                    // Subtotal da categoria
+                                    column.Item().PaddingLeft(10).AlignRight()
+                                        .Text($"Subtotal {category.CategoryDescription}: R$ {category.CategoryTotalValue:N2} | Desconto: R$ {category.CategoryTotalDiscount:N2}")
+                                        .Italic().FontSize(9).FontColor(Colors.Grey.Darken2);
+                                }
+                                else
+                                {
+                                    // Modo sumarizado: apenas totais da categoria em linha única
+                                    column.Item().PaddingLeft(10).Table(table =>
+                                    {
+                                        table.ColumnsDefinition(columns =>
+                                        {
+                                            columns.RelativeColumn(5); // Categoria
+                                            columns.RelativeColumn(2); // Qtd
+                                            columns.RelativeColumn(2.5f); // Valor
+                                            columns.RelativeColumn(2.5f); // Desconto
+                                        });
+
+                                        table.Header(header =>
+                                        {
+                                            header.Cell().Element(CellStyle).Text("Categoria").SemiBold();
+                                            header.Cell().Element(CellStyle).AlignRight().Text("Qtd").SemiBold();
+                                            header.Cell().Element(CellStyle).AlignRight().Text("Total (R$)").SemiBold();
+                                            header.Cell().Element(CellStyle).AlignRight().Text("Desconto (R$)").SemiBold();
+                                        });
+
+                                        table.Cell().Element(CellStyle).Text(category.CategoryDescription);
+                                        table.Cell().Element(CellStyle).AlignRight().Text($"{category.CategoryTotalQuantity:N2}");
+                                        table.Cell().Element(CellStyle).AlignRight().Text($"R$ {category.CategoryTotalValue:N2}");
+                                        table.Cell().Element(CellStyle).AlignRight().Text($"R$ {category.CategoryTotalDiscount:N2}");
+                                    });
+                                }
+                            }
+
+                            // Total do dia
+                            column.Item().PaddingTop(4).AlignRight()
+                                .Text($"Total do dia: R$ {day.DayTotalValue:N2} | Desconto: R$ {day.DayTotalDiscount:N2}")
+                                .SemiBold().FontSize(11).FontColor(Colors.Blue.Darken3);
+
+                            column.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+                        }
+
+                        // Total geral
+                        column.Item().PaddingTop(10).AlignRight()
+                            .Text($"TOTAL GERAL: R$ {reportData.GrandTotalValue:N2} | Desconto Total: R$ {reportData.GrandTotalDiscount:N2}")
+                            .SemiBold().FontSize(14).FontColor(Colors.Blue.Darken2);
+                    });
+
+                page.Footer()
+                    .AlignCenter()
+                    .Text(x =>
+                    {
+                        x.Span("Página ");
+                        x.CurrentPageNumber();
+                        x.Span(" de ");
+                        x.TotalPages();
+                    });
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
     private static IContainer CellStyle(IContainer container)
     {
         return container

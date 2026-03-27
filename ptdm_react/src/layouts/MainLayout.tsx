@@ -66,6 +66,13 @@ export function MainLayout({ children }: { children: ReactNode }) {
                 onClick={() => toggle()}
                 leftSection={<Package size={18} />}
               />
+              <NavLink
+                component={Link}
+                to="/reports/SalesReport"
+                label="Vendas por dia/categoria"
+                onClick={() => toggle()}
+                leftSection={<ShoppingCart size={16} />}
+              />
             </NavLink>
             <NavLink label="Configurações" leftSection={<Settings size={18} />}>
               <NavLink

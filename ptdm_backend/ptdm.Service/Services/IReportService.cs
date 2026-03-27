@@ -17,4 +17,18 @@ public interface IReportService
     /// <param name="request">Filtros do relatório</param>
     /// <returns>Dados estruturados do relatório</returns>
     ProductReportDTO GetProductReportData(ProductReportRequestDTO request);
+
+    /// <summary>
+    /// Obtém dados do relatório de vendas sem gerar PDF
+    /// </summary>
+    /// <param name="request">Filtros do relatório (datas e categorias)</param>
+    /// <returns>Dados estruturados do relatório de vendas</returns>
+    SaleReportDTO GetSaleReportData(SaleReportRequestDTO request);
+
+    /// <summary>
+    /// Gera relatório de vendas em PDF
+    /// </summary>
+    /// <param name="request">Filtros do relatório (datas e categorias)</param>
+    /// <returns>Bytes do arquivo PDF</returns>
+    byte[] GenerateSaleReport(SaleReportRequestDTO request);
 }

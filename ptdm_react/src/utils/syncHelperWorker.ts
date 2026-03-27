@@ -4,16 +4,22 @@ import { db } from './db';
 
 // Helper to unwrap .NET Result responses
 function unwrapData(item: any): any {
-  if (!item) return null;
+  if (!item) {
+    return null;
+  }
   const data = item.data !== undefined ? item.data : item.value !== undefined ? item.value : item;
-  if (!data || typeof data !== 'object') return null;
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
   return data;
 }
 
 // Normalize functions for each entity type
 function normalizeCategory(item: any): any {
   const data = unwrapData(item);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     id: String(data.id || data.Id || data.ID || ''),
@@ -25,7 +31,9 @@ function normalizeCategory(item: any): any {
 
 function normalizeCashier(item: any): any {
   const data = unwrapData(item);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     id: String(data.id || data.Id || data.ID || ''),
@@ -37,7 +45,9 @@ function normalizeCashier(item: any): any {
 
 function normalizeCheckout(item: any): any {
   const data = unwrapData(item);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     id: String(data.id || data.Id || data.ID || ''),
@@ -49,7 +59,9 @@ function normalizeCheckout(item: any): any {
 
 function normalizePaymentForm(item: any): any {
   const data = unwrapData(item);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     id: String(data.id || data.Id || data.ID || ''),
@@ -61,7 +73,9 @@ function normalizePaymentForm(item: any): any {
 
 function normalizeProduct(item: any): any {
   const data = unwrapData(item);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     id: String(data.id || data.Id || data.ID || ''),
@@ -96,7 +110,9 @@ function normalizeProduct(item: any): any {
 
 function normalizeSale(item: any): any {
   const data = unwrapData(item);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
 
   return {
     id: String(data.id || data.Id || data.ID || ''),
@@ -267,8 +283,17 @@ export async function genericPull<
       })
       .filter((item): item is any => item !== null && !!item.id && item.id !== '0');
 
+    if (itemsToSave.length === 0) {
+      return;
+    }
+
+    if (endpoint !== 'product') {
+      await table.bulkPut(itemsToSave as any[]);
+      console.log(`Synced ${itemsToSave.length} ${endpoint} from server.`);
+    }
+
     // Validação especial para produtos: verificar códigos de barras duplicados
-    if (endpoint === 'product' && itemsToSave.length > 0) {
+    if (endpoint === 'product') {
       const validatedItems: any[] = [];
 
       for (const item of itemsToSave) {
@@ -330,19 +355,15 @@ export async function genericPull<
           `Synced ${validatedItems.length} ${endpoint} from server (${itemsToSave.length - validatedItems.length} skipped due to duplicate barcodes).`
         );
       }
-    } else {
-      // Para outros endpoints, usar o comportamento padrão
-      if (itemsToSave.length > 0) {
-        await table.bulkPut(itemsToSave as any[]);
-        console.log(`Synced ${itemsToSave.length} ${endpoint} from server.`);
-      }
     }
   }
 }
 
 // Worker-safe sync function (no UI notifications)
 export async function syncAllWorker() {
-  if (!(await checkConnectivity())) return;
+  if (!(await checkConnectivity())) {
+    return;
+  }
 
   // Get last global sync time
   const syncLog = await db.syncMeta.get('global');

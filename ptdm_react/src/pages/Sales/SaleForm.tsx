@@ -39,14 +39,12 @@ export function SaleForm() {
     const [productOptions, setProductOptions] = useState<Product[]>([]);
     const [quantity, setQuantity] = useState(0);
     const [amountPaid, setAmountPaid] = useState(0);
-    const [isSearching, setIsSearching] = useState(false);
     const [selectedProductValue, setSelectedProductValue] = useState<string | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [discount, setDiscount] = useState(0);
-
     const searchIdRef = useRef(0);
     const searchTermRef = useRef('');
-
+    
     const { openConfirmModal } = useConfirmAction();
 
     const form = useForm({
@@ -120,15 +118,15 @@ export function SaleForm() {
     }, [id]);
 
     useEffect(() => {
-        if (form.values.paymentFormId) localStorage.setItem('saleForm_paymentFormId', form.values.paymentFormId);
+        if (form.values.paymentFormId) { localStorage.setItem('saleForm_paymentFormId', form.values.paymentFormId) };
     }, [form.values.paymentFormId]);
 
     useEffect(() => {
-        if (form.values.cashierId) localStorage.setItem('saleForm_cashierId', form.values.cashierId);
+        if (form.values.cashierId) { localStorage.setItem('saleForm_cashierId', form.values.cashierId) };
     }, [form.values.cashierId]);
 
     useEffect(() => {
-        if (form.values.checkoutId) localStorage.setItem('saleForm_checkoutId', form.values.checkoutId);
+        if (form.values.checkoutId) { localStorage.setItem('saleForm_checkoutId', form.values.checkoutId) };
     }, [form.values.checkoutId]);
 
     const searchProducts = async () => {
@@ -139,7 +137,7 @@ export function SaleForm() {
         }
 
         const currentSearchId = ++searchIdRef.current;
-        setIsSearching(true);
+        
         try {
             const lowerSearch = currentTerm.toLowerCase();
             const foundById = await db.products
@@ -147,7 +145,7 @@ export function SaleForm() {
                     (Array.isArray(p.barcodes) && p.barcodes.some(b => b.toLowerCase() === lowerSearch))
                 ).toArray();
 
-            if (currentSearchId !== searchIdRef.current) return;
+            if (currentSearchId !== searchIdRef.current) { return };
 
             if (foundById.length === 1) {
                 addProductToSale(foundById[0]);
@@ -157,16 +155,12 @@ export function SaleForm() {
                         p.description.toLowerCase().includes(lowerSearch)
                     ).toArray();
                 
-                if (currentSearchId !== searchIdRef.current) return;
+                if (currentSearchId !== searchIdRef.current) { return };
                 setProductOptions(foundByDescription);
             }
         } catch (err) {
-            if (currentSearchId !== searchIdRef.current) return;
+            if (currentSearchId !== searchIdRef.current) { return };
             notifications.show({ color: 'red', title: 'Erro ao buscar produto', message: String(err) });
-        } finally {
-            if (currentSearchId === searchIdRef.current) {
-                setIsSearching(false);
-            }
         }
     };
 
@@ -200,9 +194,18 @@ export function SaleForm() {
     const handleDiscountKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
+            
             paidValueRef.current?.focus();
         }
     };
+
+    const onBlurDiscount = () => {
+        const currentItemsTotal = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        if (discount > currentItemsTotal) {
+            notifications.show({ color: 'red', title: 'Atenção', message: 'O valor do desconto não pode ser maior que o valor total da venda!' });
+            setDiscount(0);
+        }
+    }
 
     const handlePaidValueKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
@@ -210,6 +213,7 @@ export function SaleForm() {
             if (amountPaid === 0) {
                 setAmountPaid(totalSale)
             }
+            
             saveSaleRef.current?.focus();
         }
     };
@@ -222,8 +226,8 @@ export function SaleForm() {
     };
 
     const addProductToSale = (product?: Product) => {
-        let item = product;
-        let itemId = product?.id;
+        const item = product;
+        const itemId = product?.id;
 
         if (!item) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'Selecione um produto primeiro' });
@@ -260,10 +264,9 @@ export function SaleForm() {
         setProductOptions([]);
         setSelectedProductValue(null);
         setQuantity(0);
-        setIsSearching(false);
         quantityRef.current?.focus();
         setTimeout(() => quantityRef.current?.select(), 100);
-    };
+    };  
 
     const removeItem = (productId: string) => {
         setSaleItems(saleItems.filter(item => item.productId !== productId));
@@ -273,23 +276,25 @@ export function SaleForm() {
         setTimeout(() => quantityRef.current?.select(), 100);
     };
 
-    const totalSale = saleItems.reduce((sum, item) => sum + item.totalPrice, 0) - discount;
+    const itemsTotal = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const totalSale = Math.max(0, itemsTotal - discount);
     const change = amountPaid - totalSale;
 
     const submitSale = async () => {
         const validation = form.validate();
-        if (validation.hasErrors) return;
+        if (validation.hasErrors) { return };
 
         if (saleItems.length === 0) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'Adicione pelo menos um produto' });
             return;
         }
-
-        // if (amountPaid > 0 && amountPaid < totalSale) {
-        //     notifications.show({ color: 'yellow', title: 'Atenção', message: 'Valor pago insuficiente' });
-        //     return;
-        // }
-
+       
+        if (discount > totalSale) {
+            notifications.show({ color: 'red', title: 'Atenção', message: 'O valor do desconto não pode ser maior que o valor total da venda!' });
+            setDiscount(0);
+            return;
+        }
+        
         const saleData = {
             paymentFormId: form.values.paymentFormId,
             cashierId: form.values.cashierId,
@@ -317,7 +322,9 @@ export function SaleForm() {
         try {
             await db.sales.put(localSale);
             notifications.show({ color: 'green', title: 'Sucesso', message: 'Venda registrada!' });
-            showPrintConfirmation();
+            setTimeout(() => {
+                showPrintConfirmation();
+            }, 500);            
         } catch (err) {
             notifications.show({ color: 'red', title: 'Erro', message: 'Falha ao salvar venda.' });
         }
@@ -340,7 +347,7 @@ export function SaleForm() {
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);
         return () => {
-          document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keydown', handleKeyDown);
         };
     }, [handleKeyDown]);
 
@@ -364,7 +371,6 @@ export function SaleForm() {
         searchTermRef.current = '';
         setProductOptions([]);
         setQuantity(0);
-        setIsSearching(false);
         setDiscount(0);
         if (isViewMode) {
             navigate('/sales');
@@ -444,7 +450,6 @@ export function SaleForm() {
                 title: 'Sucesso',
                 message: 'Cupom enviado para impressora!'
             });
-            return;
         } else {
             throw new Error('Falha ao enviar para impressora via API');
         }
@@ -547,7 +552,7 @@ export function SaleForm() {
                                             <Table.Th w={60}>Qtd</Table.Th>
                                             <Table.Th w={100}>Unit.</Table.Th>
                                             <Table.Th w={100}>Total</Table.Th>
-                                            {!isViewMode && <Table.Th w={50}></Table.Th>}
+                                            {!isViewMode && <Table.Th w={50}/>}
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
@@ -573,10 +578,14 @@ export function SaleForm() {
                                         label="Desconto"
                                         value={discount}
                                         onFocus={(e) => setTimeout(() => e.target.select(), 100)}
-                                        onChange={(val) => setDiscount(Number(val) || 0)}
+                                        onChange={(val) => {
+                                            const newDiscount = Number(val) || 0;
+                                            setDiscount(newDiscount);
+                                        }}
+                                        onBlur={onBlurDiscount}
                                         min={0}
                                         decimalScale={2}
-                                        fixedDecimalScale={true}
+                                        fixedDecimalScale
                                         prefix="R$ "
                                         size="md"
                                         ref={discountRef}
@@ -589,7 +598,7 @@ export function SaleForm() {
                                         onChange={(val) => setAmountPaid(Number(val) || 0)}
                                         min={0}
                                         decimalScale={2}
-                                        fixedDecimalScale={true}
+                                        fixedDecimalScale
                                         prefix="R$ "
                                         size="md"
                                         ref={paidValueRef}
@@ -600,7 +609,7 @@ export function SaleForm() {
                                         value={amountPaid > 0 ? change : 0}
                                         min={0}
                                         decimalScale={2}
-                                        fixedDecimalScale={true}
+                                        fixedDecimalScale
                                         prefix="R$ "
                                         size="md"
                                         readOnly
