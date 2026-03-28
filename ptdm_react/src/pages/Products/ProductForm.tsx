@@ -432,7 +432,7 @@ export function ProductForm() {
               <Grid.Col span={2}>
                 <Select
                   label="Unidade"
-                  placeholder="UN"
+                  placeholder="Selecione..."
                   {...form.getInputProps('unit')}
                   data={[
                     { value: 'UN', label: 'UN' },

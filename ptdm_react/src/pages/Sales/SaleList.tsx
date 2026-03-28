@@ -24,8 +24,8 @@ export function SaleList() {
 
             // Sort by updatedAt or createdAt (desc)
             allItems.sort((a, b) => {
-                const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-                const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                const dateA = new Date(a.saleDate || a.createdAt || 0).getTime();
+                const dateB = new Date(b.saleDate || b.createdAt || 0).getTime();
                 return dateB - dateA;
             });
 

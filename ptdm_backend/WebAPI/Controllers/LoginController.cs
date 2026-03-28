@@ -126,15 +126,15 @@ public class LoginController : ControllerBase
         }
 
         var newAccessToken = CreateToken(principal.Claims.ToList());
-        var newRefreshToken = GenerateRefreshToken();
-
-        user.RefreshToken = newRefreshToken;
-        await _userManager.UpdateAsync(user);
+        
+        // Contorno: Reutilizamos o mesmo refresh token para não invalidar a sessão
+        // de outros navegadores do mesmo usuário e evitamos chamar UpdateAsync.
+        var currentRefreshToken = user.RefreshToken;
 
         return Ok(new TokenDTO()
         {
             AccessToken = new JwtSecurityTokenHandler().WriteToken(newAccessToken),
-            RefreshToken = newRefreshToken
+            RefreshToken = currentRefreshToken
         });
     }
 
@@ -148,18 +148,22 @@ public class LoginController : ControllerBase
         };
 
         var token = CreateToken(claims);
-        var refreshToken = GenerateRefreshToken();
 
         _ = int.TryParse(_configuration["JWT:RefreshExpiryInMinutes"], out int refreshExpiryMinutes);
         
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddMinutes(refreshExpiryMinutes > 0 ? refreshExpiryMinutes : 2880); 
-        
-        await _userManager.UpdateAsync(user);
+        // Contorno: Apenas gera e atualiza o refresh token no banco se ele não existir ou já estiver expirado.
+        // Assim, novos logins em outros navegadores reaproveitam o token válido existente.
+        if (string.IsNullOrEmpty(user.RefreshToken) || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        {
+            user.RefreshToken = GenerateRefreshToken();
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddMinutes(refreshExpiryMinutes > 0 ? refreshExpiryMinutes : 2880); 
+            
+            await _userManager.UpdateAsync(user);
+        }
 
         return new TokenDTO {
             AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-            RefreshToken = refreshToken
+            RefreshToken = user.RefreshToken!
         };
     }
 

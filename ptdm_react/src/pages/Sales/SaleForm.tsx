@@ -172,6 +172,14 @@ export function SaleForm() {
         }
     }, [isViewMode]);
 
+    const onBlurQuantity = () => {
+        if (quantity > 1000000) {
+            setQuantity(0);
+            notifications.show({ color: 'red', title: 'Atenção', message: 'A quantidade informada é inválida!' });
+            quantityRef.current?.focus();
+        }
+    }
+
     const handleQuantityKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -522,6 +530,7 @@ export function SaleForm() {
                                         style={{ width: 80 }} 
                                         ref={quantityRef} 
                                         onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                                        onBlur={onBlurQuantity}
                                         onKeyDown={handleQuantityKeyDown} />
                                     <Select
                                         label="Buscar Produto"
