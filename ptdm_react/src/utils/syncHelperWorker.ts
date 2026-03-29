@@ -269,12 +269,12 @@ export async function genericPull<
   }
 
   const finalEndpoint = listEndpoint || `${endpoint}/list${endpoint}`;
-  console.log(endpoint);
+
   const url =
     endpoint === 'sale'
       ? `${finalEndpoint}?Limit=100&Sort=-SaleDate`
       : `${finalEndpoint}?UpdatedAt=${encodeURIComponent(lastSync)}&Limit=100`;
-  console.log(url);
+
   const response = await apiRequest<{ data: T[]; totalCount: number }>(url);
 
   if (response.data && response.data.length > 0) {

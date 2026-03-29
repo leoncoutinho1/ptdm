@@ -1,4 +1,4 @@
-﻿using AspNetCore.IQueryable.Extensions.Filter;
+using AspNetCore.IQueryable.Extensions.Filter;
 using AspNetCore.IQueryable.Extensions.Pagination;
 using AspNetCore.IQueryable.Extensions.Sort;
 using ErrorOr;
@@ -25,6 +25,7 @@ namespace ptdm.Service.Services
         ErrorOr<SaleDTO> Delete(Guid id);
         ErrorOr<SaleDTO> Get(Guid id);
         ResultList<SaleDTO> ListSale(SaleFilter filters);
+        IEnumerable<SalesTotalsDTO> GetSalesTotals();
     }
 
     public class SaleService : ISaleService
@@ -209,6 +210,33 @@ namespace ptdm.Service.Services
             var count = sales.Count();
 
             return new ResultList<SaleDTO>(sales.Paginate(filters).Select(x => (SaleDTO)x).ToList(), count);
+        }
+
+        public IEnumerable<SalesTotalsDTO> GetSalesTotals()
+        {
+            var now = DateTime.Now;
+            var todayStart = now.Date;
+            var weekStart = todayStart.AddDays(-7);
+            var monthStart = todayStart.AddMonths(-1);
+
+            var todaySales = _context.Sales
+                .Where(x => x.SaleDate != null && x.SaleDate >= todayStart && x.SaleDate <= now)
+                .Sum(x => (double?)x.TotalValue) ?? 0;
+
+            var weekSales = _context.Sales
+                .Where(x => x.SaleDate != null && x.SaleDate >= weekStart && x.SaleDate <= now)
+                .Sum(x => (double?)x.TotalValue) ?? 0;
+
+            var monthSales = _context.Sales
+                .Where(x => x.SaleDate != null && x.SaleDate >= monthStart && x.SaleDate <= now)
+                .Sum(x => (double?)x.TotalValue) ?? 0;
+
+            return new List<SalesTotalsDTO>
+            {
+                new SalesTotalsDTO { Period = "Hoje", StartDate = todayStart, EndDate = now, TotalValue = todaySales },
+                new SalesTotalsDTO { Period = "Última Semana", StartDate = weekStart, EndDate = now, TotalValue = weekSales },
+                new SalesTotalsDTO { Period = "Último Mês", StartDate = monthStart, EndDate = now, TotalValue = monthSales }
+            };
         }
     }
 }

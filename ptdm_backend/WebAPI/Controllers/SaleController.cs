@@ -59,4 +59,11 @@ public class SaleController : ControllerBase
             ? BadRequest(result)
             : Ok(result);
     }
+
+    [HttpGet("GetSalesTotals")]
+    public ActionResult<IEnumerable<SalesTotalsDTO>> GetSalesTotals()
+    {
+        var totals = _service.GetSalesTotals();
+        return Ok(totals);
+    }
 }
