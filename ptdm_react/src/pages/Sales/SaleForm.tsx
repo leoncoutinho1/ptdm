@@ -411,6 +411,8 @@ export function SaleForm() {
 
         const finalEncoded = result.rule()
             .align('right')
+            .text(`DESCONTO: ${formatCurrency(discount)}`)
+            .newline()
             .text(`TOTAL: ${formatCurrency(totalSale)}`)
             .newline()
             .text(`PAGO: ${formatCurrency(amountPaid)}`)
@@ -420,8 +422,6 @@ export function SaleForm() {
             .rule()
             .align('center')
             .text('Obrigado pela preferência!')
-            .newline()
-            .text('')
             .newline()
             .text('')
             .newline()
@@ -656,72 +656,8 @@ export function SaleForm() {
                                 )}
                             </div>
                         </Stack>
-                        
                     </Grid.Col>
-                            {/* <Stack gap="md" py="md" style={{ flexShrink: 0 }}>
-                                <Group justify="flex-end">
-                                    <Paper
-                                        withBorder
-                                        style={{
-                                            minHeight: 48,
-                                            width: '45%',
-                                            background: 'var(--mantine-color-red-light)',
-                                            borderColor: 'var(--mantine-color-red-outline)',
-                                            padding: '0 1rem'
-                                        }}
-                                    >
-                                        <Stack gap={0} align="start" style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                            <Text size="md" c="var(--mantine-color-red-filled)" fw={500} style={{ fontSize: '1.8rem', alignSelf: 'baseline', paddingTop: '2rem' }}>Total</Text>
-                                            <Text size="lg" fw={700} style={{ fontSize: '3.5rem' }} c="var(--mantine-color-red-filled)">{formatCurrency(totalSale)}</Text>
-                                        </Stack>
-                                    </Paper>
-                                </Group>
 
-                                {!isViewMode && (
-                                    <Group align="flex-end" gap="md">
-                                        <NumberInput
-                                            label="Valor Pago"
-                                            value={amountPaid}
-                                            onFocus={(e) => setTimeout(() => e.target.select(), 100)}
-                                            onChange={(val) => setAmountPaid(Number(val) || 0)}
-                                            min={0}
-                                            decimalScale={2}
-                                            fixedDecimalScale={true}
-                                            prefix="R$ "
-                                            size="lg"
-                                            style={{ flex: 1 }}
-                                            ref={paidValueRef}
-                                            onKeyDown={handlePaidValueKeyDown}
-                                        />
-                                        <NumberInput
-                                            label="Troco"
-                                            value={amountPaid > 0 ? change : 0}
-                                            min={0}
-                                            decimalScale={2}
-                                            fixedDecimalScale={true}
-                                            prefix="R$ "
-                                            size="lg"
-                                            style={{ flex: 1 }}
-                                            readOnly
-                                            styles={{
-                                                input: {
-                                                    cursor: 'default',
-                                                    backgroundColor: 'var(--mantine-color-body)',
-                                                }
-                                            }}
-                                        />
-                                        <Button
-                                            size="lg"
-                                            onClick={submitSale}
-                                            disabled={saleItems.length === 0}
-                                            ref={saveSaleRef}
-                                            style={{ minHeight: 54, alignSelf: 'flex-end' }}
-                                        >
-                                            Finalizar
-                                        </Button>
-                                    </Group>
-                                )}
-                            </Stack> */}
                     {showReceipt && (
                         <Grid.Col span={{ base: 3 }}>
                             <Paper shadow="sm" p="md" withBorder style={{ backgroundColor: '#fffbe6', fontFamily: 'monospace', overflowY: 'auto' }}>

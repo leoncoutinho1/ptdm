@@ -269,11 +269,13 @@ export async function genericPull<
   }
 
   const finalEndpoint = listEndpoint || `${endpoint}/list${endpoint}`;
-  const limit = endpoint === 'sale' ? 100 : 999;
-
-  const response = await apiRequest<{ data: T[]; totalCount: number }>(
-    `${finalEndpoint}?UpdatedAt=${encodeURIComponent(lastSync)}&Limit=${limit}`
-  );
+  console.log(endpoint);
+  const url =
+    endpoint === 'sale'
+      ? `${finalEndpoint}?Limit=100&Sort=-SaleDate`
+      : `${finalEndpoint}?UpdatedAt=${encodeURIComponent(lastSync)}&Limit=100`;
+  console.log(url);
+  const response = await apiRequest<{ data: T[]; totalCount: number }>(url);
 
   if (response.data && response.data.length > 0) {
     const normalizer = getNormalizer(endpoint);
@@ -398,12 +400,16 @@ export async function syncAllWorker() {
     await genericPush(db.sales, 'sale');
     await genericPull(db.sales, 'sale', 'sale/listSale', lastSync);
     //TODO: eliminar as vendas mais antigas e manter 100 vendas
-    db.sales.where('syncStatus').equals('synced').sortBy('updatedAt' as any).then((sales) => {
-      if (sales.length > 100) {
-        const toDelete = sales.slice(0, sales.length - 100);
-        db.sales.bulkDelete(toDelete.map(s => s.id));
-      }
-    });
+    db.sales
+      .where('syncStatus')
+      .equals('synced')
+      .sortBy('updatedAt' as any)
+      .then((sales) => {
+        if (sales.length > 100) {
+          const toDelete = sales.slice(0, sales.length - 100);
+          db.sales.bulkDelete(toDelete.map((s) => s.id));
+        }
+      });
 
     // Update global sync time
     await db.syncMeta.put({ id: 'global', lastSync: nowSync });
