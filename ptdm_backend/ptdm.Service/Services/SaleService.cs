@@ -214,7 +214,7 @@ namespace ptdm.Service.Services
 
         public IEnumerable<SalesTotalsDTO> GetSalesTotals()
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var todayStart = now.Date;
             var weekStart = todayStart.AddDays(-7);
             var monthStart = todayStart.AddMonths(-1);
