@@ -115,7 +115,7 @@ public class LoginController : ControllerBase
 
         if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
         {
-            return BadRequest("Invalid access token or refresh token");
+            return Unauthorized("Expired refresh token or invalid access token");
         }
 
         // Set tenant in HttpContext items from token claims

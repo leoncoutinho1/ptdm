@@ -2,6 +2,24 @@ import { db } from './db';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+const authChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('auth_channel') : null;
+
+if (authChannel && typeof window !== 'undefined') {
+  authChannel.onmessage = (event) => {
+    if (event.data === 'LOGOUT') {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('tenant');
+        localStorage.removeItem('permissions');
+      }
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/stock/login';
+      }
+    }
+  };
+}
+
 export async function checkConnectivity(): Promise<boolean> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
 
@@ -67,8 +85,14 @@ export async function clearAuthData() {
   if (typeof localStorage !== 'undefined') {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('tenant');
+    localStorage.removeItem('permissions');
   }
   await db.auth.delete('current_auth');
+  
+  if (authChannel) {
+    authChannel.postMessage('LOGOUT');
+  }
 }
 
 export async function getAuthData() {
@@ -86,6 +110,7 @@ export async function getAuthData() {
 }
 
 async function refreshTokens(): Promise<TokenResponse | null> {
+  console.log('🔄 Init refreshTokens()');
   const auth = await getAuthData();
   if (auth) {
     const { accessToken, refreshToken } = auth;
@@ -99,16 +124,34 @@ async function refreshTokens(): Promise<TokenResponse | null> {
       body: JSON.stringify({ accessToken, refreshToken }),
     });
 
+    console.log('🔄 refreshTokens() response status:', res.status);
+
     if (res.ok) {
       const data: TokenResponse = await res.json();
+      console.log('🔄 refreshTokens() success');
       // Tenant remains the same
       await saveAuthData(data.accessToken, data.refreshToken, auth.tenant);
       return data;
     }
-  }
+    
+    if (res.status === 401 || res.status === 400 || res.status === 403) {
+      console.log('🚨 refreshTokens() returned 401/400/403! Clearing auth data...');
+      await clearAuthData();
+      console.log(typeof window);
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        console.log('🚨 Redirecting to /stock/login');
+        window.location.href = `/stock/login`;
+      }
 
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    return null;
+  }
+  console.log('🚨 No auth data in refreshTokens, logging out...');
   await clearAuthData();
-  if (typeof window !== 'undefined') {
+  console.log(typeof window);
+  if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
     window.location.href = `/stock/login`;
   }
   throw new Error('Sessão expirada. Faça login novamente.');
