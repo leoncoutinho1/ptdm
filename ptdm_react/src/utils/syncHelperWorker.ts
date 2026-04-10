@@ -403,10 +403,17 @@ export async function syncAllWorker() {
     db.sales
       .where('syncStatus')
       .equals('synced')
-      .sortBy('updatedAt' as any)
+      .sortBy('saleDate' as any)
       .then((sales) => {
+        // sortBy returns a Promise that resolves to an array (PromiseExtended<Sale[]>).
+        // Since we want the latest sales to be kept, and sortBy returns ascending order (oldest first),
+        // we can reverse the *resolved array* instead of trying to reverse the Promise.
+        sales.reverse(); // Now sales are sorted newest to oldest
+
         if (sales.length > 100) {
-          const toDelete = sales.slice(0, sales.length - 100);
+          // Since it's newest first, the ones to keep are the first 100
+          // The ones to delete are from index 100 onwards
+          const toDelete = sales.slice(100);
           db.sales.bulkDelete(toDelete.map((s) => s.id));
         }
       });
