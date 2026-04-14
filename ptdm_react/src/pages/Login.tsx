@@ -43,7 +43,7 @@ export function Login(props: PaperProps) {
 
             navigate("/home");
         } catch (err) {
-            notifications.show({ color: 'red', title: 'Erro ao realizar login', message: String(err) });
+            notifications.show({ color: 'red', title: 'Erro ao realizar login', message: 'Login inválido' });
         }
     }
 

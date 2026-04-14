@@ -27,6 +27,32 @@ namespace ptdm.Api.Middlewares
                 }
             }
 
+            // 2. Try to extract tenant from request body for login/register
+            if (string.IsNullOrEmpty(tenant) && context.Request.HasJsonContentType() && context.Request.ContentLength > 0 &&
+                (context.Request.Path.Value?.EndsWith("authenticate", StringComparison.OrdinalIgnoreCase) == true ||
+                 context.Request.Path.Value?.EndsWith("register", StringComparison.OrdinalIgnoreCase) == true))
+            {
+                context.Request.EnableBuffering();
+                using (var reader = new System.IO.StreamReader(context.Request.Body, System.Text.Encoding.UTF8, leaveOpen: true))
+                {
+                    var body = await reader.ReadToEndAsync();
+                    context.Request.Body.Position = 0;
+
+                    try
+                    {
+                        var jsonDoc = System.Text.Json.JsonDocument.Parse(body);
+                        var tenantProp = jsonDoc.RootElement.EnumerateObject()
+                            .FirstOrDefault(p => string.Equals(p.Name, "tenant", StringComparison.OrdinalIgnoreCase));
+                            
+                        if (tenantProp.Value.ValueKind != System.Text.Json.JsonValueKind.Undefined)
+                        {
+                            tenant = tenantProp.Value.GetString();
+                        }
+                    }
+                    catch { } // Ignore parsing errors
+                }
+            }
+
             if (!string.IsNullOrEmpty(tenant))
             {
                 context.Items["Tenant"] = tenant;
