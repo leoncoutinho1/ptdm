@@ -440,6 +440,7 @@ export function ProductForm() {
                     { value: 'LT', label: 'LT' },
                     { value: 'PC', label: 'PC' }
                   ]}
+                  searchable
                   required
                 />
               </Grid.Col>
