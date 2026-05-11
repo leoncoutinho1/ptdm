@@ -8,6 +8,7 @@ import { useContext } from "react";
 import { apiRequest, saveAuthData } from '@/utils/apiHelper';
 import { useNavigate } from "react-router-dom";
 import { syncAllWorker } from "@/utils/syncHelperWorker";
+import { db } from "@/utils/db";
 
 const defaultValues: IAuthenticate = {
     email: '',
@@ -31,6 +32,8 @@ export function Login(props: PaperProps) {
         try {
             const data = await apiRequest<{ accessToken: string; refreshToken: string }>('Login/authenticate', 'POST', form);
             await saveAuthData(data.accessToken, data.refreshToken, form.tenant);
+            // Sinaliza que a próxima sync de produtos deve buscar todos (sem filtro de data)
+            await db.syncMeta.put({ id: 'listAllProducts', value: true });
             setIsAuth(true);
 
             // Aguardar um momento para garantir que os tokens sejam salvos no IndexedDB

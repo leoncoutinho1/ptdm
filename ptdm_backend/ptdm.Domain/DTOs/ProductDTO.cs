@@ -13,7 +13,10 @@ public class ProductDTO
     public string Unit { get; set; }
     public Guid? CategoryId { get; set; }
     public string? CategoryDescription { get; set; }
-    public DateTime CreatedAt { get; set; } 
+    public DateTime CreatedAt { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+    public DateTime? UpdatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
     public string? ImageUrl { get; set; } = String.Empty;
     public bool IsActive { get; set; } = true;
     public bool Composite { get; set; } = false;

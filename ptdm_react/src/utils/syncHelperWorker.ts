@@ -256,16 +256,19 @@ export async function genericPush<
 
 export async function genericPull<
   T extends { id: string; updatedAt?: string; syncStatus?: string },
->(table: EntityTable<T, 'id'>, endpoint: string, listEndpoint?: string, lastSyncOverride?: string) {
-  let lastSync = lastSyncOverride;
+>(table: EntityTable<T, 'id'>, endpoint: string, listEndpoint?: string) {
+  // Busca o lastSync específico desta tabela no syncMeta
+  const syncMetaEntry = await db.syncMeta.get(endpoint);
+  let lastSync = syncMetaEntry?.lastSync || '0001-01-01T00:00:00Z';
 
-  if (!lastSync) {
-    const syncedItems = await table
-      .where('syncStatus')
-      .equals('synced')
-      .sortBy('updatedAt' as any);
-    const lastItem = syncedItems.length > 0 ? syncedItems[syncedItems.length - 1] : null;
-    lastSync = lastItem?.updatedAt || '0001-01-01T00:00:00Z';
+  // Se listAllProducts estiver ativo, ignora o lastSync e busca todos os produtos
+  if (endpoint === 'product') {
+    const listAllFlag = await db.syncMeta.get('listAllProducts');
+    if (listAllFlag?.value === true) {
+      lastSync = '0001-01-01T00:00:00Z';
+      await db.syncMeta.put({ id: 'listAllProducts', value: false });
+      console.log('[SYNC] listAllProducts ativado: buscando todos os produtos do servidor.');
+    }
   }
 
   const finalEndpoint = listEndpoint || `${endpoint}/list${endpoint}`;
@@ -273,7 +276,7 @@ export async function genericPull<
   const url =
     endpoint === 'sale'
       ? `${finalEndpoint}?Limit=100&Sort=-SaleDate`
-      : `${finalEndpoint}?UpdatedAt=${encodeURIComponent(lastSync)}&Limit=100`;
+      : `${finalEndpoint}?UpdatedAt=${encodeURIComponent(lastSync)}`;
 
   const response = await apiRequest<{ data: T[]; totalCount: number }>(url);
 
@@ -359,6 +362,18 @@ export async function genericPull<
         );
       }
     }
+
+    // Atualiza o lastSync desta tabela com o maior updatedAt entre TODOS os itens da tabela no IndexedDB
+    // A tabela 'sale' não usa data como parâmetro, portanto não precisa atualizar o lastSync
+    if (endpoint !== 'sale') {
+      const allItems = await table.orderBy('updatedAt' as any).reverse().first();
+      const maxUpdatedAt: string | undefined = (allItems as any)?.updatedAt;
+
+      if (maxUpdatedAt && maxUpdatedAt > lastSync) {
+        await db.syncMeta.put({ id: endpoint, lastSync: maxUpdatedAt });
+        console.log(`[SYNC] lastSync de "${endpoint}" atualizado para ${maxUpdatedAt}`);
+      }
+    }
   }
 }
 
@@ -368,9 +383,6 @@ export async function syncAllWorker() {
     return;
   }
 
-  // Get last global sync time
-  const syncLog = await db.syncMeta.get('global');
-  const lastSync = syncLog?.lastSync || '0001-01-01T00:00:00Z';
   const nowSync = new Date().toISOString();
 
   db.syncLogs.clear();
@@ -378,27 +390,27 @@ export async function syncAllWorker() {
   try {
     // Categories
     await genericPush(db.categories, 'category');
-    await genericPull(db.categories, 'category', undefined, lastSync);
+    await genericPull(db.categories, 'category');
 
     // Cashiers
     await genericPush(db.cashiers, 'cashier');
-    await genericPull(db.cashiers, 'cashier', undefined, lastSync);
+    await genericPull(db.cashiers, 'cashier');
 
     // Checkouts
     await genericPush(db.checkouts, 'checkout');
-    await genericPull(db.checkouts, 'checkout', undefined, lastSync);
+    await genericPull(db.checkouts, 'checkout');
 
     // Payment Forms
     await genericPush(db.paymentForms, 'paymentForm');
-    await genericPull(db.paymentForms, 'paymentForm', 'paymentForm/ListPaymentForm', lastSync);
+    await genericPull(db.paymentForms, 'paymentForm', 'paymentForm/ListPaymentForm');
 
     // Products
     await genericPush(db.products, 'product');
-    await genericPull(db.products, 'product', 'product/listproduct', lastSync);
+    await genericPull(db.products, 'product', 'product/listproduct');
 
     // Sales
     await genericPush(db.sales, 'sale');
-    await genericPull(db.sales, 'sale', 'sale/listSale', lastSync);
+    await genericPull(db.sales, 'sale', 'sale/listSale');
     //TODO: eliminar as vendas mais antigas e manter 100 vendas
     db.sales
       .where('syncStatus')

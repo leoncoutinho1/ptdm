@@ -76,8 +76,9 @@ interface SyncLog {
 }
 
 interface SyncMeta {
-  id: string; // entity name or 'global'
-  lastSync: string;
+  id: string; // entity name, 'global', or flag key (e.g. 'listAllProducts')
+  lastSync?: string;
+  value?: boolean;
 }
 
 const db = new Dexie('PtdmDatabase') as Dexie & {
