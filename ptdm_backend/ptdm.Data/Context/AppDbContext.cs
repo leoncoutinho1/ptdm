@@ -20,6 +20,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Barcode> Barcodes { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<ProductComposition> ProductCompositions { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; }
+    public DbSet<Payable> Payables { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +35,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         new SaleEntityTypeConfiguration().Configure(modelBuilder.Entity<Sale>());
         new SaleProductEntityTypeConfiguration().Configure(modelBuilder.Entity<SaleProduct>());
         new ProductCompositionEntityTypeConfiguration().Configure(modelBuilder.Entity<ProductComposition>());
+        new SupplierEntityTypeConfiguration().Configure(modelBuilder.Entity<Supplier>());
+        new PayableEntityTypeConfiguration().Configure(modelBuilder.Entity<Payable>());
     }
 
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ptdm.Data.Context;
@@ -11,9 +12,11 @@ using ptdm.Data.Context;
 namespace ptdm.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521102302_AddSupplier")]
+    partial class AddSupplier
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -326,50 +329,6 @@ namespace ptdm.Data.Migrations
                     b.ToTable("checkout", (string)null);
                 });
 
-            modelBuilder.Entity("ptdm.Domain.Models.Payable", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Attachment")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("DueDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("InvoiceDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("Paid")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("SupplierId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<double>("Value")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SupplierId");
-
-                    b.ToTable("payable", (string)null);
-                });
-
             modelBuilder.Entity("ptdm.Domain.Models.PaymentForm", b =>
                 {
                     b.Property<Guid>("Id")
@@ -672,17 +631,6 @@ namespace ptdm.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ptdm.Domain.Models.Payable", b =>
-                {
-                    b.HasOne("ptdm.Domain.Models.Supplier", "Supplier")
-                        .WithMany("Payables")
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Supplier");
-                });
-
             modelBuilder.Entity("ptdm.Domain.Models.Product", b =>
                 {
                     b.HasOne("ptdm.Domain.Models.Category", "Category")
@@ -791,11 +739,6 @@ namespace ptdm.Data.Migrations
             modelBuilder.Entity("ptdm.Domain.Models.Sale", b =>
                 {
                     b.Navigation("SaleProducts");
-                });
-
-            modelBuilder.Entity("ptdm.Domain.Models.Supplier", b =>
-                {
-                    b.Navigation("Payables");
                 });
 #pragma warning restore 612, 618
         }

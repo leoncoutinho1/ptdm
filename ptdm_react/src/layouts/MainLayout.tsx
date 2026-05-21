@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { Link, useNavigate } from 'react-router-dom';
 import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Package, ShoppingCart, BarChart3, Settings, CreditCard, Users, FolderTree, Monitor, LogOut } from 'lucide-react';
+import { Package, ShoppingCart, BarChart3, Settings, CreditCard, Users, FolderTree, Monitor, LogOut, Truck, Receipt } from 'lucide-react';
 import { ColorSchemeToggle } from '@/components/ColorSchemeToggle/ColorSchemeToggle';
 import { db } from '@/utils/db';
 
@@ -58,6 +58,13 @@ export function MainLayout({ children }: { children: ReactNode }) {
               onClick={() => toggle()}
               leftSection={<ShoppingCart size={18} />}
             />
+            <NavLink
+              component={Link}
+              to="/payables"
+              label="Contas a Pagar"
+              onClick={() => toggle()}
+              leftSection={<Receipt size={18} />}
+            />
             <NavLink label="Relatórios" leftSection={<BarChart3 size={18} />} >
               <NavLink
                 component={Link}
@@ -95,6 +102,13 @@ export function MainLayout({ children }: { children: ReactNode }) {
                 label="Categorias"
                 onClick={() => toggle()}
                 leftSection={<FolderTree size={16} />}
+              />
+              <NavLink
+                component={Link}
+                to="/settings/suppliers"
+                label="Fornecedores"
+                onClick={() => toggle()}
+                leftSection={<Truck size={16} />}
               />
               <NavLink
                 component={Link}

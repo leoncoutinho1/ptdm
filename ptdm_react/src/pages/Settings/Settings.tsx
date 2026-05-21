@@ -20,6 +20,7 @@ export function Settings() {
             items: [
                 { label: 'Categorias', path: '/settings/categories' },
                 { label: 'Produtos', path: '/products' },
+                { label: 'Fornecedores', path: '/settings/suppliers' },
             ]
         },
         {

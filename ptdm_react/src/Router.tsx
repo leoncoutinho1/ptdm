@@ -13,6 +13,10 @@ import { CategoryList } from './pages/Settings/Category/CategoryList';
 import { CategoryForm } from './pages/Settings/Category/CategoryForm';
 import { CheckoutList } from './pages/Settings/Checkout/CheckoutList';
 import { CheckoutForm } from './pages/Settings/Checkout/CheckoutForm';
+import { SupplierList } from './pages/Settings/Supplier/SupplierList';
+import { SupplierForm } from './pages/Settings/Supplier/SupplierForm';
+import { PayableList } from './pages/Payable/PayableList';
+import { PayableForm } from './pages/Payable/PayableForm';
 import { AuthProvider } from './contexts/AuthContext';
 import { SaleForm } from './pages/Sales/SaleForm';
 import { SaleList } from './pages/Sales/SaleList';
@@ -40,6 +44,11 @@ const router = createBrowserRouter([
       { path: '/sales/new', element: <SaleForm /> },
       { path: '/sales/:id', element: <SaleForm /> },
 
+      // Payables route
+      { path: '/payables', element: <PayableList /> },
+      { path: '/payables/new', element: <PayableForm /> },
+      { path: '/payables/:id', element: <PayableForm /> },
+
       // Reports routes
       { path: '/reports/ProductsReport', element: <ProductsReport /> },
       { path: '/reports/SalesReport', element: <SalesReport /> },
@@ -60,7 +69,11 @@ const router = createBrowserRouter([
 
       { path: '/settings/checkouts', element: <CheckoutList /> },
       { path: '/settings/checkouts/new', element: <CheckoutForm /> },
-      { path: '/settings/checkouts/:id', element: <CheckoutForm /> }
+      { path: '/settings/checkouts/:id', element: <CheckoutForm /> },
+
+      { path: '/settings/suppliers', element: <SupplierList /> },
+      { path: '/settings/suppliers/new', element: <SupplierForm /> },
+      { path: '/settings/suppliers/:id', element: <SupplierForm /> }
     ]
   }
 ], { basename: '/stock' });

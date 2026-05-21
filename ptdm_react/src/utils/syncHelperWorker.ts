@@ -29,6 +29,40 @@ function normalizeCategory(item: any): any {
   };
 }
 
+function normalizeSupplier(item: any): any {
+  const data = unwrapData(item);
+  if (!data) {
+    return null;
+  }
+
+  return {
+    id: String(data.id || data.Id || data.ID || ''),
+    description: data.description || data.Description || '',
+    updatedAt: data.updatedAt || data.UpdatedAt,
+    createdAt: data.createdAt || data.CreatedAt,
+  };
+}
+
+function normalizePayable(item: any): any {
+  const data = unwrapData(item);
+  if (!data) {
+    return null;
+  }
+
+  return {
+    id: String(data.id || data.Id || data.ID || ''),
+    supplierId: String(data.supplierId || data.SupplierId || ''),
+    supplierDescription: data.supplierDescription || data.SupplierDescription || '',
+    invoiceDate: data.invoiceDate || data.InvoiceDate || undefined,
+    dueDate: data.dueDate || data.DueDate || '',
+    value: data.value !== undefined ? data.value : data.Value || 0,
+    paid: !!(data.paid || data.Paid),
+    attachment: data.attachment || data.Attachment || undefined,
+    updatedAt: data.updatedAt || data.UpdatedAt,
+    createdAt: data.createdAt || data.CreatedAt,
+  };
+}
+
 function normalizeCashier(item: any): any {
   const data = unwrapData(item);
   if (!data) {
@@ -134,6 +168,8 @@ function getNormalizer(endpoint: string): (item: any) => any {
   switch (endpoint) {
     case 'category':
       return normalizeCategory;
+    case 'supplier':
+      return normalizeSupplier;
     case 'cashier':
       return normalizeCashier;
     case 'checkout':
@@ -144,6 +180,8 @@ function getNormalizer(endpoint: string): (item: any) => any {
       return normalizeProduct;
     case 'sale':
       return normalizeSale;
+    case 'payable':
+      return normalizePayable;
     default:
       console.warn(`No normalizer found for endpoint: ${endpoint}`);
       return unwrapData;
@@ -162,6 +200,9 @@ async function propagateIdChange(entityName: string, oldId: string, newId: strin
   }
   if (entityName === 'paymentForm') {
     await db.sales.where('paymentFormId').equals(oldId).modify({ paymentFormId: newId });
+  }
+  if (entityName === 'supplier') {
+    await db.payables.where('supplierId').equals(oldId).modify({ supplierId: newId });
   }
   if (entityName === 'product') {
     // Update components in other products
@@ -276,7 +317,9 @@ export async function genericPull<
   const url =
     endpoint === 'sale'
       ? `${finalEndpoint}?Limit=100&Sort=-SaleDate`
-      : `${finalEndpoint}?UpdatedAt=${encodeURIComponent(lastSync)}`;
+      : endpoint === 'payable'
+        ? `${finalEndpoint}?Limit=100&Sort=-DueDate`
+        : `${finalEndpoint}?UpdatedAt=${encodeURIComponent(lastSync)}`;
 
   const response = await apiRequest<{ data: T[]; totalCount: number }>(url);
 
@@ -392,6 +435,10 @@ export async function syncAllWorker() {
     await genericPush(db.categories, 'category');
     await genericPull(db.categories, 'category');
 
+    // Suppliers
+    await genericPush(db.suppliers, 'supplier');
+    await genericPull(db.suppliers, 'supplier', 'supplier/ListSupplier');
+
     // Cashiers
     await genericPush(db.cashiers, 'cashier');
     await genericPull(db.cashiers, 'cashier');
@@ -427,6 +474,21 @@ export async function syncAllWorker() {
           // The ones to delete are from index 100 onwards
           const toDelete = sales.slice(100);
           db.sales.bulkDelete(toDelete.map((s) => s.id));
+        }
+      });
+
+    // Payables
+    await genericPush(db.payables, 'payable');
+    await genericPull(db.payables, 'payable', 'payable/ListPayable');
+    db.payables
+      .where('syncStatus')
+      .equals('synced')
+      .sortBy('dueDate' as any)
+      .then((payables) => {
+        payables.reverse(); // newest first
+        if (payables.length > 100) {
+          const toDelete = payables.slice(100);
+          db.payables.bulkDelete(toDelete.map((p) => p.id));
         }
       });
 

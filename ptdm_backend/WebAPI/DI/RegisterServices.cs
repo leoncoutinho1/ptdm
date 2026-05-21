@@ -1,4 +1,4 @@
-﻿using ptdm.Service.Services;
+using ptdm.Service.Services;
 
 namespace ptdm.Api.DI
 {
@@ -13,6 +13,8 @@ namespace ptdm.Api.DI
             services.AddScoped<ISaleService, SaleService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IReportService, ReportService>();
+            services.AddScoped<ISupplierService, SupplierService>();
+            services.AddScoped<IPayableService, PayableService>();
         }
     }
 }
