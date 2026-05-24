@@ -14,18 +14,15 @@ COPY . .
 
 RUN yarn build
 
-# Final stage utilizing 'serve' - a static file server for Node.js
-# This removes the need for an internal Nginx configuration
-FROM node:20-alpine
+# Final stage utilizing Nginx Alpine - an ultra-lightweight web server
+FROM nginx:alpine
 
-RUN npm install -g serve
+# Copy custom nginx config for SPA routing (React Router)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-WORKDIR /app
-
-# Copy the build output
-COPY --from=build /app/dist .
+# Copy the build output from the build stage to Nginx's HTML directory
+COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 3000
 
-# Start server on port 3000, single-page application mode (-s)
-CMD ["serve", "-s", ".", "-l", "3000"]
+CMD ["nginx", "-g", "daemon off;"]
