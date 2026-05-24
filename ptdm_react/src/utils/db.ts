@@ -137,6 +137,20 @@ db.version(8).stores({
   payables: 'id, updatedAt, syncStatus',
 });
 
+db.version(9).stores({
+  auth: 'id',
+  categories: 'id, updatedAt, syncStatus',
+  cashiers: 'id, updatedAt, syncStatus',
+  checkouts: 'id, updatedAt, syncStatus',
+  paymentForms: 'id, updatedAt, syncStatus',
+  products: 'id, updatedAt, syncStatus, categoryId',
+  sales: 'id, updatedAt, syncStatus',
+  syncLogs: 'id',
+  syncMeta: 'id',
+  suppliers: 'id, updatedAt, syncStatus',
+  payables: 'id, updatedAt, syncStatus, supplierId',
+});
+
 export type {
   AuthData,
   Category,

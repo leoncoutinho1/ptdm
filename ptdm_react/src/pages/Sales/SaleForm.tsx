@@ -118,16 +118,16 @@ export function SaleForm() {
     }, [id]);
 
     useEffect(() => {
-        if (form.values.paymentFormId) { localStorage.setItem('saleForm_paymentFormId', form.values.paymentFormId) };
-    }, [form.values.paymentFormId]);
+        if (!isViewMode && form.values.paymentFormId) { localStorage.setItem('saleForm_paymentFormId', form.values.paymentFormId) };
+    }, [form.values.paymentFormId, isViewMode]);
 
     useEffect(() => {
-        if (form.values.cashierId) { localStorage.setItem('saleForm_cashierId', form.values.cashierId) };
-    }, [form.values.cashierId]);
+        if (!isViewMode && form.values.cashierId) { localStorage.setItem('saleForm_cashierId', form.values.cashierId) };
+    }, [form.values.cashierId, isViewMode]);
 
     useEffect(() => {
-        if (form.values.checkoutId) { localStorage.setItem('saleForm_checkoutId', form.values.checkoutId) };
-    }, [form.values.checkoutId]);
+        if (!isViewMode && form.values.checkoutId) { localStorage.setItem('saleForm_checkoutId', form.values.checkoutId) };
+    }, [form.values.checkoutId, isViewMode]);
 
     const searchProducts = async () => {
         const currentTerm = searchTermRef.current;
@@ -530,6 +530,7 @@ export function SaleForm() {
                                         style={{ width: 80 }} 
                                         ref={quantityRef} 
                                         onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                                        onClick={(e) => setTimeout(() => (e.target as HTMLInputElement).select(), 100)}
                                         onBlur={onBlurQuantity}
                                         onKeyDown={handleQuantityKeyDown} />
                                     <Select
@@ -587,6 +588,7 @@ export function SaleForm() {
                                         label="Desconto"
                                         value={discount}
                                         onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                                        onClick={(e) => setTimeout(() => (e.target as HTMLInputElement).select(), 100)}
                                         onChange={(val) => {
                                             const newDiscount = Number(val) || 0;
                                             setDiscount(newDiscount);
@@ -604,6 +606,7 @@ export function SaleForm() {
                                         label="Valor Pago"
                                         value={amountPaid}
                                         onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                                        onClick={(e) => setTimeout(() => (e.target as HTMLInputElement).select(), 100)}
                                         onChange={(val) => setAmountPaid(Number(val) || 0)}
                                         min={0}
                                         decimalScale={2}

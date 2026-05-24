@@ -254,11 +254,12 @@ export function PayableForm() {
 
                         <NumberInput
                             label="Valor (R$)"
-                            placeholder="Ex: 1500.00"
-                            min={0.01}
+                            min={0}
                             decimalScale={2}
                             fixedDecimalScale
                             prefix="R$ "
+                            onFocus={(e) => setTimeout(() => e.target.select(), 100)}
+                            onClick={(e) => setTimeout(() => (e.target as HTMLInputElement).select(), 100)}
                             required
                             {...form.getInputProps('value')}
                         />
