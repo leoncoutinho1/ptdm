@@ -42,6 +42,8 @@ export function SaleForm() {
     const [selectedProductValue, setSelectedProductValue] = useState<string | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [discount, setDiscount] = useState(0);
+    const [editingProductId, setEditingProductId] = useState<string | null>(null);
+    const [editingValue, setEditingValue] = useState<number>(0);
     const searchIdRef = useRef(0);
     const searchTermRef = useRef('');
     
@@ -149,15 +151,25 @@ export function SaleForm() {
 
             if (foundById.length === 1) {
                 addProductToSale(foundById[0]);
-            } else {
-                const foundByDescription = await db.products
-                    .filter(p =>
-                        p.description.toLowerCase().includes(lowerSearch)
-                    ).toArray();
-                
-                if (currentSearchId !== searchIdRef.current) { return };
-                setProductOptions(foundByDescription);
+                return;
+            } 
+            const foundByDescription = await db.products
+                .filter(p =>
+                    p.description.toLowerCase().includes(lowerSearch)
+                ).toArray();
+
+            if (!foundByDescription || foundByDescription.length === 0) {
+                notifications.show({
+                    color: 'yellow',
+                    title: 'Produto não encontrado',
+                    message: 'Nenhum produto encontrado com o código de barras ou descrição informada.',
+                });
+                setSearchTerm('');
+                return;
             }
+            
+            if (currentSearchId !== searchIdRef.current) { return };
+            setProductOptions(foundByDescription);
         } catch (err) {
             if (currentSearchId !== searchIdRef.current) { return };
             notifications.show({ color: 'red', title: 'Erro ao buscar produto', message: String(err) });
@@ -282,6 +294,32 @@ export function SaleForm() {
         quantityRef.current?.focus();
         setQuantity(0);
         setTimeout(() => quantityRef.current?.select(), 100);
+    };
+
+    const handleUpdateQuantity = (productId: string, newQty: number) => {
+        if (editingProductId !== productId) return;
+
+        if (newQty <= 0) {
+            notifications.show({ color: 'yellow', title: 'Atenção', message: 'Quantidade deve ser maior que zero' });
+            setEditingProductId(null);
+            return;
+        }
+
+        const updatedItems = saleItems.map(item => {
+            if (item.productId === productId) {
+                return {
+                    ...item,
+                    quantity: newQty,
+                    totalPrice: newQty * item.unitPrice
+                };
+            }
+            return item;
+        });
+        setSaleItems(updatedItems);
+        setEditingProductId(null);
+        setAmountPaid(0);
+        setDiscount(0);
+        quantityRef.current?.focus();
     };
 
     const itemsTotal = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -569,7 +607,41 @@ export function SaleForm() {
                                         {saleItems.sort((a, b) => a.order - b.order).reverse().map((item) => (
                                             <Table.Tr key={item.productId}>
                                                 <Table.Td>{item.product?.description}</Table.Td>
-                                                <Table.Td>{item.quantity}</Table.Td>
+                                                <Table.Td 
+                                                    onDoubleClick={() => {
+                                                        if (!isViewMode) {
+                                                            setEditingProductId(item.productId);
+                                                            setEditingValue(item.quantity);
+                                                        }
+                                                    }}
+                                                    style={{ cursor: !isViewMode ? 'pointer' : 'default' }}
+                                                >
+                                                    {!isViewMode && editingProductId === item.productId ? (
+                                                        <NumberInput
+                                                            value={editingValue}
+                                                            onChange={(val) => setEditingValue(Number(val) || 0)}
+                                                            min={1}
+                                                            size="xs"
+                                                            w={70}
+                                                            autoFocus
+                                                            hideControls
+                                                            onFocus={(e) => e.target.select()}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    handleUpdateQuantity(item.productId, editingValue);
+                                                                } else if (e.key === 'Escape') {
+                                                                    setEditingProductId(null);
+                                                                    quantityRef.current?.focus();
+                                                                }
+                                                            }}
+                                                            onBlur={() => handleUpdateQuantity(item.productId, editingValue)}
+                                                            styles={{ input: { padding: '4px', textAlign: 'center' } }}
+                                                        />
+                                                    ) : (
+                                                        item.quantity
+                                                    )}
+                                                </Table.Td>
                                                 <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
                                                 <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
                                                 {!isViewMode && <Table.Td><XCircle size={18} color="red" onClick={() => removeItem(item.productId)} style={{ cursor: 'pointer' }} /></Table.Td>}
