@@ -152,14 +152,24 @@ export function SaleForm() {
             if (foundById.length === 1) {
                 addProductToSale(foundById[0]);
                 return;
-            } 
+            }
+
+            function likeToRegex(pattern: string) {
+                const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                return new RegExp(`^${escaped.replace(/%/g, ".*")}$`, "i");
+            }
+            const search = `%${lowerSearch.replace(' ', '%')}%`;
+            const regex = likeToRegex(search);
+
             const foundByDescription = await db.products
-                .filter(p =>
-                    p.description.toLowerCase().includes(lowerSearch)
-                ).toArray();
+                .filter(p => regex.test(p.description))
+                .toArray();
 
             if (!foundByDescription || foundByDescription.length === 0) {
                 notifications.show({
+                    position: 'bottom-left',
+                    withBorder: true,
+                    closeButtonProps: { show: false },
                     color: 'yellow',
                     title: 'Produto não encontrado',
                     message: 'Nenhum produto encontrado com o código de barras ou descrição informada.',
