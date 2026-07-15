@@ -46,6 +46,7 @@ export function SaleForm() {
     const [editingValue, setEditingValue] = useState<number>(0);
     const searchIdRef = useRef(0);
     const searchTermRef = useRef('');
+    const barcodeQtyRef = useRef<number | null>(null);
     
     const { openConfirmModal } = useConfirmAction();
 
@@ -131,7 +132,7 @@ export function SaleForm() {
         if (!isViewMode && form.values.checkoutId) { localStorage.setItem('saleForm_checkoutId', form.values.checkoutId) };
     }, [form.values.checkoutId, isViewMode]);
 
-    const searchProducts = async () => {
+    const searchProducts = async (qtyOverride?: number) => {
         const currentTerm = searchTermRef.current;
         if (!currentTerm || currentTerm.length < 1) {
             setProductOptions([]);
@@ -150,7 +151,7 @@ export function SaleForm() {
             if (currentSearchId !== searchIdRef.current) { return };
 
             if (foundById.length === 1) {
-                addProductToSale(foundById[0]);
+                addProductToSale(foundById[0], qtyOverride);
                 return;
             }
 
@@ -202,22 +203,46 @@ export function SaleForm() {
         }
     }
 
-    const handleQuantityKeyDown = (e: React.KeyboardEvent) => {
+    const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            productSelectRef.current?.focus();
+            const target = e.target as HTMLInputElement;
+            const value = target.value || '';
+            if (value.length === 13 && value.startsWith('2')) {
+                const parsedQty = Number(value.substring(6, 12));
+                const parsedSearch = value.substring(1, 6);
+                barcodeQtyRef.current = parsedQty;
+                setQuantity(parsedQty);
+                setSearchTerm(parsedSearch);
+                searchTermRef.current = parsedSearch;
+                searchProducts(parsedQty);
+            } else {
+                productSelectRef.current?.focus();
+            }
         }
     };
 
-    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (quantity <= 0 && saleItems.length > 0) {
-                discountRef.current?.focus();
-                setTimeout(() => discountRef.current?.select(), 100);
-                return;
+            const target = e.target as HTMLInputElement;
+            const value = target.value || '';
+            if (value.length === 13 && value.startsWith('2')) {
+                const parsedQty = Number(value.substring(6, 12));
+                const parsedSearch = value.substring(1, 6);
+                barcodeQtyRef.current = parsedQty;
+                setQuantity(parsedQty);
+                setSearchTerm(parsedSearch);
+                searchTermRef.current = parsedSearch;
+                searchProducts(parsedQty);
+            } else {
+                if (quantity <= 0 && saleItems.length > 0) {
+                    discountRef.current?.focus();
+                    setTimeout(() => discountRef.current?.select(), 100);
+                    return;
+                }
+                searchProducts();
             }
-            searchProducts();
         }
     };
 
@@ -255,7 +280,7 @@ export function SaleForm() {
         }
     };
 
-    const addProductToSale = (product?: Product) => {
+    const addProductToSale = (product?: Product, qtyOverride?: number) => {
         const item = product;
         const itemId = product?.id;
 
@@ -264,7 +289,14 @@ export function SaleForm() {
             return;
         }
 
-        if (quantity <= 0) {
+        let activeQty = qtyOverride !== undefined ? qtyOverride : quantity;
+        const isFromBarcode = qtyOverride !== undefined || (barcodeQtyRef.current !== null && quantity === barcodeQtyRef.current);
+
+        if (isFromBarcode && item.unit?.toUpperCase() === 'KG') {
+            activeQty = activeQty / 1000;
+        }
+
+        if (activeQty <= 0) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'Quantidade deve ser maior que zero' });
             return;
         }
@@ -273,16 +305,16 @@ export function SaleForm() {
 
         if (existingItemIndex >= 0) {
             const updatedItems = [...saleItems];
-            updatedItems[existingItemIndex].quantity += quantity;
+            updatedItems[existingItemIndex].quantity += activeQty;
             updatedItems[existingItemIndex].totalPrice = updatedItems[existingItemIndex].quantity * updatedItems[existingItemIndex].unitPrice;
             setSaleItems(updatedItems);
         } else {
             const newItem: SaleItem = {
                 productId: itemId!,
                 product: item,
-                quantity,
+                quantity: activeQty,
                 unitPrice: item.price,
-                totalPrice: quantity * item.price,
+                totalPrice: activeQty * item.price,
                 order: (saleItems.length + 1)
             };
             setSaleItems([...saleItems, newItem]);
@@ -294,6 +326,7 @@ export function SaleForm() {
         setProductOptions([]);
         setSelectedProductValue(null);
         setQuantity(0);
+        barcodeQtyRef.current = null;
         quantityRef.current?.focus();
         setTimeout(() => quantityRef.current?.select(), 100);
     };  
@@ -428,6 +461,7 @@ export function SaleForm() {
         setProductOptions([]);
         setQuantity(0);
         setDiscount(0);
+        barcodeQtyRef.current = null;
         if (isViewMode) {
             navigate('/sales');
         }
