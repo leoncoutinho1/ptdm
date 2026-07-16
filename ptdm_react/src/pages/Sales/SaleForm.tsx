@@ -46,7 +46,6 @@ export function SaleForm() {
     const [editingValue, setEditingValue] = useState<number>(0);
     const searchIdRef = useRef(0);
     const searchTermRef = useRef('');
-    const barcodeQtyRef = useRef<number | null>(null);
     
     const { openConfirmModal } = useConfirmAction();
 
@@ -208,10 +207,14 @@ export function SaleForm() {
             e.preventDefault();
             const target = e.target as HTMLInputElement;
             const value = target.value || '';
-            if (value.length === 13 && value.startsWith('2')) {
-                const parsedQty = Number(value.substring(6, 12));
-                const parsedSearch = value.substring(1, 6);
-                barcodeQtyRef.current = parsedQty;
+            const startsWith2 = value.startsWith('2');
+            const startsWith5 = value.startsWith('5');
+            if (value.length === 13 && (startsWith2 || startsWith5)) {
+                let parsedQty = Number(value.substring(6, 12));
+                if (startsWith5) {
+                    parsedQty = parsedQty / 1000;
+                }
+                const parsedSearch = value.substring(1, 6).replace(/^0+/, '');
                 setQuantity(parsedQty);
                 setSearchTerm(parsedSearch);
                 searchTermRef.current = parsedSearch;
@@ -227,10 +230,14 @@ export function SaleForm() {
             e.preventDefault();
             const target = e.target as HTMLInputElement;
             const value = target.value || '';
-            if (value.length === 13 && value.startsWith('2')) {
-                const parsedQty = Number(value.substring(6, 12));
-                const parsedSearch = value.substring(1, 6);
-                barcodeQtyRef.current = parsedQty;
+            const startsWith2 = value.startsWith('2');
+            const startsWith5 = value.startsWith('5');
+            if (value.length === 13 && (startsWith2 || startsWith5)) {
+                let parsedQty = Number(value.substring(6, 12));
+                if (startsWith5) {
+                    parsedQty = parsedQty / 1000;
+                }
+                const parsedSearch = value.substring(1, 6).replace(/^0+/, '');
                 setQuantity(parsedQty);
                 setSearchTerm(parsedSearch);
                 searchTermRef.current = parsedSearch;
@@ -289,12 +296,7 @@ export function SaleForm() {
             return;
         }
 
-        let activeQty = qtyOverride !== undefined ? qtyOverride : quantity;
-        const isFromBarcode = qtyOverride !== undefined || (barcodeQtyRef.current !== null && quantity === barcodeQtyRef.current);
-
-        if (isFromBarcode && item.unit?.toUpperCase() === 'KG') {
-            activeQty = activeQty / 1000;
-        }
+        const activeQty = qtyOverride !== undefined ? qtyOverride : quantity;
 
         if (activeQty <= 0) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'Quantidade deve ser maior que zero' });
@@ -326,7 +328,6 @@ export function SaleForm() {
         setProductOptions([]);
         setSelectedProductValue(null);
         setQuantity(0);
-        barcodeQtyRef.current = null;
         quantityRef.current?.focus();
         setTimeout(() => quantityRef.current?.select(), 100);
     };  
@@ -461,7 +462,6 @@ export function SaleForm() {
         setProductOptions([]);
         setQuantity(0);
         setDiscount(0);
-        barcodeQtyRef.current = null;
         if (isViewMode) {
             navigate('/sales');
         }
