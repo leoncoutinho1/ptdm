@@ -131,11 +131,11 @@ export function SaleForm() {
         if (!isViewMode && form.values.checkoutId) { localStorage.setItem('saleForm_checkoutId', form.values.checkoutId) };
     }, [form.values.checkoutId, isViewMode]);
 
-    const searchProducts = async (qtyOverride?: number) => {
+    const searchProducts = async (qtyOverride?: number): Promise<boolean> => {
         const currentTerm = searchTermRef.current;
         if (!currentTerm || currentTerm.length < 1) {
             setProductOptions([]);
-            return;
+            return false;
         }
 
         const currentSearchId = ++searchIdRef.current;
@@ -147,11 +147,11 @@ export function SaleForm() {
                     (Array.isArray(p.barcodes) && p.barcodes.some(b => b.toLowerCase() === lowerSearch))
                 ).toArray();
 
-            if (currentSearchId !== searchIdRef.current) { return };
+            if (currentSearchId !== searchIdRef.current) { return false };
 
             if (foundById.length === 1) {
                 addProductToSale(foundById[0], qtyOverride);
-                return;
+                return true;
             }
 
             function likeToRegex(pattern: string) {
@@ -175,14 +175,16 @@ export function SaleForm() {
                     message: 'Nenhum produto encontrado com o código de barras ou descrição informada.',
                 });
                 setSearchTerm('');
-                return;
+                return false;
             }
             
-            if (currentSearchId !== searchIdRef.current) { return };
+            if (currentSearchId !== searchIdRef.current) { return false };
             setProductOptions(foundByDescription);
+            return true;
         } catch (err) {
-            if (currentSearchId !== searchIdRef.current) { return };
+            if (currentSearchId !== searchIdRef.current) { return false };
             notifications.show({ color: 'red', title: 'Erro ao buscar produto', message: String(err) });
+            return false;
         }
     };
 
@@ -202,7 +204,7 @@ export function SaleForm() {
         }
     }
 
-    const handleQuantityKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleQuantityKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             const target = e.target as HTMLInputElement;
@@ -218,14 +220,19 @@ export function SaleForm() {
                 setQuantity(parsedQty);
                 setSearchTerm(parsedSearch);
                 searchTermRef.current = parsedSearch;
-                searchProducts(parsedQty);
+                const found = await searchProducts(parsedQty);
+                if (!found) {
+                    setQuantity(0);
+                    quantityRef.current?.focus();
+                    quantityRef.current?.select();
+                }
             } else {
                 productSelectRef.current?.focus();
             }
         }
     };
 
-    const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             const target = e.target as HTMLInputElement;
@@ -241,7 +248,12 @@ export function SaleForm() {
                 setQuantity(parsedQty);
                 setSearchTerm(parsedSearch);
                 searchTermRef.current = parsedSearch;
-                searchProducts(parsedQty);
+                const found = await searchProducts(parsedQty);
+                if (!found) {
+                    setQuantity(0);
+                    quantityRef.current?.focus();
+                    quantityRef.current?.select();
+                }
             } else {
                 if (quantity <= 0 && saleItems.length > 0) {
                     discountRef.current?.focus();
