@@ -115,7 +115,7 @@ export function Products() {
                   <Table.Td>{p.description}</Table.Td>
                   <Table.Td>
                     {Array.isArray(p.barcodes)
-                      ? p.barcodes.map(b => b === p.mainBarcode ? `${b} ⭐` : b).join(', ')
+                      ? p.barcodes.map(b => b === p.mainBarcode && p.barcodes.length > 1 ? `${b} ⭐` : b).join(', ')
                       : (p as any).barcode}
                   </Table.Td>
                   <Table.Td>{formatCurrency(p.cost)}</Table.Td>
