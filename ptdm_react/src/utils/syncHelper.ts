@@ -52,7 +52,12 @@ export async function genericDelete<T extends { id: string, syncStatus?: string 
     redirectPath: string
 ) {
     if (!id) return;
-    await table.update(id as any, { syncStatus: 'pending-delete' } as any);
+    const existing = await table.get(id as any);
+    if (existing?.syncStatus === 'pending-create') {
+        await table.delete(id as any);
+    } else {
+        await table.update(id as any, { syncStatus: 'pending-delete' } as any);
+    }
     notifications.show({ color: 'green', title: 'Sucesso', message: 'Excluído localmente. Será sincronizado em breve.' });
     navigate(redirectPath);
 }

@@ -15,6 +15,8 @@ public class ProductUpdateDTO
     public string? ImageUrl { get; set; } = String.Empty;
     public bool IsActive { get; set; } = true;
     public bool Composite { get; set; } = false;
+    public int ValidityDays { get; set; } = 0;
+    public bool IntegrateScale { get; set; } = false;
     public virtual ICollection<string> Barcodes { get; set; }
     public List<ProductCompositionInsertDTO>? ComponentProducts { get; set; }
 
@@ -33,6 +35,8 @@ public class ProductUpdateDTO
             ImageUrl = dto.ImageUrl,
             IsActive = dto.IsActive,
             Composite = dto.Composite,
+            ValidityDays = dto.ValidityDays,
+            IntegrateScale = dto.IntegrateScale,
             Barcodes = dto.Barcodes,
             ComponentProducts = dto.ComponentProducts.Select(x => new ProductCompositionDTO
             {

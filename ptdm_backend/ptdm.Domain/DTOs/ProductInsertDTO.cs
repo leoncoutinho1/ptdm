@@ -13,6 +13,8 @@ public class ProductInsertDTO
     public string? ImageUrl { get; set; } = String.Empty;
     public bool IsActive { get; set; } = true;
     public bool Composite { get; set; } = false;
+    public int ValidityDays { get; set; } = 0;
+    public bool IntegrateScale { get; set; } = false;
     public virtual ICollection<string> Barcodes { get; set; }
     public List<ProductCompositionInsertDTO>? ComponentProducts { get; set; }
 }

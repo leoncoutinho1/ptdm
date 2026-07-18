@@ -1,4 +1,4 @@
-﻿using AspNetCore.IQueryable.Extensions;
+using AspNetCore.IQueryable.Extensions;
 using AspNetCore.IQueryable.Extensions.Filter;
 using AspNetCore.IQueryable.Extensions.Pagination;
 using AspNetCore.IQueryable.Extensions.Sort;
@@ -128,6 +128,8 @@ namespace ptdm.Service.Services
                     Quantity = product.Quantity,
                     CategoryId = product.CategoryId,
                     Composite = product.Composite,
+                    ValidityDays = product.ValidityDays,
+                    IntegrateScale = product.IntegrateScale,
                     CreatedBy = GetUserId(),
                     UpdatedBy = GetUserId()
                 };
@@ -206,6 +208,8 @@ namespace ptdm.Service.Services
             p.Quantity = product.Quantity;
             p.CategoryId = product.CategoryId;
             p.Composite = product.Composite;
+            p.ValidityDays = product.ValidityDays;
+            p.IntegrateScale = product.IntegrateScale;
             p.UpdatedBy = GetUserId();
             p.UpdatedAt = DateTime.UtcNow;
 

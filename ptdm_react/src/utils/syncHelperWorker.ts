@@ -125,6 +125,8 @@ function normalizeProduct(item: any): any {
       (data.barcode || data.Barcode ? [data.barcode || data.Barcode] : []),
     categoryId: String(data.categoryId || data.CategoryId || ''),
     composite: !!(data.composite || data.Composite),
+    validityDays: data.validityDays !== undefined ? Number(data.validityDays) : (data.ValidityDays !== undefined ? Number(data.ValidityDays) : 0),
+    integrateScale: !!(data.integrateScale || data.IntegrateScale),
     componentProducts: (data.componentProducts || data.ComponentProducts || []).map((cp: any) => ({
       componentProductId: String(cp.componentProductId || cp.ComponentProductId || ''),
       componentProductDescription:
@@ -255,7 +257,16 @@ export async function genericPush<
 
       if (item.syncStatus === 'pending-delete') {
         // DELETE: Remove item from server and local database
-        await apiRequest(`${endpoint}/${itemId}`, 'DELETE');
+        try {
+          await apiRequest(`${endpoint}/${itemId}`, 'DELETE');
+        } catch (err: any) {
+          // If the item doesn't exist on the server (404), we can treat it as successfully deleted
+          if (err.message?.includes('404') || err.message?.toLowerCase().includes('not found')) {
+            console.warn(`[SYNC] Item ${itemId} not found on server during delete. Deleting locally.`);
+          } else {
+            throw err;
+          }
+        }
         await table.delete(itemId);
       } else if (item.syncStatus === 'pending-create') {
         // CREATE: Send new item to server (POST)
@@ -283,13 +294,19 @@ export async function genericPush<
       }
     } catch (err: any) {
       const { syncStatus, ...toSend } = item as any;
+      let errorResponse = '';
+      try {
+        errorResponse = JSON.parse((err as Error).message);
+      } catch {
+        errorResponse = (err as Error).message || String(err);
+      }
       db.syncLogs.put({
         id: crypto.randomUUID(),
         entity: table.name,
         action: syncStatus,
         url: `${endpoint}/${item.id}`,
         payload: toSend,
-        response: JSON.parse((err as Error).message),
+        response: errorResponse,
       });
     }
   }

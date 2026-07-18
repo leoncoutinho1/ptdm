@@ -56,6 +56,8 @@ interface Product extends Syncable {
   barcodes: string[];
   categoryId: string;
   composite: boolean;
+  validityDays?: number;
+  integrateScale?: boolean;
   componentProducts?: {
     componentProductId: string;
     componentProductDescription?: string;

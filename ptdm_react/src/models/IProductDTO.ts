@@ -11,4 +11,6 @@ export interface IProductDTO {
     isActive: boolean;
     barcodes: string[];
     categoryId?: string | number;
+    validityDays?: number;
+    integrateScale?: boolean;
 }

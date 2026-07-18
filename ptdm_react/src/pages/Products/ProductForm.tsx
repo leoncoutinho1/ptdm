@@ -27,6 +27,8 @@ interface ProductFormValues {
   barcodes: string[];
   categoryId: string;
   composite: boolean;
+  validityDays: number;
+  integrateScale: boolean;
   componentProducts: ProductComposition[];
 }
 
@@ -58,6 +60,8 @@ export function ProductForm() {
       barcodes: [],
       categoryId: '',
       composite: false,
+      validityDays: 0,
+      integrateScale: false,
       componentProducts: []
     }
   });
@@ -88,6 +92,8 @@ export function ProductForm() {
           : (product?.barcodes ? [String(product.barcodes)].filter(b => b.trim() !== '') : []),
         categoryId: String(product.categoryId ?? ''),
         composite: Boolean((product as any).composite ?? false),
+        validityDays: Number((product as any).validityDays ?? 0),
+        integrateScale: Boolean((product as any).integrateScale ?? false),
         componentProducts: Array.isArray((product as any).componentProducts) ? (product as any).componentProducts : []
       });
       return;
@@ -106,6 +112,8 @@ export function ProductForm() {
             barcodes: Array.isArray(found.barcodes) ? found.barcodes.filter(b => b.trim() !== '') : [],
             categoryId: String(found.categoryId ?? ''),
             composite: Boolean((found as any).composite ?? false),
+            validityDays: Number((found as any).validityDays ?? 0),
+            integrateScale: Boolean((found as any).integrateScale ?? false),
             componentProducts: Array.isArray((found as any).componentProducts) ? (found as any).componentProducts : []
           });
         }
@@ -420,7 +428,16 @@ export function ProductForm() {
                   onBlur={handlePriceBlur}
                 />
               </Grid.Col>
-              <Grid.Col span={2}></Grid.Col>
+              <Grid.Col span={2}>
+                <NumberInput
+                  label="Validade (dias)"
+                  placeholder="Dias"
+                  {...form.getInputProps('validityDays')}
+                  min={0}
+                  decimalScale={0}
+                  onFocus={(e) => e.target.select()}
+                />
+              </Grid.Col>
               <Grid.Col span={2}>
                 <NumberInput
                   label="Quantidade"
@@ -496,10 +513,10 @@ export function ProductForm() {
               </Grid.Col>
             </Grid>
 
-            {/* Seção de Produto Composto */}
+            {/* Seção de Produto Composto e Integrações */}
             <Grid>
               <Grid.Col span={12}>
-                <Group align="flex-end" gap="md">
+                <Group align="flex-end" gap="xl">
                   <Checkbox
                     label="Produto Composto"
                     {...form.getInputProps('composite', { type: 'checkbox' })}
@@ -513,6 +530,11 @@ export function ProductForm() {
                       Compor ({form.values.componentProducts.length} {form.values.componentProducts.length === 1 ? 'item' : 'itens'})
                     </Button>
                   )}
+
+                  <Checkbox
+                    label="Integrar na Balança"
+                    {...form.getInputProps('integrateScale', { type: 'checkbox' })}
+                  />
                 </Group>
               </Grid.Col>
             </Grid>

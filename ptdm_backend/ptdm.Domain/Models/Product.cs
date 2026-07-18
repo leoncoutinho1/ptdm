@@ -18,6 +18,9 @@ public class Product : BaseModel
     /// Indica se este produto é um produto composto (formado por outros produtos)
     /// </summary>
     public bool Composite { get; set; } = false;
+
+    public int ValidityDays { get; set; } = 0;
+    public bool IntegrateScale { get; set; } = false;
   
     public Guid? CategoryId { get; set; }
     public virtual Category? Category { get; set; }
@@ -55,6 +58,8 @@ public class Product : BaseModel
             ImageUrl = p.ImageUrl,
             IsActive = p.IsActive,
             Composite = p.Composite,
+            ValidityDays = p.ValidityDays,
+            IntegrateScale = p.IntegrateScale,
             Barcodes = p.Barcodes.Select(x => x.Code).ToList(),
             ComponentProducts = p.ComponentProducts?.Select(cp => new ProductCompositionDTO
             {
