@@ -212,36 +212,36 @@ export function SaleForm() {
                 return;
             }
             
-            const trimmed = value.trim();
+            const trimmed = value.trim().replace(',', '.');
+            
             let parsedQty = 1;
             let parsedSearch = trimmed;
 
             if (trimmed.includes('*')) {
                 const parts = trimmed.split('*');
-                const qtyPart = parts[0].trim();
-                const codePart = parts.slice(1).join('*').trim();
-                parsedQty = Number(qtyPart) || 1;
+                const qtyPart = Number(parts[0]);
+                const codePart = parts[1];
+                parsedQty = qtyPart;
                 parsedSearch = codePart;
             }
 
             const isEan13 = parsedSearch.length === 13 && /^\d+$/.test(parsedSearch);
-            const startsWith2 = parsedSearch.startsWith('2');
-            const startsWith5 = parsedSearch.startsWith('5');
-
-            if (isEan13 && startsWith2 || startsWith5)
+            
+            if (isEan13)
             {
-                parsedQty = 
-                    startsWith5 
-                        ? Number(parsedSearch.substring(7, 12)) / 1000
-                        : Number(parsedSearch.substring(7, 12)); 
+                const startsWith2 = parsedSearch.startsWith('2');
+                const startsWith5 = parsedSearch.startsWith('5');
 
-                parsedSearch = parsedSearch.substring(1, 6).replace(/^0+/, '');                   
+                if (startsWith2 || startsWith5) {
+                    parsedQty = 
+                        startsWith5 
+                            ? Number(parsedSearch.substring(7, 12)) / 1000
+                            : Number(parsedSearch.substring(7, 12)); 
+
+                    parsedSearch = parsedSearch.substring(1, 6).replace(/^0+/, ''); 
+                }
             }
             
-                
-            console.log(parsedSearch);
-            console.log(parsedQty);
-  
             searchTermRef.current = parsedSearch;
             
             await searchProducts(parsedSearch, parsedQty);
