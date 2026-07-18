@@ -25,7 +25,6 @@ export function SaleForm() {
     const isViewMode = !!id;
 
     // Refs para navegação por teclado
-    const quantityRef = useRef<HTMLInputElement>(null);
     const productSelectRef = useRef<HTMLInputElement>(null);
     const paidValueRef = useRef<HTMLInputElement>(null);
     const saveSaleRef = useRef<HTMLButtonElement>(null);
@@ -37,7 +36,7 @@ export function SaleForm() {
     const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [productOptions, setProductOptions] = useState<Product[]>([]);
-    const [quantity, setQuantity] = useState(0);
+    const [quantity, setQuantity] = useState<number>(1);
     const [amountPaid, setAmountPaid] = useState(0);
     const [selectedProductValue, setSelectedProductValue] = useState<string | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
@@ -131,9 +130,8 @@ export function SaleForm() {
         if (!isViewMode && form.values.checkoutId) { localStorage.setItem('saleForm_checkoutId', form.values.checkoutId) };
     }, [form.values.checkoutId, isViewMode]);
 
-    const searchProducts = async (qtyOverride?: number): Promise<boolean> => {
-        const currentTerm = searchTermRef.current;
-        if (!currentTerm || currentTerm.length < 1) {
+    const searchProducts = async (term: string, qty: number): Promise<boolean> => {
+        if (!term || term.length < 1) {
             setProductOptions([]);
             return false;
         }
@@ -141,16 +139,21 @@ export function SaleForm() {
         const currentSearchId = ++searchIdRef.current;
         
         try {
-            const lowerSearch = currentTerm.toLowerCase();
+            const lowerSearch = term.toLowerCase();
+            
             const foundById = await db.products
                 .filter(p =>
-                    (Array.isArray(p.barcodes) && p.barcodes.some(b => b.toLowerCase() === lowerSearch))
+                    (Array.isArray(p.barcodes) && p.barcodes.some(b => 
+                        b.toLowerCase() === lowerSearch
+                    ))
                 ).toArray();
 
             if (currentSearchId !== searchIdRef.current) { return false };
 
             if (foundById.length === 1) {
-                addProductToSale(foundById[0], qtyOverride);
+                const product = foundById[0];
+                                
+                addProductToSale(product, qty);
                 return true;
             }
 
@@ -174,12 +177,13 @@ export function SaleForm() {
                     title: 'Produto não encontrado',
                     message: 'Nenhum produto encontrado com o código de barras ou descrição informada.',
                 });
-                setSearchTerm('');
+                
                 return false;
             }
             
             if (currentSearchId !== searchIdRef.current) { return false };
             setProductOptions(foundByDescription);
+            setQuantity(qty);
             return true;
         } catch (err) {
             if (currentSearchId !== searchIdRef.current) { return false };
@@ -190,78 +194,58 @@ export function SaleForm() {
 
 
     useEffect(() => {
-        if (!isViewMode && quantityRef.current) {
-            quantityRef.current.focus();
-            quantityRef.current.select();
+        if (!isViewMode && productSelectRef.current) {
+            productSelectRef.current.focus();
+            productSelectRef.current.select();
         }
     }, [isViewMode]);
-
-    const onBlurQuantity = () => {
-        if (quantity > 1000000) {
-            setQuantity(0);
-            notifications.show({ color: 'red', title: 'Atenção', message: 'A quantidade informada é inválida!' });
-            quantityRef.current?.focus();
-        }
-    }
-
-    const handleQuantityKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const target = e.target as HTMLInputElement;
-            const value = target.value || '';
-            const startsWith2 = value.startsWith('2');
-            const startsWith5 = value.startsWith('5');
-            if (value.length === 13 && (startsWith2 || startsWith5)) {
-                let parsedQty = Number(value.substring(6, 12));
-                if (startsWith5) {
-                    parsedQty = parsedQty / 1000;
-                }
-                const parsedSearch = value.substring(1, 6).replace(/^0+/, '');
-                setQuantity(parsedQty);
-                setSearchTerm(parsedSearch);
-                searchTermRef.current = parsedSearch;
-                const found = await searchProducts(parsedQty);
-                if (!found) {
-                    setQuantity(0);
-                    quantityRef.current?.focus();
-                    quantityRef.current?.select();
-                }
-            } else {
-                productSelectRef.current?.focus();
-            }
-        }
-    };
 
     const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             const target = e.target as HTMLInputElement;
             const value = target.value || '';
-            const startsWith2 = value.startsWith('2');
-            const startsWith5 = value.startsWith('5');
-            if (value.length === 13 && (startsWith2 || startsWith5)) {
-                let parsedQty = Number(value.substring(6, 12));
-                if (startsWith5) {
-                    parsedQty = parsedQty / 1000;
-                }
-                const parsedSearch = value.substring(1, 6).replace(/^0+/, '');
-                setQuantity(parsedQty);
-                setSearchTerm(parsedSearch);
-                searchTermRef.current = parsedSearch;
-                const found = await searchProducts(parsedQty);
-                if (!found) {
-                    setQuantity(0);
-                    quantityRef.current?.focus();
-                    quantityRef.current?.select();
-                }
-            } else {
-                if (quantity <= 0 && saleItems.length > 0) {
-                    discountRef.current?.focus();
-                    setTimeout(() => discountRef.current?.select(), 100);
-                    return;
-                }
-                searchProducts();
+            
+            if (!value.trim() && saleItems.length > 0) {
+                discountRef.current?.focus();
+                setTimeout(() => discountRef.current?.select(), 100);
+                return;
             }
+            
+            const trimmed = value.trim();
+            let parsedQty = 1;
+            let parsedSearch = trimmed;
+
+            if (trimmed.includes('*')) {
+                const parts = trimmed.split('*');
+                const qtyPart = parts[0].trim();
+                const codePart = parts.slice(1).join('*').trim();
+                parsedQty = Number(qtyPart) || 1;
+                parsedSearch = codePart;
+            }
+
+            const isEan13 = parsedSearch.length === 13 && /^\d+$/.test(parsedSearch);
+            const startsWith2 = parsedSearch.startsWith('2');
+            const startsWith5 = parsedSearch.startsWith('5');
+
+            if (isEan13 && startsWith2 || startsWith5)
+            {
+                parsedQty = 
+                    startsWith5 
+                        ? Number(parsedSearch.substring(7, 12)) / 1000
+                        : Number(parsedSearch.substring(7, 12)); 
+
+                parsedSearch = parsedSearch.substring(1, 6).replace(/^0+/, '');                   
+            }
+            
+                
+            console.log(parsedSearch);
+            console.log(parsedQty);
+  
+            searchTermRef.current = parsedSearch;
+            
+            await searchProducts(parsedSearch, parsedQty);
+            productSelectRef.current?.focus();
         }
     };
 
@@ -295,11 +279,11 @@ export function SaleForm() {
     const handleProductSelect = (productId: string | null) => {
         if (productId) {
             const product = productOptions.find(p => String(p.id) === productId);
-            addProductToSale(product);
+            addProductToSale(product, quantity);
         }
     };
 
-    const addProductToSale = (product?: Product, qtyOverride?: number) => {
+    const addProductToSale = (product: Product, qty: number) => {
         const item = product;
         const itemId = product?.id;
 
@@ -308,9 +292,7 @@ export function SaleForm() {
             return;
         }
 
-        const activeQty = qtyOverride !== undefined ? qtyOverride : quantity;
-
-        if (activeQty <= 0) {
+        if (qty <= 0) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'Quantidade deve ser maior que zero' });
             return;
         }
@@ -319,16 +301,16 @@ export function SaleForm() {
 
         if (existingItemIndex >= 0) {
             const updatedItems = [...saleItems];
-            updatedItems[existingItemIndex].quantity += activeQty;
+            updatedItems[existingItemIndex].quantity += qty;
             updatedItems[existingItemIndex].totalPrice = updatedItems[existingItemIndex].quantity * updatedItems[existingItemIndex].unitPrice;
             setSaleItems(updatedItems);
         } else {
             const newItem: SaleItem = {
                 productId: itemId!,
                 product: item,
-                quantity: activeQty,
+                quantity: qty,
                 unitPrice: item.price,
-                totalPrice: activeQty * item.price,
+                totalPrice: qty * item.price,
                 order: (saleItems.length + 1)
             };
             setSaleItems([...saleItems, newItem]);
@@ -339,17 +321,15 @@ export function SaleForm() {
         searchTermRef.current = '';
         setProductOptions([]);
         setSelectedProductValue(null);
-        setQuantity(0);
-        quantityRef.current?.focus();
-        setTimeout(() => quantityRef.current?.select(), 100);
+        productSelectRef.current?.focus();
+        setTimeout(() => productSelectRef.current?.select(), 100);
     };  
 
     const removeItem = (productId: string) => {
         setSaleItems(saleItems.filter(item => item.productId !== productId));
         setAmountPaid(0);
-        quantityRef.current?.focus();
-        setQuantity(0);
-        setTimeout(() => quantityRef.current?.select(), 100);
+        productSelectRef.current?.focus();
+        setTimeout(() => productSelectRef.current?.select(), 100);
     };
 
     const handleUpdateQuantity = (productId: string, newQty: number) => {
@@ -375,7 +355,7 @@ export function SaleForm() {
         setEditingProductId(null);
         setAmountPaid(0);
         setDiscount(0);
-        quantityRef.current?.focus();
+        productSelectRef.current?.focus();
     };
 
     const itemsTotal = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -441,7 +421,7 @@ export function SaleForm() {
                 cancelLabel: 'Não',
                 confirmColor: 'blue',
                 onConfirm: () => resetForm(),
-                onCancel: () => quantityRef.current?.focus()
+                onCancel: () => productSelectRef.current?.focus()
             });
         }
     };
@@ -461,7 +441,7 @@ export function SaleForm() {
             cancelLabel: 'Não',
             confirmColor: 'blue',
             onConfirm: handlePrint,
-            onCancel: () => quantityRef.current?.focus()
+            onCancel: () => productSelectRef.current?.focus()
         });
     };
 
@@ -472,16 +452,14 @@ export function SaleForm() {
         setSearchTerm('');
         searchTermRef.current = '';
         setProductOptions([]);
-        setQuantity(0);
         setDiscount(0);
         if (isViewMode) {
             navigate('/sales');
         }
-        quantityRef.current?.focus();
+        productSelectRef.current?.focus();
     };
 
     const handlePrint = async () => {
-        quantityRef.current?.focus();
         const encoder = new ReceiptPrinterEncoder({ language: 'esc-pos', width: 48 });
         const result = encoder.initialize()
             .align('left')
@@ -555,6 +533,7 @@ export function SaleForm() {
         } else {
             throw new Error('Falha ao enviar para impressora via API');
         }
+        productSelectRef.current?.focus();
     };
 
     return (
@@ -616,20 +595,9 @@ export function SaleForm() {
 
                             {!isViewMode && (
                                 <Group align="flex-end" style={{ flexShrink: 0 }}>
-                                    <NumberInput 
-                                        label="Qtd" 
-                                        value={quantity} 
-                                        onChange={(val) => setQuantity(Number(val) || 0)} 
-                                        min={0} 
-                                        style={{ width: 80 }} 
-                                        ref={quantityRef} 
-                                        onFocus={(e) => setTimeout(() => e.target.select(), 100)}
-                                        onClick={(e) => setTimeout(() => (e.target as HTMLInputElement).select(), 100)}
-                                        onBlur={onBlurQuantity}
-                                        onKeyDown={handleQuantityKeyDown} />
                                     <Select
-                                        label="Buscar Produto"
-                                        placeholder="Pesquisar..."
+                                        label="Produto"
+                                        placeholder="Digite o código (ex: 3*123 ou 123) ou descrição..."
                                         searchable
                                         searchValue={searchTerm}
                                         value={selectedProductValue}
@@ -688,7 +656,7 @@ export function SaleForm() {
                                                                     handleUpdateQuantity(item.productId, editingValue);
                                                                 } else if (e.key === 'Escape') {
                                                                     setEditingProductId(null);
-                                                                    quantityRef.current?.focus();
+                                                                    productSelectRef.current?.focus();
                                                                 }
                                                             }}
                                                             onBlur={() => handleUpdateQuantity(item.productId, editingValue)}
