@@ -279,6 +279,7 @@ export function SaleForm() {
     const handleProductSelect = (productId: string | null) => {
         if (productId) {
             const product = productOptions.find(p => String(p.id) === productId);
+            if (!product) return;
             addProductToSale(product, quantity);
         }
     };
