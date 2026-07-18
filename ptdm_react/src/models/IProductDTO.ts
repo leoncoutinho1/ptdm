@@ -13,4 +13,5 @@ export interface IProductDTO {
     categoryId?: string | number;
     validityDays?: number;
     integrateScale?: boolean;
+    mainBarcode?: string;
 }

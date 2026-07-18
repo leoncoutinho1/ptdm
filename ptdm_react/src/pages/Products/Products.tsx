@@ -113,7 +113,11 @@ export function Products() {
               products.map((p) => (
                 <Table.Tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/products/${p.id}`, { state: { product: p } })}>
                   <Table.Td>{p.description}</Table.Td>
-                  <Table.Td>{Array.isArray(p.barcodes) ? p.barcodes.join(', ') : (p as any).barcode}</Table.Td>
+                  <Table.Td>
+                    {Array.isArray(p.barcodes)
+                      ? p.barcodes.map(b => b === p.mainBarcode ? `${b} ⭐` : b).join(', ')
+                      : (p as any).barcode}
+                  </Table.Td>
                   <Table.Td>{formatCurrency(p.cost)}</Table.Td>
                   <Table.Td>{formatCurrency(p.price)}</Table.Td>
                   <Table.Td>{p.quantity}</Table.Td>

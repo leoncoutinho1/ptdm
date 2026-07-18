@@ -46,7 +46,7 @@ public class ReportService : IReportService
                 CategoryDescription = g.Key,
                 Products = g.Select(p => new ProductReportItemDTO
                 {
-                    Barcode = p.Barcodes.FirstOrDefault()?.Code ?? "",
+                    Barcode = !string.IsNullOrWhiteSpace(p.MainBarcode) ? p.MainBarcode : (p.Barcodes.FirstOrDefault()?.Code ?? ""),
                     Description = p.Description,
                     Quantity = p.Quantity,
                     Cost = p.Cost,

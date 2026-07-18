@@ -127,6 +127,7 @@ function normalizeProduct(item: any): any {
     composite: !!(data.composite || data.Composite),
     validityDays: data.validityDays !== undefined ? Number(data.validityDays) : (data.ValidityDays !== undefined ? Number(data.ValidityDays) : 0),
     integrateScale: !!(data.integrateScale || data.IntegrateScale),
+    mainBarcode: data.mainBarcode || data.MainBarcode || '',
     componentProducts: (data.componentProducts || data.ComponentProducts || []).map((cp: any) => ({
       componentProductId: String(cp.componentProductId || cp.ComponentProductId || ''),
       componentProductDescription:

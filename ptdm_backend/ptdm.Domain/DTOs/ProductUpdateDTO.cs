@@ -17,6 +17,7 @@ public class ProductUpdateDTO
     public bool Composite { get; set; } = false;
     public int ValidityDays { get; set; } = 0;
     public bool IntegrateScale { get; set; } = false;
+    public string? MainBarcode { get; set; } = string.Empty;
     public virtual ICollection<string> Barcodes { get; set; }
     public List<ProductCompositionInsertDTO>? ComponentProducts { get; set; }
 
@@ -37,6 +38,7 @@ public class ProductUpdateDTO
             Composite = dto.Composite,
             ValidityDays = dto.ValidityDays,
             IntegrateScale = dto.IntegrateScale,
+            MainBarcode = dto.MainBarcode,
             Barcodes = dto.Barcodes,
             ComponentProducts = dto.ComponentProducts.Select(x => new ProductCompositionDTO
             {

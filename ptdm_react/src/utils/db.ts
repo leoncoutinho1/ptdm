@@ -58,6 +58,7 @@ interface Product extends Syncable {
   composite: boolean;
   validityDays?: number;
   integrateScale?: boolean;
+  mainBarcode?: string;
   componentProducts?: {
     componentProductId: string;
     componentProductDescription?: string;

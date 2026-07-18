@@ -119,6 +119,13 @@ namespace ptdm.Service.Services
                 if (product.Barcodes.Count == existCodes.Count)
                     return Error.Failure(description: "O código informado já existe para outro produto");
 
+                var cleanBarcodes = product.Barcodes.Where(b => !string.IsNullOrWhiteSpace(b)).ToList();
+                string? mainBarcode = product.MainBarcode;
+                if (string.IsNullOrWhiteSpace(mainBarcode) || !cleanBarcodes.Contains(mainBarcode))
+                {
+                    mainBarcode = cleanBarcodes.FirstOrDefault();
+                }
+
                 Product p = new Product
                 {
                     Description = product.Description,
@@ -130,6 +137,7 @@ namespace ptdm.Service.Services
                     Composite = product.Composite,
                     ValidityDays = product.ValidityDays,
                     IntegrateScale = product.IntegrateScale,
+                    MainBarcode = mainBarcode,
                     CreatedBy = GetUserId(),
                     UpdatedBy = GetUserId()
                 };
@@ -201,6 +209,13 @@ namespace ptdm.Service.Services
                 return Error.NotFound(description: "Product not found");
             }
 
+            var cleanBarcodes = product.Barcodes.Where(b => !string.IsNullOrWhiteSpace(b)).ToList();
+            string? mainBarcode = product.MainBarcode;
+            if (string.IsNullOrWhiteSpace(mainBarcode) || !cleanBarcodes.Contains(mainBarcode))
+            {
+                mainBarcode = cleanBarcodes.FirstOrDefault();
+            }
+
             p.Description = product.Description;
             p.Cost = product.Cost;
             p.ProfitMargin = product.ProfitMargin;
@@ -210,6 +225,7 @@ namespace ptdm.Service.Services
             p.Composite = product.Composite;
             p.ValidityDays = product.ValidityDays;
             p.IntegrateScale = product.IntegrateScale;
+            p.MainBarcode = mainBarcode;
             p.UpdatedBy = GetUserId();
             p.UpdatedAt = DateTime.UtcNow;
 

@@ -21,6 +21,7 @@ public class Product : BaseModel
 
     public int ValidityDays { get; set; } = 0;
     public bool IntegrateScale { get; set; } = false;
+    public string? MainBarcode { get; set; } = string.Empty;
   
     public Guid? CategoryId { get; set; }
     public virtual Category? Category { get; set; }
@@ -60,6 +61,7 @@ public class Product : BaseModel
             Composite = p.Composite,
             ValidityDays = p.ValidityDays,
             IntegrateScale = p.IntegrateScale,
+            MainBarcode = p.MainBarcode,
             Barcodes = p.Barcodes.Select(x => x.Code).ToList(),
             ComponentProducts = p.ComponentProducts?.Select(cp => new ProductCompositionDTO
             {

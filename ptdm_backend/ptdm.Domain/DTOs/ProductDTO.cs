@@ -22,6 +22,7 @@ public class ProductDTO
     public bool Composite { get; set; } = false;
     public int ValidityDays { get; set; } = 0;
     public bool IntegrateScale { get; set; } = false;
+    public string? MainBarcode { get; set; } = string.Empty;
     public virtual ICollection<string> Barcodes { get; set; }
     public virtual ICollection<ProductCompositionDTO>? ComponentProducts { get; set; }
 }

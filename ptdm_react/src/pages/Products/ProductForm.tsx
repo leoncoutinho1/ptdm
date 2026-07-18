@@ -29,6 +29,7 @@ interface ProductFormValues {
   composite: boolean;
   validityDays: number;
   integrateScale: boolean;
+  mainBarcode: string;
   componentProducts: ProductComposition[];
 }
 
@@ -62,6 +63,7 @@ export function ProductForm() {
       composite: false,
       validityDays: 0,
       integrateScale: false,
+      mainBarcode: '',
       componentProducts: []
     }
   });
@@ -94,6 +96,7 @@ export function ProductForm() {
         composite: Boolean((product as any).composite ?? false),
         validityDays: Number((product as any).validityDays ?? 0),
         integrateScale: Boolean((product as any).integrateScale ?? false),
+        mainBarcode: String((product as any).mainBarcode ?? ''),
         componentProducts: Array.isArray((product as any).componentProducts) ? (product as any).componentProducts : []
       });
       return;
@@ -114,6 +117,7 @@ export function ProductForm() {
             composite: Boolean((found as any).composite ?? false),
             validityDays: Number((found as any).validityDays ?? 0),
             integrateScale: Boolean((found as any).integrateScale ?? false),
+            mainBarcode: String((found as any).mainBarcode ?? ''),
             componentProducts: Array.isArray((found as any).componentProducts) ? (found as any).componentProducts : []
           });
         }
@@ -174,14 +178,22 @@ export function ProductForm() {
       }
 
       const currentBarcodes = form.values.barcodes.filter(b => b.trim() !== '');
-      form.setFieldValue('barcodes', [...currentBarcodes, barcode.trim()]);
+      const newBarcodeClean = barcode.trim();
+      form.setFieldValue('barcodes', [...currentBarcodes, newBarcodeClean]);
+      if (!form.values.mainBarcode || currentBarcodes.length === 0) {
+        form.setFieldValue('mainBarcode', newBarcodeClean);
+      }
       setBarcodeInput('');
     }
   };
 
   const removeBarcode = (index: number) => {
+    const codeToRemove = form.values.barcodes[index];
     const next = form.values.barcodes.filter((_, i) => i !== index);
     form.setFieldValue('barcodes', next.length ? next : []);
+    if (form.values.mainBarcode === codeToRemove) {
+      form.setFieldValue('mainBarcode', next[0] ?? '');
+    }
   };
 
   const handleBarcodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -487,8 +499,16 @@ export function ProductForm() {
                             key={originalIdx}
                             withRemoveButton
                             onRemove={() => removeBarcode(originalIdx)}
+                            style={{
+                              cursor: 'pointer',
+                              border: form.values.mainBarcode === code ? '1.5px solid var(--mantine-color-blue-filled)' : '1px solid var(--mantine-color-gray-3)',
+                              backgroundColor: form.values.mainBarcode === code ? 'var(--mantine-color-blue-light)' : undefined,
+                              fontWeight: form.values.mainBarcode === code ? 'bold' : 'normal',
+                            }}
+                            onClick={() => form.setFieldValue('mainBarcode', code)}
+                            title="Clique para definir como principal"
                           >
-                            {code}
+                            {code} {form.values.mainBarcode === code ? '★' : '☆'}
                           </Pill>
                         ))}
                     </Pill.Group>

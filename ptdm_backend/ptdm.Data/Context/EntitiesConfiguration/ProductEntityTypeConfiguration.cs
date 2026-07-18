@@ -21,6 +21,7 @@ namespace ptdm.Data.Context.EntitiesConfiguration
             builder.Property(p => p.Composite).IsRequired();
             builder.Property(p => p.ValidityDays).IsRequired().HasDefaultValue(0);
             builder.Property(p => p.IntegrateScale).IsRequired().HasDefaultValue(false);
+            builder.Property(p => p.MainBarcode).HasMaxLength(50);
         }
     }
 }
