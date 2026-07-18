@@ -22,6 +22,7 @@ import { SaleForm } from './pages/Sales/SaleForm';
 import { SaleList } from './pages/Sales/SaleList';
 import { ProductsReport } from './pages/Reports/Products/ProductsReport';
 import { SalesReport } from './pages/Reports/Sales/SalesReport';
+import { ExportScale } from './pages/Reports/ExportScale/ExportScale';
 
 // Redirect root to login if not handled by router
 if (window.location.pathname === '/stock' || window.location.pathname === '/stock/') {
@@ -52,6 +53,7 @@ const router = createBrowserRouter([
       // Reports routes
       { path: '/reports/ProductsReport', element: <ProductsReport /> },
       { path: '/reports/SalesReport', element: <SalesReport /> },
+      { path: '/reports/exportScale', element: <ExportScale /> },
 
       // Settings routes
       { path: '/settings', element: <Settings /> },

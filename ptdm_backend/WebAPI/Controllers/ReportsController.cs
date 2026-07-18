@@ -104,4 +104,26 @@ public class ReportsController : ControllerBase
             return BadRequest(new { error = "Erro ao obter dados do relatório de vendas", message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Gera arquivo de texto cadtxt.txt com produtos integrados com a balança no padrão Filizola
+    /// </summary>
+    /// <returns>Arquivo de texto cadtxt.txt</returns>
+    [HttpGet("filizola/cadtxt")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult GenerateFilizolaProductsTextFile()
+    {
+        try
+        {
+            var txtBytes = _reportService.GenerateFilizolaProductsTextFile();
+            var fileName = "cadtxt.txt";
+            
+            return File(txtBytes, "text/plain", fileName);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Erro ao gerar arquivo de balança", message = ex.Message });
+        }
+    }
 }

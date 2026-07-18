@@ -31,4 +31,10 @@ public interface IReportService
     /// <param name="request">Filtros do relatório (datas e categorias)</param>
     /// <returns>Bytes do arquivo PDF</returns>
     byte[] GenerateSaleReport(SaleReportRequestDTO request);
+
+    /// <summary>
+    /// Gera arquivo de texto com produtos integrados com a balança no padrão Filizola (cadtxt.txt)
+    /// </summary>
+    /// <returns>Bytes do arquivo de texto</returns>
+    byte[] GenerateFilizolaProductsTextFile();
 }

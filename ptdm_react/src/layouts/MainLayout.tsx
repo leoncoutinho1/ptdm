@@ -3,7 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { Link, useNavigate } from 'react-router-dom';
 import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Package, ShoppingCart, BarChart3, Settings, CreditCard, Users, FolderTree, Monitor, LogOut, Truck, Receipt } from 'lucide-react';
+import { Package, ShoppingCart, BarChart3, Settings, CreditCard, Users, FolderTree, Monitor, LogOut, Truck, Receipt, Scale } from 'lucide-react';
 import { ColorSchemeToggle } from '@/components/ColorSchemeToggle/ColorSchemeToggle';
 import { db } from '@/utils/db';
 
@@ -79,6 +79,13 @@ export function MainLayout({ children }: { children: ReactNode }) {
                 label="Vendas por dia/categoria"
                 onClick={() => toggle()}
                 leftSection={<ShoppingCart size={16} />}
+              />
+              <NavLink
+                component={Link}
+                to="/reports/exportScale"
+                label="Exportar produtos para balança"
+                onClick={() => toggle()}
+                leftSection={<Scale size={18} />}
               />
             </NavLink>
             <NavLink label="Configurações" leftSection={<Settings size={18} />}>

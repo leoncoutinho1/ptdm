@@ -432,4 +432,81 @@ public class ReportService : IReportService
             .BorderColor(Colors.Grey.Lighten2)
             .PaddingVertical(5);
     }
+
+    public byte[] GenerateFilizolaProductsTextFile()
+    {
+        var products = _context.Products
+            .Include(p => p.Barcodes)
+            .Where(p => p.IntegrateScale == true)
+            .AsNoTracking()
+            .ToList();
+
+        var sb = new System.Text.StringBuilder();
+
+        foreach (var p in products)
+        {
+            // Código do Produto (Posição 01 a 06): 6 dígitos numéricos, zeros à esquerda
+            var numericCode = new string((p.MainBarcode ?? "").Where(char.IsDigit).ToArray());
+            if (numericCode.Length > 6)
+            {
+                numericCode = numericCode.Substring(numericCode.Length - 6);
+            }
+            var productCode = numericCode.PadLeft(6, '0');
+
+            // Tipo de Venda (Posição 07): P para pesáveis (KG) ou U para unidade
+            var saleType = (p.Unit?.ToUpper() == "KG") ? "P" : "U";
+
+            // Descrição (Posição 08 a 29): 22 caracteres, espaços à direita, sem acentos
+            var cleanDesc = RemoveAccents(p.Description ?? "");
+            if (cleanDesc.Length > 22)
+            {
+                cleanDesc = cleanDesc.Substring(0, 22);
+            }
+            var description = cleanDesc.PadRight(22, ' ');
+
+            // Preço por Quilo/Unidade (Posição 30 a 36): 7 dígitos, sem vírgula/ponto, com centavos
+            var centsPrice = (int)Math.Round(p.Price * 100);
+            var formattedPrice = centsPrice.ToString("D7");
+            if (formattedPrice.Length > 7)
+            {
+                formattedPrice = formattedPrice.Substring(formattedPrice.Length - 7);
+            }
+
+            // Dias de Validade (Posição 37 a 39): 3 dígitos, zeros à esquerda
+            var validity = p.ValidityDays;
+            var formattedValidity = validity.ToString("D3");
+            if (formattedValidity.Length > 3)
+            {
+                formattedValidity = formattedValidity.Substring(formattedValidity.Length - 3);
+            }
+
+            // Montar linha (Exatamente 39 caracteres)
+            sb.Append(productCode)
+              .Append(saleType)
+              .Append(description)
+              .Append(formattedPrice)
+              .Append(formattedValidity)
+              .Append("\r\n");
+        }
+
+        return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static string RemoveAccents(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        var normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+        var stringBuilder = new System.Text.StringBuilder();
+
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC);
+    }
 }
