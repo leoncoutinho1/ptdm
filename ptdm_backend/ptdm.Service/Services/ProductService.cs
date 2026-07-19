@@ -108,6 +108,11 @@ namespace ptdm.Service.Services
         {
             using var transaction = _context.Database.BeginTransaction();
             try {
+                if (string.IsNullOrWhiteSpace(product.Unit))
+                {
+                    return Error.Failure(description: "A unidade é obrigatória.");
+                }
+
                 if (!product.Barcodes.Any() ||
                     (product.Barcodes.Count() == 1 && product.Barcodes.First() == String.Empty)
                 )
@@ -133,6 +138,7 @@ namespace ptdm.Service.Services
                     ProfitMargin = product.Cost * 100 / product.Price,
                     Price = product.Price,
                     Quantity = product.Quantity,
+                    Unit = product.Unit,
                     CategoryId = product.CategoryId,
                     Composite = product.Composite,
                     ValidityDays = product.ValidityDays,
@@ -200,6 +206,9 @@ namespace ptdm.Service.Services
 
         public ErrorOr<ProductDTO> Update(ProductDTO product)
         {
+            if (string.IsNullOrWhiteSpace(product.Unit))
+                return Error.Failure(description: "A unidade é obrigatória.");
+
             if (!product.Barcodes.Any())
                 return Error.Failure(description: "É necessário informar ao menos um código");
 

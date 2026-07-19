@@ -211,6 +211,10 @@ export function SaleForm() {
                 setTimeout(() => discountRef.current?.select(), 100);
                 return;
             }
+
+            if (!value.trim() && saleItems.length === 0) {
+                return;
+            }
             
             const trimmed = value.trim().replace(',', '.');
             

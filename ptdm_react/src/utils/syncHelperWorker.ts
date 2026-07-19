@@ -118,7 +118,7 @@ function normalizeProduct(item: any): any {
     profitMargin: data.profitMargin !== undefined ? data.profitMargin : data.ProfitMargin,
     price: data.price !== undefined ? data.price : data.Price,
     quantity: data.quantity !== undefined ? data.quantity : data.Quantity,
-    unit: data.unit || data.Unit || 'UN',
+    unit: data.unit !== undefined && data.unit !== null ? data.unit : (data.Unit !== undefined && data.Unit !== null ? data.Unit : ''),
     barcodes:
       data.barcodes ||
       data.Barcodes ||

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ptdm.Domain.DTOs;
 
 public class ProductInsertDTO
@@ -8,6 +10,8 @@ public class ProductInsertDTO
     public Double Price { get; set; }
     public Double ProfitMargin { get; set; }
     public Double Quantity { get; set; }
+
+    [Required(AllowEmptyStrings = false, ErrorMessage = "A unidade é obrigatória.")]
     public string Unit { get; set; } = String.Empty;
     public Guid? CategoryId { get; set; }
     public string? ImageUrl { get; set; } = String.Empty;
