@@ -509,4 +509,19 @@ public class ReportService : IReportService
 
         return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC);
     }
+
+    public List<ScaleProductDTO> GetFilizolaProducts()
+    {
+        return _context.Products
+            .Where(p => p.IntegrateScale == true)
+            .OrderBy(p => p.MainBarcode)
+            .Select(p => new ScaleProductDTO
+            {
+                MainBarcode = p.MainBarcode ?? string.Empty,
+                Description = p.Description ?? string.Empty,
+                Unit = p.Unit ?? string.Empty,
+                Price = p.Price
+            })
+            .ToList();
+    }
 }

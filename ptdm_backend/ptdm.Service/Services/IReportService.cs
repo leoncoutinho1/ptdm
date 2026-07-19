@@ -37,4 +37,9 @@ public interface IReportService
     /// </summary>
     /// <returns>Bytes do arquivo de texto</returns>
     byte[] GenerateFilizolaProductsTextFile();
+
+    /// <summary>
+    /// Obtém a listagem de produtos integrados com a balança ordenados por código de barras
+    /// </summary>
+    List<ScaleProductDTO> GetFilizolaProducts();
 }

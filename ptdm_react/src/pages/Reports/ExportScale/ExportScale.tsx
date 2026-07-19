@@ -1,15 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Title, Button, Group, Stack, Paper, Text, Loader } from '@mantine/core';
+import { Title, Button, Group, Stack, Paper, Text, Loader, Table, ScrollArea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { db } from '@/utils/db';
-import { getAuthData } from '@/utils/apiHelper';
+import { getAuthData, apiRequest } from '@/utils/apiHelper';
 import { syncAllWorker } from '@/utils/syncHelperWorker';
 import { MainLayout } from '../../../layouts/MainLayout';
+
+interface ScaleProduct {
+    mainBarcode: string;
+    description: string;
+    unit: string;
+    price: number;
+}
 
 export function ExportScale() {
     const [productCount, setProductCount] = useState<number | null>(null);
     const [syncing, setSyncing] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [products, setProducts] = useState<ScaleProduct[]>([]);
+    const [loadingProducts, setLoadingProducts] = useState(false);
 
     useEffect(() => {
         const syncAndCountProducts = async () => {
@@ -45,6 +54,27 @@ export function ExportScale() {
         };
 
         syncAndCountProducts();
+    }, []);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            setLoadingProducts(true);
+            try {
+                const data = await apiRequest<ScaleProduct[]>('Reports/filizola/products');
+                setProducts(data);
+            } catch (err) {
+                console.error('Erro ao buscar produtos da balança:', err);
+                notifications.show({
+                    color: 'red',
+                    title: 'Erro',
+                    message: 'Não foi possível carregar a lista de produtos da balança.',
+                });
+            } finally {
+                setLoadingProducts(false);
+            }
+        };
+
+        fetchProducts();
     }, []);
 
     const handleExport = async () => {
@@ -127,6 +157,45 @@ export function ExportScale() {
                             </Text>
                         </Stack>
                     </Paper>
+
+                    {loadingProducts ? (
+                        <Group justify="center" p="md">
+                            <Loader size="md" />
+                            <Text size="sm" c="dimmed">Carregando listagem de produtos da balança...</Text>
+                        </Group>
+                    ) : products.length === 0 ? (
+                        <Text size="sm" c="dimmed" ta="center" py="md">
+                            Nenhum produto marcado para integração com a balança.
+                        </Text>
+                    ) : (
+                        <Stack gap="xs" mt="md">
+                            <Text size="sm" fw={500}>Produtos para exportação:</Text>
+                            <ScrollArea h={400} offsetScrollbars>
+                                <Table striped highlightOnHover withTableBorder withColumnBorders>
+                                    <Table.Thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--mantine-color-body)', zIndex: 1 }}>
+                                        <Table.Tr>
+                                            <Table.Th style={{ width: '150px' }}>Código Principal</Table.Th>
+                                            <Table.Th>Descrição</Table.Th>
+                                            <Table.Th style={{ width: '100px', textAlign: 'center' }}>Unidade</Table.Th>
+                                            <Table.Th style={{ width: '120px', textAlign: 'right' }}>Preço</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {products.map((item, index) => (
+                                            <Table.Tr key={index}>
+                                                <Table.Td>{item.mainBarcode || '-'}</Table.Td>
+                                                <Table.Td>{item.description}</Table.Td>
+                                                <Table.Td style={{ textAlign: 'center' }}>{item.unit}</Table.Td>
+                                                <Table.Td style={{ textAlign: 'right' }}>
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            </ScrollArea>
+                        </Stack>
+                    )}
 
                     <Group justify="flex-end" mt="md">
                         <Button

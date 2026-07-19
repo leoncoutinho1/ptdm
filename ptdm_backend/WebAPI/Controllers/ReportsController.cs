@@ -126,4 +126,24 @@ public class ReportsController : ControllerBase
             return BadRequest(new { error = "Erro ao gerar arquivo de balança", message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Obtém a listagem de produtos integrados com a balança ordenados por código de barras
+    /// </summary>
+    /// <returns>Lista de produtos da balança</returns>
+    [HttpGet("filizola/products")]
+    [ProducesResponseType(typeof(List<ScaleProductDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult<List<ScaleProductDTO>> GetFilizolaProducts()
+    {
+        try
+        {
+            var products = _reportService.GetFilizolaProducts();
+            return Ok(products);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Erro ao obter produtos de balança", message = ex.Message });
+        }
+    }
 }

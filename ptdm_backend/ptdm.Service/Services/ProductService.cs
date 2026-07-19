@@ -223,6 +223,8 @@ namespace ptdm.Service.Services
             p.Quantity = product.Quantity;
             p.CategoryId = product.CategoryId;
             p.Composite = product.Composite;
+            p.Unit = product.Unit;
+            p.ImageUrl = product.ImageUrl;
             p.ValidityDays = product.ValidityDays;
             p.IntegrateScale = product.IntegrateScale;
             p.MainBarcode = mainBarcode;
