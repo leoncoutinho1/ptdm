@@ -239,12 +239,12 @@ export function SaleForm() {
                 if (startsWith2 || startsWith5) {
                     parsedQty = 
                         startsWith5 
-                            ? Number(parsedSearch.substring(7, 12)) / 1000
-                            : Number(parsedSearch.substring(7, 12)); 
+                            ? Number(parsedSearch.substring(7, 12)) / 1000 * parsedQty
+                            : Number(parsedSearch.substring(7, 12)) * parsedQty;
 
                     parsedSearch = parsedSearch.substring(1, 6).replace(/^0+/, ''); 
                 }
-            }
+            }            
             
             searchTermRef.current = parsedSearch;
             
