@@ -46,7 +46,7 @@ export default function App() {
   return (
     <MantineProvider theme={theme}>
       <ModalsProvider>
-        <Notifications />
+        <Notifications position='bottom-left' />
         <Router />
       </ModalsProvider>
     </MantineProvider>

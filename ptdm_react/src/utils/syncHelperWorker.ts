@@ -159,6 +159,7 @@ function normalizeSale(item: any): any {
     totalValue: data.totalValue !== undefined ? data.totalValue : data.TotalValue,
     paidValue: data.paidValue !== undefined ? data.paidValue : data.PaidValue,
     changeValue: data.changeValue !== undefined ? data.changeValue : data.ChangeValue,
+    overallDiscount: data.overallDiscount !== undefined ? data.overallDiscount : (data.OverallDiscount !== undefined ? data.OverallDiscount : 0),
     saleProducts: data.saleProducts || data.SaleProducts || [],
     updatedAt: data.updatedAt || data.UpdatedAt,
     createdAt: data.createdAt || data.CreatedAt,

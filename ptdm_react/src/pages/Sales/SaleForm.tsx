@@ -15,6 +15,7 @@ interface SaleItem {
     product: Product;
     unitPrice: number;
     quantity: number;
+    itemDiscount: number;
     totalPrice: number;
     order: number;
 }
@@ -43,6 +44,8 @@ export function SaleForm() {
     const [discount, setDiscount] = useState(0);
     const [editingProductId, setEditingProductId] = useState<string | null>(null);
     const [editingValue, setEditingValue] = useState<number>(0);
+    const [editingDiscountProductId, setEditingDiscountProductId] = useState<string | null>(null);
+    const [editingDiscountValue, setEditingDiscountValue] = useState<number>(0);
     const searchIdRef = useRef(0);
     const searchTermRef = useRef('');
     
@@ -97,17 +100,22 @@ export function SaleForm() {
                         if (Array.isArray(sale.saleProducts)) {
                             const items = await Promise.all(sale.saleProducts.map(async (item: any, index: number) => {
                                 const prod = await db.products.get(item.productId);
+                                const disc = Number(item.itemDiscount !== undefined ? item.itemDiscount : (item.discount || 0));
+                                const gross = item.quantity * item.unitPrice;
                                 return {
                                     productId: item.productId,
                                     product: prod || { description: 'Produto não encontrado', price: item.unitPrice } as any,
                                     unitPrice: item.unitPrice,
                                     quantity: item.quantity,
-                                    totalPrice: item.quantity * item.unitPrice,
+                                    itemDiscount: disc,
+                                    totalPrice: Math.max(0, gross - disc),
                                     order: index
                                 };
                             }));
                             setSaleItems(items);
                         }
+                        const loadedDiscount = Number(sale.overallDiscount !== undefined ? sale.overallDiscount : 0);
+                        setDiscount(loadedDiscount);
                         setAmountPaid(sale.paidValue || 0);
                     }
                 } catch (err) {
@@ -261,19 +269,34 @@ export function SaleForm() {
         }
     };
 
+    const grossItemsTotal = saleItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const totalItemDiscounts = saleItems.reduce((sum, item) => sum + (item.itemDiscount || 0), 0);
+    const totalSale = Math.max(0, grossItemsTotal - discount);
+    const change = amountPaid - totalSale;
+
     const onBlurDiscount = () => {
-        const currentItemsTotal = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
-        if (discount > currentItemsTotal) {
-            notifications.show({ color: 'red', title: 'Atenção', message: 'O valor do desconto não pode ser maior que o valor total da venda!' });
-            setDiscount(0);
+        if (discount < totalItemDiscounts) {
+            notifications.show({
+                color: 'yellow',
+                title: 'Atenção',
+                message: `O valor do desconto não pode ser menor do que a soma dos descontos dos produtos (${formatCurrency(totalItemDiscounts)})!`
+            });
+            setDiscount(totalItemDiscounts);
+        } else if (discount > grossItemsTotal) {
+            notifications.show({
+                color: 'red',
+                title: 'Atenção',
+                message: 'O valor do desconto não pode ser maior que o valor total da venda!'
+            });
+            setDiscount(totalItemDiscounts);
         }
-    }
+    };
 
     const handlePaidValueKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             if (amountPaid === 0) {
-                setAmountPaid(totalSale)
+                setAmountPaid(totalSale);
             }
             
             saveSaleRef.current?.focus();
@@ -306,8 +329,14 @@ export function SaleForm() {
 
         if (existingItemIndex >= 0) {
             const updatedItems = [...saleItems];
-            updatedItems[existingItemIndex].quantity += qty;
-            updatedItems[existingItemIndex].totalPrice = updatedItems[existingItemIndex].quantity * updatedItems[existingItemIndex].unitPrice;
+            const currentItem = updatedItems[existingItemIndex];
+            const newQty = currentItem.quantity + qty;
+            const currentDisc = currentItem.itemDiscount || 0;
+            updatedItems[existingItemIndex] = {
+                ...currentItem,
+                quantity: newQty,
+                totalPrice: (newQty * currentItem.unitPrice) - currentDisc
+            };
             setSaleItems(updatedItems);
         } else {
             const newItem: SaleItem = {
@@ -315,6 +344,7 @@ export function SaleForm() {
                 product: item,
                 quantity: qty,
                 unitPrice: item.price,
+                itemDiscount: 0,
                 totalPrice: qty * item.price,
                 order: (saleItems.length + 1)
             };
@@ -331,7 +361,16 @@ export function SaleForm() {
     };  
 
     const removeItem = (productId: string) => {
-        setSaleItems(saleItems.filter(item => item.productId !== productId));
+        const itemToRemove = saleItems.find(item => item.productId === productId);
+        const removedDisc = itemToRemove?.itemDiscount || 0;
+        const updatedItems = saleItems.filter(item => item.productId !== productId);
+        const newTotalItemDiscounts = updatedItems.reduce((sum, item) => sum + (item.itemDiscount || 0), 0);
+
+        setSaleItems(updatedItems);
+        setDiscount(prev => {
+            const adjusted = prev - removedDisc;
+            return Math.max(adjusted, newTotalItemDiscounts);
+        });
         setAmountPaid(0);
         productSelectRef.current?.focus();
         setTimeout(() => productSelectRef.current?.select(), 100);
@@ -348,24 +387,75 @@ export function SaleForm() {
 
         const updatedItems = saleItems.map(item => {
             if (item.productId === productId) {
+                const maxDisc = newQty * item.unitPrice;
+                const adjustedDiscount = Math.min(item.itemDiscount || 0, maxDisc);
                 return {
                     ...item,
                     quantity: newQty,
-                    totalPrice: newQty * item.unitPrice
+                    itemDiscount: adjustedDiscount,
+                    totalPrice: (newQty * item.unitPrice) - adjustedDiscount
                 };
             }
             return item;
         });
+
+        const newTotalItemDiscounts = updatedItems.reduce((sum, item) => sum + (item.itemDiscount || 0), 0);
         setSaleItems(updatedItems);
         setEditingProductId(null);
         setAmountPaid(0);
-        setDiscount(0);
+        setDiscount(prev => Math.max(prev, newTotalItemDiscounts));
         productSelectRef.current?.focus();
     };
 
-    const itemsTotal = saleItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const totalSale = Math.max(0, itemsTotal - discount);
-    const change = amountPaid - totalSale;
+    const handleUpdateItemDiscount = (productId: string, newDiscount: number) => {
+        if (editingDiscountProductId !== productId) return;
+
+        const targetItem = saleItems.find(item => item.productId === productId);
+        if (!targetItem) {
+            setEditingDiscountProductId(null);
+            return;
+        }
+
+        const maxDiscount = targetItem.quantity * targetItem.unitPrice;
+
+        if (newDiscount < 0) {
+            notifications.show({ color: 'yellow', title: 'Atenção', message: 'O desconto não pode ser negativo' });
+            setEditingDiscountProductId(null);
+            return;
+        }
+
+        if (newDiscount > maxDiscount) {
+            notifications.show({
+                color: 'yellow',
+                title: 'Atenção',
+                message: `O desconto não pode ser maior que o subtotal do item (${formatCurrency(maxDiscount)})`
+            });
+            setEditingDiscountProductId(null);
+            return;
+        }
+
+        const prevItemDiscount = targetItem.itemDiscount || 0;
+        const diff = newDiscount - prevItemDiscount;
+
+        const updatedItems = saleItems.map(item => {
+            if (item.productId === productId) {
+                return {
+                    ...item,
+                    itemDiscount: newDiscount,
+                    totalPrice: (item.quantity * item.unitPrice) - newDiscount
+                };
+            }
+            return item;
+        });
+
+        const newTotalItemDiscounts = updatedItems.reduce((sum, item) => sum + (item.itemDiscount || 0), 0);
+
+        setSaleItems(updatedItems);
+        setEditingDiscountProductId(null);
+        setAmountPaid(0);
+        setDiscount(prev => Math.max(prev + diff, newTotalItemDiscounts));
+        productSelectRef.current?.focus();
+    };
 
     const submitSale = async () => {
         const validation = form.validate();
@@ -376,9 +466,19 @@ export function SaleForm() {
             return;
         }
        
-        if (discount > totalSale) {
+        if (discount < totalItemDiscounts) {
+            notifications.show({
+                color: 'yellow',
+                title: 'Atenção',
+                message: `O valor do desconto não pode ser menor do que a soma dos descontos dos produtos (${formatCurrency(totalItemDiscounts)})!`
+            });
+            setDiscount(totalItemDiscounts);
+            return;
+        }
+
+        if (discount > grossItemsTotal) {
             notifications.show({ color: 'red', title: 'Atenção', message: 'O valor do desconto não pode ser maior que o valor total da venda!' });
-            setDiscount(0);
+            setDiscount(totalItemDiscounts);
             return;
         }
         
@@ -390,7 +490,10 @@ export function SaleForm() {
                 productId: item.productId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
+                discount: item.itemDiscount || 0,
+                itemDiscount: item.itemDiscount || 0,
             })),
+            overallDiscount: discount,
             totalValue: totalSale,
             paidValue: totalSale,
             changeValue: 0
@@ -458,6 +561,8 @@ export function SaleForm() {
         searchTermRef.current = '';
         setProductOptions([]);
         setDiscount(0);
+        setEditingProductId(null);
+        setEditingDiscountProductId(null);
         if (isViewMode) {
             navigate('/sales');
         }
@@ -484,6 +589,9 @@ export function SaleForm() {
                 .text(qtyPrice.padEnd(38))
                 .text(total.padStart(10))
                 .newline();
+            if (item.itemDiscount > 0) {
+                result.text(`  (Desc. item: -${formatCurrency(item.itemDiscount)})`).newline();
+            }
         });
 
         const finalEncoded = result.rule()
@@ -627,7 +735,8 @@ export function SaleForm() {
                                         <Table.Tr>
                                             <Table.Th>Produto</Table.Th>
                                             <Table.Th w={60}>Qtd</Table.Th>
-                                            <Table.Th w={100}>Unit.</Table.Th>
+                                            <Table.Th w={90}>Unit.</Table.Th>
+                                            <Table.Th w={100}>Desc. Item</Table.Th>
                                             <Table.Th w={100}>Total</Table.Th>
                                             {!isViewMode && <Table.Th w={50}/>}
                                         </Table.Tr>
@@ -672,6 +781,47 @@ export function SaleForm() {
                                                     )}
                                                 </Table.Td>
                                                 <Table.Td>{formatCurrency(item.unitPrice)}</Table.Td>
+                                                <Table.Td
+                                                    onDoubleClick={() => {
+                                                        if (!isViewMode) {
+                                                            setEditingDiscountProductId(item.productId);
+                                                            setEditingDiscountValue(item.itemDiscount || 0);
+                                                        }
+                                                    }}
+                                                    style={{ cursor: !isViewMode ? 'pointer' : 'default' }}
+                                                >
+                                                    {!isViewMode && editingDiscountProductId === item.productId ? (
+                                                        <NumberInput
+                                                            value={editingDiscountValue}
+                                                            onChange={(val) => setEditingDiscountValue(Number(val) || 0)}
+                                                            min={0}
+                                                            max={item.quantity * item.unitPrice}
+                                                            decimalScale={2}
+                                                            fixedDecimalScale
+                                                            prefix="R$ "
+                                                            size="xs"
+                                                            w={90}
+                                                            autoFocus
+                                                            hideControls
+                                                            onFocus={(e) => e.target.select()}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    handleUpdateItemDiscount(item.productId, editingDiscountValue);
+                                                                } else if (e.key === 'Escape') {
+                                                                    setEditingDiscountProductId(null);
+                                                                    productSelectRef.current?.focus();
+                                                                }
+                                                            }}
+                                                            onBlur={() => handleUpdateItemDiscount(item.productId, editingDiscountValue)}
+                                                            styles={{ input: { padding: '4px', textAlign: 'center' } }}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ color: (item.itemDiscount || 0) > 0 ? 'var(--mantine-color-orange-filled, #f59e0b)' : undefined, fontWeight: (item.itemDiscount || 0) > 0 ? 600 : 'normal' }}>
+                                                            {formatCurrency(item.itemDiscount || 0)}
+                                                        </span>
+                                                    )}
+                                                </Table.Td>
                                                 <Table.Td>{formatCurrency(item.totalPrice)}</Table.Td>
                                                 {!isViewMode && <Table.Td><XCircle size={18} color="red" onClick={() => removeItem(item.productId)} style={{ cursor: 'pointer' }} /></Table.Td>}
                                             </Table.Tr>
@@ -687,6 +837,7 @@ export function SaleForm() {
                                 <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 1 }}>
                                     <NumberInput
                                         label="Desconto"
+                                        description={totalItemDiscounts > 0 ? `Mínimo: ${formatCurrency(totalItemDiscounts)} (soma dos produtos)` : undefined}
                                         value={discount}
                                         onFocus={(e) => setTimeout(() => e.target.select(), 100)}
                                         onClick={(e) => setTimeout(() => (e.target as HTMLInputElement).select(), 100)}
@@ -695,7 +846,7 @@ export function SaleForm() {
                                             setDiscount(newDiscount);
                                         }}
                                         onBlur={onBlurDiscount}
-                                        min={0}
+                                        min={totalItemDiscounts}
                                         decimalScale={2}
                                         fixedDecimalScale
                                         prefix="R$ "
@@ -771,7 +922,13 @@ export function SaleForm() {
                                     {saleItems.map((item, index) => (
                                         <Box key={index}>
                                             <Text size="xs">{item.product.description}</Text>
-                                            <Group justify="space-between"><Text size="xs">{item.quantity} {item.product.unit} x {formatCurrency(item.unitPrice)}</Text><Text size="xs">{formatCurrency(item.totalPrice)}</Text></Group>
+                                            <Group justify="space-between">
+                                                <Text size="xs">{item.quantity} {item.product.unit} x {formatCurrency(item.unitPrice)}</Text>
+                                                <Text size="xs">{formatCurrency(item.totalPrice)}</Text>
+                                            </Group>
+                                            {item.itemDiscount > 0 && (
+                                                <Text size="xs" c="orange.7" fs="italic">Desc. item: -{formatCurrency(item.itemDiscount)}</Text>
+                                            )}
                                         </Box>
                                     ))}
                                     <Divider my="sm" style={{ borderTopStyle: 'dashed' }} />
