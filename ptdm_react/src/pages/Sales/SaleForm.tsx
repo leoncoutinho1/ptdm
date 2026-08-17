@@ -46,6 +46,8 @@ export function SaleForm() {
     const [editingValue, setEditingValue] = useState<number>(0);
     const [editingDiscountProductId, setEditingDiscountProductId] = useState<string | null>(null);
     const [editingDiscountValue, setEditingDiscountValue] = useState<number>(0);
+    const editingProductIdRef = useRef<string | null>(null);
+    const editingDiscountProductIdRef = useRef<string | null>(null);
     const searchIdRef = useRef(0);
     const searchTermRef = useRef('');
     
@@ -377,18 +379,22 @@ export function SaleForm() {
     };
 
     const handleUpdateQuantity = (productId: string, newQty: number) => {
-        if (editingProductId !== productId) return;
+        if (editingProductIdRef.current !== productId) return;
+        editingProductIdRef.current = null;
+        setEditingProductId(null);
 
         if (newQty <= 0) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'Quantidade deve ser maior que zero' });
-            setEditingProductId(null);
             return;
         }
 
+        let discountReduction = 0;
         const updatedItems = saleItems.map(item => {
             if (item.productId === productId) {
                 const maxDisc = newQty * item.unitPrice;
-                const adjustedDiscount = Math.min(item.itemDiscount || 0, maxDisc);
+                const currentDisc = item.itemDiscount || 0;
+                const adjustedDiscount = Math.min(currentDisc, maxDisc);
+                discountReduction = currentDisc - adjustedDiscount;
                 return {
                     ...item,
                     quantity: newQty,
@@ -401,18 +407,18 @@ export function SaleForm() {
 
         const newTotalItemDiscounts = updatedItems.reduce((sum, item) => sum + (item.itemDiscount || 0), 0);
         setSaleItems(updatedItems);
-        setEditingProductId(null);
         setAmountPaid(0);
-        setDiscount(prev => Math.max(prev, newTotalItemDiscounts));
+        setDiscount(prev => Math.max(prev - discountReduction, newTotalItemDiscounts));
         productSelectRef.current?.focus();
     };
 
     const handleUpdateItemDiscount = (productId: string, newDiscount: number) => {
-        if (editingDiscountProductId !== productId) return;
+        if (editingDiscountProductIdRef.current !== productId) return;
+        editingDiscountProductIdRef.current = null;
+        setEditingDiscountProductId(null);
 
         const targetItem = saleItems.find(item => item.productId === productId);
         if (!targetItem) {
-            setEditingDiscountProductId(null);
             return;
         }
 
@@ -420,7 +426,6 @@ export function SaleForm() {
 
         if (newDiscount < 0) {
             notifications.show({ color: 'yellow', title: 'Atenção', message: 'O desconto não pode ser negativo' });
-            setEditingDiscountProductId(null);
             return;
         }
 
@@ -430,7 +435,6 @@ export function SaleForm() {
                 title: 'Atenção',
                 message: `O desconto não pode ser maior que o subtotal do item (${formatCurrency(maxDiscount)})`
             });
-            setEditingDiscountProductId(null);
             return;
         }
 
@@ -451,7 +455,6 @@ export function SaleForm() {
         const newTotalItemDiscounts = updatedItems.reduce((sum, item) => sum + (item.itemDiscount || 0), 0);
 
         setSaleItems(updatedItems);
-        setEditingDiscountProductId(null);
         setAmountPaid(0);
         setDiscount(prev => Math.max(prev + diff, newTotalItemDiscounts));
         productSelectRef.current?.focus();
@@ -555,6 +558,8 @@ export function SaleForm() {
 
     const resetForm = () => {
         searchIdRef.current++;
+        editingProductIdRef.current = null;
+        editingDiscountProductIdRef.current = null;
         setSaleItems([]);
         setAmountPaid(0);
         setSearchTerm('');
@@ -748,6 +753,7 @@ export function SaleForm() {
                                                 <Table.Td 
                                                     onDoubleClick={() => {
                                                         if (!isViewMode) {
+                                                            editingProductIdRef.current = item.productId;
                                                             setEditingProductId(item.productId);
                                                             setEditingValue(item.quantity);
                                                         }
@@ -769,6 +775,7 @@ export function SaleForm() {
                                                                     e.preventDefault();
                                                                     handleUpdateQuantity(item.productId, editingValue);
                                                                 } else if (e.key === 'Escape') {
+                                                                    editingProductIdRef.current = null;
                                                                     setEditingProductId(null);
                                                                     productSelectRef.current?.focus();
                                                                 }
@@ -784,6 +791,7 @@ export function SaleForm() {
                                                 <Table.Td
                                                     onDoubleClick={() => {
                                                         if (!isViewMode) {
+                                                            editingDiscountProductIdRef.current = item.productId;
                                                             setEditingDiscountProductId(item.productId);
                                                             setEditingDiscountValue(item.itemDiscount || 0);
                                                         }
@@ -809,6 +817,7 @@ export function SaleForm() {
                                                                     e.preventDefault();
                                                                     handleUpdateItemDiscount(item.productId, editingDiscountValue);
                                                                 } else if (e.key === 'Escape') {
+                                                                    editingDiscountProductIdRef.current = null;
                                                                     setEditingDiscountProductId(null);
                                                                     productSelectRef.current?.focus();
                                                                 }
