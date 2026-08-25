@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import ReceiptPrinterEncoder from '@point-of-sale/receipt-printer-encoder';
 import { useForm } from '@mantine/form';
-import { Button, Group, NumberInput, Select, Stack, Table, Title, Paper, Text, Grid, Divider, Box, ScrollArea, ActionIcon } from '@mantine/core';
+import { Button, Group, NumberInput, Select, Stack, Table, Title, Paper, Text, Grid, Divider, Box, ScrollArea, ActionIcon, Modal } from '@mantine/core';
 import { Eye, EyeOff, XCircle, Printer } from 'lucide-react';
 import { MainLayout } from '../../layouts/MainLayout';
 import { notifications } from '@mantine/notifications';
@@ -51,6 +51,12 @@ export function SaleForm() {
     const searchIdRef = useRef(0);
     const searchTermRef = useRef('');
     
+    // Modal de seleção de Operador e Terminal
+    const [sessionModalOpened, setSessionModalOpened] = useState(!isViewMode);
+    const [modalCashierId, setModalCashierId] = useState<string>(localStorage.getItem('saleForm_cashierId') || '');
+    const [modalCheckoutId, setModalCheckoutId] = useState<string>(localStorage.getItem('saleForm_checkoutId') || '');
+    const [modalError, setModalError] = useState<string>('');
+
     const { openConfirmModal } = useConfirmAction();
 
     const form = useForm({
@@ -204,11 +210,38 @@ export function SaleForm() {
 
 
     useEffect(() => {
-        if (!isViewMode && productSelectRef.current) {
+        if (!isViewMode && !sessionModalOpened && productSelectRef.current) {
             productSelectRef.current.focus();
             productSelectRef.current.select();
         }
-    }, [isViewMode]);
+    }, [isViewMode, sessionModalOpened]);
+
+    const handleConfirmSession = () => {
+        if (!modalCashierId) {
+            setModalError('Selecione um operador');
+            return;
+        }
+        if (!modalCheckoutId) {
+            setModalError('Selecione um terminal');
+            return;
+        }
+        form.setFieldValue('cashierId', modalCashierId);
+        form.setFieldValue('checkoutId', modalCheckoutId);
+        localStorage.setItem('saleForm_cashierId', modalCashierId);
+        localStorage.setItem('saleForm_checkoutId', modalCheckoutId);
+        setSessionModalOpened(false);
+        setTimeout(() => {
+            productSelectRef.current?.focus();
+            productSelectRef.current?.select();
+        }, 100);
+    };
+
+    const handleOpenSessionModal = () => {
+        setModalCashierId(form.values.cashierId || localStorage.getItem('saleForm_cashierId') || '');
+        setModalCheckoutId(form.values.checkoutId || localStorage.getItem('saleForm_checkoutId') || '');
+        setModalError('');
+        setSessionModalOpened(true);
+    };
 
     const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -595,9 +628,12 @@ export function SaleForm() {
                 .text(total.padStart(10))
                 .newline();
             if (item.itemDiscount > 0) {
+                console.log(`  (Desc. item: -${formatCurrency(item.itemDiscount)})`);
                 result.text(`  (Desc. item: -${formatCurrency(item.itemDiscount)})`).newline();
             }
         });
+
+        console.log(result);
 
         const finalEncoded = result.rule()
             .align('right')
@@ -654,63 +690,132 @@ export function SaleForm() {
         productSelectRef.current?.focus();
     };
 
+    const cashierName = cashiers.find(c => String(c.id) === String(form.values.cashierId))?.name || form.values.cashierId || 'Não selecionado';
+    const checkoutName = checkouts.find(ch => String(ch.id) === String(form.values.checkoutId))?.name || form.values.checkoutId || 'Não selecionado';
+
+    const [clockwatch, setClockwatch] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setClockwatch(new Date());
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+
     return (
         <MainLayout>
+            <Modal
+                opened={sessionModalOpened}
+                onClose={() => {
+                    if (form.values.cashierId && form.values.checkoutId) {
+                        setSessionModalOpened(false);
+                    } else {
+                        navigate('/sales');
+                    }
+                }}
+                title={<Text fw={600}>Identificação da Sessão</Text>}
+                centered
+                closeOnClickOutside={false}
+                closeOnEscape={!sessionModalOpened || !!(form.values.cashierId && form.values.checkoutId)}
+                withCloseButton={!!(form.values.cashierId && form.values.checkoutId)}
+            >
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleConfirmSession();
+                    }}
+                >
+                    <Stack gap="md">
+                        <Select
+                            label="Operador"
+                            placeholder="Selecione o operador"
+                            data={cashiers.map(c => ({ value: String(c.id), label: c.name }))}
+                            value={modalCashierId}
+                            onChange={(val) => {
+                                setModalCashierId(val || '');
+                                setModalError('');
+                            }}
+                            searchable
+                            required
+                        />
+                        <Select
+                            label="Terminal"
+                            placeholder="Selecione o terminal"
+                            data={checkouts.map(ch => ({ value: String(ch.id), label: ch.name }))}
+                            value={modalCheckoutId}
+                            onChange={(val) => {
+                                setModalCheckoutId(val || '');
+                                setModalError('');
+                            }}
+                            searchable
+                            required
+                        />
+                        {modalError && (
+                            <Text c="red" size="sm">
+                                {modalError}
+                            </Text>
+                        )}
+                        <Group justify="flex-end" mt="md">
+                            <Button
+                                variant="default"
+                                onClick={() => {
+                                    if (form.values.cashierId && form.values.checkoutId) {
+                                        setSessionModalOpened(false);
+                                    } else {
+                                        navigate('/sales');
+                                    }
+                                }}
+                            >
+                                {form.values.cashierId && form.values.checkoutId ? 'Cancelar' : 'Voltar'}
+                            </Button>
+                            <Button type="submit">
+                                Confirmar
+                            </Button>
+                        </Group>
+                    </Stack>
+                </form>
+            </Modal>
+
             <Box style={{ display: 'flex', flexDirection: 'column', height: '93vh' }}>
                 <Group justify="space-between" mb="md" align="flex-start">
                     <Title order={3} style={{ paddingLeft: '2.5rem' }}>{isViewMode ? 'Visualizar Venda' : 'Registrar Venda'}</Title>
+                    <Group>            
+                        <Group gap="xs" style={{ flex: 1, maxWidth: '600px', paddingTop: '0.2rem' }}>
+                            <Text>{clockwatch.toLocaleString("pt-BR")}</Text>
+                        </Group>
 
-                    <Group gap="xs" style={{ flex: 1, maxWidth: '600px', paddingTop: '0.2rem' }}>
-                        <Select
-                            placeholder="Forma de Pagamento"
-                            data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
-                            {...form.getInputProps('paymentFormId')}
-                            required
-                            disabled={isViewMode}
-                            size="xs"
-                            style={{ flex: 1, minWidth: '150px' }}
-                        />
-                        <Select
-                            placeholder="Operador"
-                            data={cashiers.map(c => ({ value: String(c.id), label: c.name }))}
-                            {...form.getInputProps('cashierId')}
-                            required
-                            disabled={isViewMode}
-                            size="xs"
-                            style={{ flex: 1, minWidth: '150px' }}
-                        />
-                        <Select
-                            placeholder="Terminal"
-                            data={checkouts.map(ch => ({ value: String(ch.id), label: ch.name }))}
-                            {...form.getInputProps('checkoutId')}
-                            required
-                            disabled={isViewMode}
-                            size="xs"
-                            style={{ flex: 1, minWidth: '150px' }}
-                        />
-                    </Group>
-
-                    <Group gap="xs">
-                        {isViewMode && (
-                            <Button
-                                variant="light"
-                                leftSection={<Printer size={18} />}
-                                onClick={handlePrint}
-                                size="xs"
-                            >
-                                Imprimir Cupom
-                            </Button>
-                        )}
-                        <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)}>
-                            {showReceipt ? <Eye size={20} /> : <EyeOff size={20} />}
-                        </ActionIcon>
+                        <Group gap="xs">
+                            {isViewMode && (
+                                <Button
+                                    variant="light"
+                                    leftSection={<Printer size={18} />}
+                                    onClick={handlePrint}
+                                    size="xs"
+                                >
+                                    Imprimir Cupom
+                                </Button>
+                            )}
+                            <ActionIcon variant="subtle" color="gray" onClick={() => setShowReceipt(!showReceipt)}>
+                                {showReceipt ? <Eye size={20} /> : <EyeOff size={20} />}
+                            </ActionIcon>
+                        </Group>
                     </Group>
                 </Group>
 
                 <Grid style={{ flex: 1, minHeight: 0, height: '100%' }} styles={{ inner: { height: '100%' } }} gutter="xs">
                     <Grid.Col span={showReceipt ? { base: 5 } : 8} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         <Stack gap="md" style={{ marginRight: '1rem', height: '100%' }}>
-
+                            <Group justify="space-between" align="center" style={{ height: '40px' }}>
+                                <Text size="sm">
+                                    Operador: <Text span fw={600}>{cashierName}</Text> - Terminal: <Text span fw={600}>{checkoutName}</Text>
+                                </Text>
+                                {!isViewMode && (
+                                    <Button variant="subtle" size="compact-xs" onClick={handleOpenSessionModal}>
+                                        Alterar
+                                    </Button>
+                                )}
+                            </Group>
                             {!isViewMode && (
                                 <Group align="flex-end" style={{ flexShrink: 0 }}>
                                     <Select
@@ -842,6 +947,15 @@ export function SaleForm() {
                     </Grid.Col>
                     <Grid.Col span={4} style={{ height: '100%'}}>
                         <Stack gap="md" style={{ display: 'flex', flexDirection: 'column', justifyContent:'space-between', height: '100%' }}>
+                            <Select
+                                placeholder="Forma de Pagamento"
+                                data={paymentForms.map(pf => ({ value: String(pf.id), label: pf.description }))}
+                                {...form.getInputProps('paymentFormId')}
+                                required
+                                disabled={isViewMode}
+                                size="md"
+                                w="100%"
+                            />
                             {!isViewMode && (
                                 <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 1 }}>
                                     <NumberInput
