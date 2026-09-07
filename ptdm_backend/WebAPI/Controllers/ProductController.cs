@@ -5,6 +5,7 @@ using ptdm.Domain.Filters;
 using ptdm.Domain.Helpers;
 using ptdm.Domain.Models;
 using ptdm.Service.Services;
+using System.Text;
 
 namespace ptdm.Api.Controllers;
 
@@ -87,45 +88,31 @@ public class ProductController : ControllerBase
         return Ok(new { valid = true, message = "Validação de estoque será feita durante a venda" });
     }
 
-    //[HttpPost("loadProducts")]
-    //public ActionResult LoadProducts([Required] IFormFile file)
-    //{
-    //    using (var reader = new StreamReader(file.OpenReadStream()))
-    //    {
-    //        var count = 0;
-    //        reader.ReadLine(); // pular o cabeçalho da planilha
-    //        while (!reader.EndOfStream) {
-    //            var line = reader.ReadLine().Split('\t');
-    //            if (line == null || line.Length == 0)
-    //                break;
+    /// <summary>
+    /// Processa arquivo CSV com colunas: código de barras, descrição, quantidade e preço de custo
+    /// e gera comandos SQL (UPDATE/INSERT) para os produtos retornando em um arquivo .sql para download.
+    /// </summary>
+    /// <param name="file">Arquivo CSV a ser processado</param>
+    /// <returns>Arquivo .sql com os comandos gerados</returns>
+    [HttpPost("import-csv-sql")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult ImportCsvSql(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("Arquivo CSV não fornecido ou vazio.");
+        }
 
-    //            var product = new Product();
-    //            product.Description = line[0];
-    //            product.Cost = Double.Parse(line[1]);
-    //            product.Price = Double.Parse(line[2]);
-    //            product.Quantity = Double.Parse(line[3]);
+        var result = _service.ProcessCsvProducts(file);
+        if (result.IsError)
+        {
+            return BadRequest(result.FirstError.Description);
+        }
 
-    //            _uof.ProductRepository.Add(product);
-
-    //            if (line.Length > 4)
-    //            {
-    //                for(var i = 4; i < line.Length; i++)
-    //                {
-    //                    if (String.IsNullOrWhiteSpace(line[i]))
-    //                        continue;
-
-    //                    var barcode = new Barcode()
-    //                    {
-    //                        Code = line[i],
-    //                        ProductId = product.Id
-    //                    };
-
-    //                    _uof.BarcodeRepository.Add(barcode);
-    //                }
-    //            }
-    //        }
-    //        _uof.Commit();
-    //    }
-    //    return Ok();
-    //}
+        var bytes = Encoding.UTF8.GetBytes(result.Value);
+        var fileName = $"importacao_produtos_{DateTime.Now:yyyyMMdd_HHmmss}.sql";
+        return File(bytes, "application/sql", fileName);
+    }
 }

@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,6 +29,7 @@ namespace ptdm.Service.Services
         ResultList<ProductDTO> GetProductByDescOrBarcode(string text);
         ResultList<ProductDTO> ListProduct(ProductFilter filters);
         ErrorOr<ProductDTO> Update(ProductDTO product);
+        ErrorOr<string> ProcessCsvProducts(IFormFile file);
     }
 
     public class ProductService : IProductService
@@ -336,7 +339,7 @@ namespace ptdm.Service.Services
 
             foreach (var code in product.Barcodes)
             {
-                _context.Barcodes.Remove(code);
+                    _context.Barcodes.Remove(code);
             }
 
             _context.Products.Remove(product);
@@ -344,46 +347,151 @@ namespace ptdm.Service.Services
             return (ProductDTO)product;
         }
 
-        //[HttpPost("loadProducts")]
-        //public ActionResult LoadProducts([Required] IFormFile file)
-        //{
-        //    using (var reader = new StreamReader(file.OpenReadStream()))
-        //    {
-        //        var count = 0;
-        //        reader.ReadLine(); // pular o cabeçalho da planilha
-        //        while (!reader.EndOfStream) {
-        //            var line = reader.ReadLine().Split('\t');
-        //            if (line == null || line.Length == 0)
-        //                break;
+        public ErrorOr<string> ProcessCsvProducts(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Error.Failure(description: "Arquivo CSV não informado ou vazio.");
+            }
 
-        //            var product = new Product();
-        //            product.Description = line[0];
-        //            product.Cost = Double.Parse(line[1]);
-        //            product.Price = Double.Parse(line[2]);
-        //            product.Quantity = Double.Parse(line[3]);
+            var csvRows = new List<CsvProductImportRow>();
 
-        //            _uof.ProductRepository.Add(product);
+            using (var reader = new StreamReader(file.OpenReadStream(), Encoding.UTF8))
+            {
+                string? line;
+                int lineNumber = 0;
 
-        //            if (line.Length > 4)
-        //            {
-        //                for(var i = 4; i < line.Length; i++)
-        //                {
-        //                    if (String.IsNullOrWhiteSpace(line[i]))
-        //                        continue;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    lineNumber++;
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
 
-        //                    var barcode = new Barcode()
-        //                    {
-        //                        Code = line[i],
-        //                        ProductId = product.Id
-        //                    };
+                    char delimiter = '\t';
+                    if (line.Contains(';'))
+                        delimiter = ';';
+                    else if (line.Contains(','))
+                        delimiter = ',';
+                    else if (line.Contains('\t'))
+                        delimiter = '\t';
 
-        //                    _uof.BarcodeRepository.Add(barcode);
-        //                }
-        //            }
-        //        }
-        //        _uof.Commit();
-        //    }
-        //    return Ok();
-        //}
+                    var parts = line.Split(delimiter);
+                    if (parts.Length < 4)
+                        continue;
+
+                    var barcode = parts[0].Trim();
+                    var description = parts[1].Trim();
+                    var qtyStr = parts[2].Trim();
+                    var costStr = parts[3].Trim();
+
+                    // Pula linha de cabeçalho se não for possível converter quantidade ou custo
+                    if (lineNumber == 1 && (!double.TryParse(qtyStr.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out _) 
+                        || !double.TryParse(costStr.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out _)))
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(barcode))
+                        continue;
+
+                    if (!double.TryParse(qtyStr.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out double quantity))
+                    {
+                        quantity = 0;
+                    }
+
+                    if (!double.TryParse(costStr.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out double cost))
+                    {
+                        cost = 0;
+                    }
+
+                    csvRows.Add(new CsvProductImportRow
+                    {
+                        Barcode = barcode,
+                        Description = description,
+                        Quantity = quantity,
+                        Cost = cost
+                    });
+                }
+            }
+
+            if (!csvRows.Any())
+            {
+                return Error.Failure(description: "Nenhum dado válido encontrado no arquivo CSV.");
+            }
+
+            var resultBuilder = new StringBuilder();
+            var userId = GetUserId().Replace("'", "''");
+
+            var distinctCsvBarcodes = csvRows.Select(r => r.Barcode).Distinct().ToList();
+            var barcodesInDb = _context.Barcodes
+                .Where(b => distinctCsvBarcodes.Contains(b.Code))
+                .AsNoTracking()
+                .ToList();
+
+            var existingProductIds = barcodesInDb.Select(b => b.ProductId).Distinct().ToList();
+            var existingProducts = _context.Products
+                .Where(p => existingProductIds.Contains(p.Id))
+                .AsNoTracking()
+                .ToDictionary(p => p.Id);
+
+            var barcodeToProduct = new Dictionary<string, Product>();
+            foreach (var b in barcodesInDb)
+            {
+                if (existingProducts.TryGetValue(b.ProductId, out var prod))
+                {
+                    barcodeToProduct[b.Code] = prod;
+                }
+            }
+
+            var foundRows = csvRows.Where(r => barcodeToProduct.ContainsKey(r.Barcode)).ToList();
+            var notFoundRows = csvRows.Where(r => !barcodeToProduct.ContainsKey(r.Barcode)).ToList();
+
+            // 1. Produtos encontrados: agrupados por Product.Id
+            var groupedFound = foundRows
+                .GroupBy(r => barcodeToProduct[r.Barcode].Id)
+                .ToList();
+
+            foreach (var group in groupedFound)
+            {
+                var product = existingProducts[group.Key];
+                var totalQuantity = group.Sum(r => r.Quantity);
+                var maxCost = Math.Round(group.Max(r => r.Cost), 2);
+                var newPrice = Math.Round(maxCost * 1.3, 2);
+                var profitMargin = (maxCost > 0 && newPrice > 0) ? Math.Round(newPrice / maxCost * 100, 2) : 0;
+
+                // Se o novo preço for menor que o preço atual
+                if (newPrice < product.Price)
+                {
+                    resultBuilder.AppendLine($"-- AVISO: O novo preço calculado (R$ {newPrice.ToString("F2", CultureInfo.InvariantCulture)}) é menor que o preço atual (R$ {product.Price.ToString("F2", CultureInfo.InvariantCulture)}) para o produto '{product.Description.Replace("'", "''")}' (ID: {product.Id}).");
+                }
+
+                var updateSql = $"UPDATE product SET \"Quantity\" = {totalQuantity.ToString(CultureInfo.InvariantCulture)}, \"Cost\" = {maxCost.ToString("F2", CultureInfo.InvariantCulture)}, \"Price\" = {newPrice.ToString("F2", CultureInfo.InvariantCulture)}, \"ProfitMargin\" = {profitMargin.ToString("F2", CultureInfo.InvariantCulture)}, \"UpdatedAt\" = '{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}', \"UpdatedBy\" = '{userId}' WHERE \"Id\" = '{product.Id}';";
+                resultBuilder.AppendLine(updateSql);
+            }
+
+            // 2. Produtos não encontrados: agrupados por código de barras
+            var groupedNotFound = notFoundRows
+                .GroupBy(r => r.Barcode)
+                .ToList();
+
+            foreach (var group in groupedNotFound)
+            {
+                var barcode = group.Key;
+                var totalQuantity = group.Sum(r => r.Quantity);
+                var maxCost = Math.Round(group.Max(r => r.Cost), 2);
+                var description = group.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.Description))?.Description ?? "Sem Descrição";
+                var newPrice = Math.Round(maxCost * 1.3, 2);
+                var profitMargin = (maxCost > 0 && newPrice > 0) ? Math.Round(newPrice / maxCost * 100, 2) : 0;
+                var newProductId = Guid.NewGuid();
+
+                var insertProductSql = $"INSERT INTO product (\"Id\", \"Description\", \"Cost\", \"Price\", \"ProfitMargin\", \"Quantity\", \"Unit\", \"Composite\", \"ValidityDays\", \"IntegrateScale\", \"MainBarcode\", \"IsActive\", \"CreatedAt\", \"CreatedBy\", \"UpdatedAt\", \"UpdatedBy\") VALUES ('{newProductId}', '{description.Replace("'", "''")}', {maxCost.ToString("F2", CultureInfo.InvariantCulture)}, {newPrice.ToString("F2", CultureInfo.InvariantCulture)}, {profitMargin.ToString("F2", CultureInfo.InvariantCulture)}, {totalQuantity.ToString(CultureInfo.InvariantCulture)}, 'UN', false, 0, false, '{barcode.Replace("'", "''")}', true, '{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}', '{userId}', '{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}', '{userId}');";
+                var insertBarcodeSql = $"INSERT INTO barcode (\"Code\", \"ProductId\") VALUES ('{barcode.Replace("'", "''")}', '{newProductId}');";
+
+                resultBuilder.AppendLine(insertProductSql);
+                resultBuilder.AppendLine(insertBarcodeSql);
+            }
+
+            return resultBuilder.ToString();
+        }
     }
 }
