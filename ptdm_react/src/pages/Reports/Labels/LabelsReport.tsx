@@ -263,51 +263,89 @@ export function LabelsReport() {
           Array.isArray(item.product.barcodes) && item.product.barcodes.length > 0
             ? item.product.barcodes[0]
             : '';
-        const cleanBarcode = rawBarcode.replace(/\D/g, '');
-        // Garante 13 dígitos para formato EAN-13
-        const codigoEAN =
-          cleanBarcode.length === 13
-            ? cleanBarcode
-            : cleanBarcode.padStart(13, '0').slice(-13) || '7891234567890';
+        const digitsOnly = rawBarcode.replace(/\D/g, '');
 
-        const nomeProduto = (item.product.description || '')
-          .replace(/"/g, "'")
-          .substring(0, 32);
+        // Calcula ou valida o dígito verificador do EAN-13 para a impressora não rejeitar o comando
+        const base12 = (
+          digitsOnly.length >= 12
+            ? digitsOnly.slice(0, 12)
+            : digitsOnly.padStart(12, '0')
+        ).slice(-12);
+
+        let eanSum = 0;
+        for (let i = 0; i < 12; i++) {
+          const d = parseInt(base12[i], 10);
+          eanSum += i % 2 === 0 ? d : d * 3;
+        }
+        const checkDigit = (10 - (eanSum % 10)) % 10;
+        const codigoEAN = `${base12}${checkDigit}`;
+
         const precoProduto = formatCurrency(item.product.price);
         const unidadeMedida = (item.product.unit || 'UN').replace(/"/g, "'");
         const quantidade = Math.max(1, Math.floor(item.quantity || 1));
 
-        eplScript += 'N\n'; // Limpa a memória/buffer
-        eplScript += 'Q240,24\n'; // Altura útil de 30mm (240 pontos) + 24 pontos de GAP
-        eplScript += 'q800\n'; // Largura total de 100mm (800 pontos)
+        eplScript += 'N\r\n'; // Limpa o buffer de imagem
+        eplScript += 'ZT\r\n'; // Força orientação padrão (Top-to-Bottom / não invertido)
+        eplScript += 'D11\r\n'; // Densidade térmica adequada (contraste)
+        eplScript += 'S2\r\n'; // Velocidade de impressão
+
+        if (labelSize === '40x40') {
+          const nomeProduto = (item.product.description || '')
+            .replace(/"/g, "'")
+            .substring(0, 22);
+
+          // A cabeça de impressão térmica possui largura de 800 pontos (100mm)
+          // e o rolo de 40mm (320 pontos) fica centralizado na impressora.
+          // Offset para centralizar: (800 - 320) / 2 = 240 pontos
+          const offsetX = 240;
+
+          eplScript += 'q800\r\n'; // Largura total da cabeça de impressão (800 pontos)
+          eplScript += 'Q320,24\r\n'; // Altura útil da etiqueta de 40mm (320 pontos) + 24 pontos de GAP
+
+          // 1. Nome do produto (X=260, Y=20). Fonte '3'
+          eplScript += `A${offsetX + 20},20,0,3,1,1,N,"${nomeProduto}"\r\n`;
+
+          // 2. Preço com destaque (X=260, Y=55). Fonte '4' com altura dobrada (1,2)
+          eplScript += `A${offsetX + 20},55,0,4,1,2,N,"${precoProduto}"\r\n`;
+
+          // 3. Código de barras EAN-13 (X=285, Y=125) centralizado com parâmetro 'B'
+          eplScript += `B${offsetX + 45},125,0,E,2,4,80,B,"${codigoEAN}"\r\n`;
+        } else {
+          const nomeProduto = (item.product.description || '')
+            .replace(/"/g, "'")
+            .substring(0, 32);
+
+          eplScript += 'q800\r\n'; // Largura total de 100mm (800 pontos)
+          eplScript += 'Q240,24\r\n'; // Altura útil de 30mm (240 pontos) + 24 pontos de GAP
+
+          // -------------------------------------------------------------------------
+          // LADO ESQUERDO: PRODUTO E CÓDIGO DE BARRAS
+          // -------------------------------------------------------------------------
+
+          // 1. Nome do produto (X=40, Y=20). Fonte '3' é média e ideal para legibilidade.
+          eplScript += `A40,20,0,3,1,1,N,"${nomeProduto}"\r\n`;
+
+          // 2. Código de barras EAN-13 (X=40, Y=60)
+          // Tipo 'E' = EAN-13 | Largura barra=2 | Altura barras=90 pontos
+          // O parâmetro 'B' no final faz a impressora renderizar os números embaixo das barras automaticamente.
+          eplScript += `B40,60,0,E,2,4,90,B,"${codigoEAN}"\r\n`;
+
+          // -------------------------------------------------------------------------
+          // LADO DIREITO: PREÇO E UNIDADE DE MEDIDA
+          // -------------------------------------------------------------------------
+
+          // 3. Preço com altura de duas linhas (X=560, Y=50).
+          // Usamos multiplicador Vertical = 2 (dobro da altura) para dar destaque.
+          eplScript += `A560,50,0,4,1,2,N,"${precoProduto}"\r\n`;
+
+          // 4. Unidade de medida (X=560, Y=160).
+          // Posicionado logo abaixo do preço, com tamanho normal (altura de 1 linha).
+          eplScript += `A560,160,0,3,1,1,N,"${unidadeMedida}"\r\n`;
+        }
 
         // -------------------------------------------------------------------------
-        // LADO ESQUERDO: PRODUTO E CÓDIGO DE BARRAS
-        // -------------------------------------------------------------------------
 
-        // 1. Nome do produto (X=40, Y=20). Fonte '3' é média e ideal para legibilidade.
-        eplScript += `A40,20,0,3,1,1,N,"${nomeProduto}"\n`;
-
-        // 2. Código de barras EAN-13 (X=40, Y=60)
-        // Tipo 'E' = EAN-13 | Largura barra=2 | Altura barras=90 pontos
-        // O parâmetro 'B' no final faz a impressora renderizar os números embaixo das barras automaticamente.
-        eplScript += `B40,60,0,E,2,4,90,B,"${codigoEAN}"\n`;
-
-        // -------------------------------------------------------------------------
-        // LADO DIREITO: PREÇO E UNIDADE DE MEDIDA
-        // -------------------------------------------------------------------------
-
-        // 3. Preço com altura de duas linhas (X=560, Y=50).
-        // Usamos multiplicador Vertical = 2 (dobro da altura) para dar destaque.
-        eplScript += `A560,50,0,4,1,2,N,"${precoProduto}"\n`;
-
-        // 4. Unidade de medida (X=560, Y=160).
-        // Posicionado logo abaixo do preço, com tamanho normal (altura de 1 linha).
-        eplScript += `A560,160,0,3,1,1,N,"${unidadeMedida}"\n`;
-
-        // -------------------------------------------------------------------------
-
-        eplScript += `P${quantidade}\n`; // Comando para imprimir N cópias
+        eplScript += `P${quantidade}\r\n`; // Comando para imprimir N cópias
       }
 
       // Conversão para o array de bytes (Uint8Array)
@@ -370,6 +408,7 @@ export function LabelsReport() {
                 onChange={setLabelSize}
                 data={[
                   { value: '100x30', label: '100x30 mm' },
+                  { value: '40x40', label: '40x40 mm' },
                   { value: '60x40', label: '60x40 mm (Em breve)', disabled: true },
                 ]}
                 allowDeselect={false}
