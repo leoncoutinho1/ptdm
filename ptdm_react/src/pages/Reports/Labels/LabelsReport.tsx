@@ -310,7 +310,7 @@ export function LabelsReport() {
       <Paper withBorder shadow="md" p={24} radius="md">
         <Stack gap="lg">
           {/* Configurações Iniciais: Tamanho e Modo */}
-          <Card withBorder p="md" radius="sm" style={{ backgroundColor: 'var(--mantine-color-body)' }}>
+          <Card withBorder p="md" radius="sm">
             <Group grow align="flex-start">
               <Select
                 label="Tamanho da Etiqueta"
@@ -430,40 +430,39 @@ export function LabelsReport() {
                       <ScrollArea.Autosize mah={180}>
                         <Stack gap={6}>
                           {productSearchResults.map((prod) => (
-                            <Group
+                            <Paper
                               key={prod.id}
-                              justify="space-between"
+                              withBorder
                               p="xs"
-                              style={{
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                backgroundColor: 'var(--mantine-color-gray-0)',
-                              }}
+                              radius="sm"
+                              style={{ cursor: 'pointer' }}
                               onClick={() => {
                                 addProductToPrint(prod);
                                 setProductSearchResults([]);
                                 setSearchTerm('');
                               }}
                             >
-                              <div>
-                                <Text size="sm" fw={500}>
-                                  {prod.description}
-                                </Text>
-                                <Text size="xs" c="dimmed">
-                                  {Array.isArray(prod.barcodes) && prod.barcodes[0]
-                                    ? `Código: ${prod.barcodes[0]}`
-                                    : 'Sem código'} | Unidade: {prod.unit || 'UN'}
-                                </Text>
-                              </div>
-                              <Group gap="sm">
-                                <Badge color="teal" variant="light">
-                                  {formatCurrency(prod.price)}
-                                </Badge>
-                                <Button size="xs" variant="light">
-                                  Adicionar
-                                </Button>
+                              <Group justify="space-between">
+                                <div>
+                                  <Text size="sm" fw={500}>
+                                    {prod.description}
+                                  </Text>
+                                  <Text size="xs" c="dimmed">
+                                    {Array.isArray(prod.barcodes) && prod.barcodes[0]
+                                      ? `Código: ${prod.barcodes[0]}`
+                                      : 'Sem código'} | Unidade: {prod.unit || 'UN'}
+                                  </Text>
+                                </div>
+                                <Group gap="sm">
+                                  <Badge color="teal" variant="light">
+                                    {formatCurrency(prod.price)}
+                                  </Badge>
+                                  <Button size="xs" variant="light">
+                                    Adicionar
+                                  </Button>
+                                </Group>
                               </Group>
-                            </Group>
+                            </Paper>
                           ))}
                         </Stack>
                       </ScrollArea.Autosize>
@@ -522,7 +521,7 @@ export function LabelsReport() {
                     style={{
                       position: 'sticky',
                       top: 0,
-                      backgroundColor: 'var(--mantine-color-body)',
+                      backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))',
                       zIndex: 1,
                     }}
                   >
