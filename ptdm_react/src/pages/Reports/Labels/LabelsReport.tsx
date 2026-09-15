@@ -28,7 +28,8 @@ import { Trash2, Printer, Search, Plus, Tag, Layers, Package } from 'lucide-reac
 interface PrintItem {
   id: string;
   product: Product;
-  quantity: number;
+  quantity: number; // Quantidade de cópias
+  itemQuantity: number; // Quantidade do item (peso para KG, 1 para UN)
 }
 
 export function LabelsReport() {
@@ -113,6 +114,7 @@ export function LabelsReport() {
               id: p.id,
               product: p,
               quantity: 1,
+              itemQuantity: 1,
             });
           }
         });
@@ -214,7 +216,7 @@ export function LabelsReport() {
         notifications.show({
           color: 'blue',
           title: 'Quantidade incrementada',
-          message: `Quantidade de "${prod.description}" incrementada para ${updated[index].quantity}.`,
+          message: `Quantidade de cópias de "${prod.description}" incrementada para ${updated[index].quantity}.`,
         });
         return updated;
       }
@@ -223,7 +225,15 @@ export function LabelsReport() {
         title: 'Produto adicionado',
         message: `"${prod.description}" adicionado à lista de impressão.`,
       });
-      return [...prev, { id: prod.id, product: prod, quantity: 1 }];
+      return [
+        ...prev,
+        {
+          id: prod.id,
+          product: prod,
+          quantity: 1,
+          itemQuantity: 1,
+        },
+      ];
     });
   };
 
@@ -231,6 +241,14 @@ export function LabelsReport() {
     setItemsToPrint((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, quantity: Math.max(1, qty) } : item
+      )
+    );
+  };
+
+  const handleUpdateItemQuantity = (id: string, itemQty: number) => {
+    setItemsToPrint((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, itemQuantity: Math.max(0.001, itemQty) } : item
       )
     );
   };
@@ -533,8 +551,11 @@ export function LabelsReport() {
                       <Table.Th style={{ width: '90px', textAlign: 'center' }}>
                         Unidade
                       </Table.Th>
-                      <Table.Th style={{ width: '140px', textAlign: 'center' }}>
-                        Qtd. Etiquetas
+                      <Table.Th style={{ width: '130px', textAlign: 'center' }}>
+                        Quantidade
+                      </Table.Th>
+                      <Table.Th style={{ width: '160px', textAlign: 'center' }}>
+                        Quantidade de cópias
                       </Table.Th>
                       <Table.Th style={{ width: '80px', textAlign: 'center' }}>
                         Remover
@@ -542,52 +563,80 @@ export function LabelsReport() {
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {itemsToPrint.map((item) => (
-                      <Table.Tr key={item.id}>
-                        <Table.Td>
-                          <Text size="sm" fw={500}>
-                            {item.product.description}
-                          </Text>
-                          <Text size="xs" c="dimmed">
-                            {Array.isArray(item.product.barcodes) && item.product.barcodes[0]
-                              ? item.product.barcodes[0]
-                              : '-'}
-                          </Text>
-                        </Table.Td>
-                        <Table.Td style={{ textAlign: 'right' }}>
-                          <Text size="sm" fw={600}>
-                            {formatCurrency(item.product.price)}
-                          </Text>
-                        </Table.Td>
-                        <Table.Td style={{ textAlign: 'center' }}>
-                          <Badge variant="light" size="sm">
-                            {item.product.unit || 'UN'}
-                          </Badge>
-                        </Table.Td>
-                        <Table.Td style={{ textAlign: 'center' }}>
-                          <NumberInput
-                            value={item.quantity}
-                            onChange={(val) =>
-                              handleUpdateQuantity(item.id, Number(val) || 1)
-                            }
-                            min={1}
-                            max={999}
-                            size="xs"
-                            style={{ maxWidth: 100, margin: '0 auto' }}
-                          />
-                        </Table.Td>
-                        <Table.Td style={{ textAlign: 'center' }}>
-                          <ActionIcon
-                            color="red"
-                            variant="subtle"
-                            onClick={() => handleRemoveItem(item.id)}
-                            title="Remover produto da lista"
-                          >
-                            <Trash2 size={16} />
-                          </ActionIcon>
-                        </Table.Td>
-                      </Table.Tr>
-                    ))}
+                    {itemsToPrint.map((item) => {
+                      const isKg = (item.product.unit || '').trim().toUpperCase() === 'KG';
+                      return (
+                        <Table.Tr key={item.id}>
+                          <Table.Td>
+                            <Text size="sm" fw={500}>
+                              {item.product.description}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              {item.product.mainBarcode
+                                ? `Cód: ${item.product.mainBarcode}`
+                                : Array.isArray(item.product.barcodes) && item.product.barcodes[0]
+                                ? item.product.barcodes[0]
+                                : '-'}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td style={{ textAlign: 'right' }}>
+                            <Text size="sm" fw={600}>
+                              {formatCurrency(item.product.price)}
+                            </Text>
+                            {isKg && (
+                              <Text size="xs" c="dimmed">
+                                Total: {formatCurrency((item.product.price || 0) * (item.itemQuantity || 1))}
+                              </Text>
+                            )}
+                          </Table.Td>
+                          <Table.Td style={{ textAlign: 'center' }}>
+                            <Badge variant="light" size="sm">
+                              {item.product.unit || 'UN'}
+                            </Badge>
+                          </Table.Td>
+                          <Table.Td style={{ textAlign: 'center' }}>
+                            <NumberInput
+                              value={isKg ? item.itemQuantity : 1}
+                              onChange={(val) =>
+                                handleUpdateItemQuantity(
+                                  item.id,
+                                  typeof val === 'number' ? val : parseFloat(String(val)) || 0
+                                )
+                              }
+                              disabled={!isKg}
+                              min={0.001}
+                              step={0.05}
+                              decimalScale={3}
+                              fixedDecimalScale={isKg}
+                              size="xs"
+                              style={{ maxWidth: 100, margin: '0 auto' }}
+                            />
+                          </Table.Td>
+                          <Table.Td style={{ textAlign: 'center' }}>
+                            <NumberInput
+                              value={item.quantity}
+                              onChange={(val) =>
+                                handleUpdateQuantity(item.id, Number(val) || 1)
+                              }
+                              min={1}
+                              max={999}
+                              size="xs"
+                              style={{ maxWidth: 100, margin: '0 auto' }}
+                            />
+                          </Table.Td>
+                          <Table.Td style={{ textAlign: 'center' }}>
+                            <ActionIcon
+                              color="red"
+                              variant="subtle"
+                              onClick={() => handleRemoveItem(item.id)}
+                              title="Remover produto da lista"
+                            >
+                              <Trash2 size={16} />
+                            </ActionIcon>
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
                   </Table.Tbody>
                 </Table>
               </ScrollArea>
