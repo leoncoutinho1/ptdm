@@ -139,11 +139,15 @@ export function generateZplScript(
       const barcodeValue = generateLabelBarcode(item.product, itemQty);
 
       zplScript += `^XA
-^PW319
-^LL319
+^PW320
+^LL320
 ^CI28
 ^MD8
 ^LH0,0
+^LS0
+^LT0
+^MNY
+^MMT
 
 ^A0,50,35^FO10,10^FD${descricao}^FS
 ${intermediateLines ? '\n' + intermediateLines + '\n' : ''}
@@ -171,27 +175,31 @@ ${intermediateLines ? '\n' + intermediateLines + '\n' : ''}
       const precoFormatado = formatLabelPrice(item.product.price);
 
       zplScript += `^XA
-^PW799
+^PW800
 ^LL240
 ^CI28
 ^MD8
 ^LH0,0
+^LS0
+^LT0
+^MNY
+^MMT
 
 ^CF0,30,30
-^A0,50,50^FO30,30^FD${descricao}^FS
+^A0,45,45^FO15,15^FD${descricao}^FS
 
 ^CF0,40,35
-^FO430,130^FDR$^FS
+^FO430,120^FDR$^FS
 ^CF0,50,45
-^A0,100,100^FO530,80^FD${precoFormatado}^FS
+^A0,90,90^FO510,75^FD${precoFormatado}^FS
 
-^FO70,120^BY3
-^BEN,70,Y,N
+^FO40,105^BY3
+^BEN,65,Y,N
 ^FD${codigoEAN}^FS
 
-^FO430,180^GB320,3,3^FS
+^FO430,170^GB320,2,2^FS
 
-^A0,30,30^FO430,190^FDPADARIA TREM DE MINAS^FS
+^A0,25,25^FO430,180^FDPADARIA TREM DE MINAS^FS
 ^PQ${quantidade}
 ^XZ
 `;
