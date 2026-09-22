@@ -83,9 +83,14 @@ export function formatDateBR(date: Date): string {
  */
 export function generateZplScript(
   items: LabelPrintItem[],
-  labelSize: string = '100x30'
+  labelSize: string = '100x30',
+  quality: string = '^MD0'
 ): string {
   let zplScript = '';
+
+  const mdCommand = (quality || '^MD0').trim().startsWith('^MD')
+    ? (quality || '^MD0').trim()
+    : `^MD${(quality || '0').trim()}`;
 
   const today = new Date();
   const fabDateStr = formatDateBR(today);
@@ -142,14 +147,14 @@ export function generateZplScript(
 ^PW320
 ^LL320
 ^CI28
-^MD8
+${mdCommand}
 ^LH0,0
 ^LS0
 ^LT0
 ^MNY
 ^MMT
 
-^A0,50,35^FO10,10^FD${descricao}^FS
+^A0,50,28^FO10,10^FD${descricao}^FS
 ${intermediateLines ? '\n' + intermediateLines + '\n' : ''}
 ^A0,40,35^FO45,160^FDR$^FS
 
@@ -178,8 +183,8 @@ ${intermediateLines ? '\n' + intermediateLines + '\n' : ''}
 ^PW800
 ^LL240
 ^CI28
-^MD8
-^LH0,0
+${mdCommand}
+^LH15,15
 ^LS0
 ^LT0
 ^MNY

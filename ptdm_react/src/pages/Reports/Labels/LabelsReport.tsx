@@ -17,6 +17,8 @@ import {
   Badge,
   Card,
   Divider,
+  SimpleGrid,
+  Box,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { db, Product, Category } from '@/utils/db';
@@ -35,6 +37,7 @@ interface PrintItem {
 export function LabelsReport() {
   const [labelSize, setLabelSize] = useState<string | null>('100x30');
   const [printMode, setPrintMode] = useState<'section' | 'product'>('section');
+  const [printQuality, setPrintQuality] = useState<string>('^MD0');
   
   // Categorias / Seções
   const [categories, setCategories] = useState<Category[]>([]);
@@ -275,7 +278,11 @@ export function LabelsReport() {
     setIsPrinting(true);
 
     try {
-      const zplScript = generateZplScript(itemsToPrint, labelSize || '100x30');
+      const zplScript = generateZplScript(
+        itemsToPrint,
+        labelSize || '100x30',
+        printQuality
+      );
 
       // Conversão para o array de bytes (Uint8Array)
       const encoder = new TextEncoder();
@@ -327,25 +334,38 @@ export function LabelsReport() {
 
       <Paper withBorder shadow="md" p={24} radius="md">
         <Stack gap="lg">
-          {/* Configurações Iniciais: Tamanho e Modo */}
+          {/* Configurações Iniciais: Tamanho, Modo e Qualidade */}
           <Card withBorder p="md" radius="sm">
-            <Group grow align="flex-start">
-              <Select
-                label="Tamanho da Etiqueta"
-                description="Selecione o formato da etiqueta de gôndola"
-                value={labelSize}
-                onChange={setLabelSize}
-                data={[
-                  { value: '100x30', label: '100x30 mm' },
-                  { value: '40x40', label: '40x40 mm' },
-                ]}
-                allowDeselect={false}
-              />
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+              <Stack gap={6} justify="space-between" style={{ height: '100%' }}>
+                <Box>
+                  <Text size="sm" fw={500}>
+                    Tamanho da Etiqueta
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Selecione o formato da etiqueta
+                  </Text>
+                </Box>
+                <Select
+                  value={labelSize}
+                  onChange={setLabelSize}
+                  data={[
+                    { value: '100x30', label: '100x30 mm' },
+                    { value: '40x40', label: '40x40 mm' },
+                  ]}
+                  allowDeselect={false}
+                />
+              </Stack>
 
-              <Stack gap={6}>
-                <Text size="sm" fw={500}>
-                  Tipo de Seleção
-                </Text>
+              <Stack gap={6} justify="space-between" style={{ height: '100%' }}>
+                <Box>
+                  <Text size="sm" fw={500}>
+                    Tipo de Seleção
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Escolha o modo de inclusão
+                  </Text>
+                </Box>
                 <SegmentedControl
                   value={printMode}
                   onChange={(val) => setPrintMode(val as 'section' | 'product')}
@@ -372,7 +392,28 @@ export function LabelsReport() {
                   fullWidth
                 />
               </Stack>
-            </Group>
+
+              <Stack gap={6} justify="space-between" style={{ height: '100%' }}>
+                <Box>
+                  <Text size="sm" fw={500}>
+                    Qualidade
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    Densidade térmica de impressão
+                  </Text>
+                </Box>
+                <SegmentedControl
+                  value={printQuality}
+                  onChange={setPrintQuality}
+                  data={[
+                    { value: '^MD0', label: 'Normal' },
+                    { value: '^MD4', label: 'Melhor' },
+                    { value: '^MD8', label: 'Superior' },
+                  ]}
+                  fullWidth
+                />
+              </Stack>
+            </SimpleGrid>
           </Card>
 
           {/* Área Dinâmica dependendo do Tipo de Seleção */}
