@@ -41,9 +41,7 @@ export function generateLabelBarcode(product: Product, itemQuantity: number = 1)
 export function formatEan13(rawBarcode?: string): string {
   const digitsOnly = (rawBarcode || '').replace(/\D/g, '');
   const base12 = (
-    digitsOnly.length >= 12
-      ? digitsOnly.slice(0, 12)
-      : digitsOnly.padStart(12, '0')
+    digitsOnly.length >= 12 ? digitsOnly.slice(0, 12) : digitsOnly.padStart(12, '0')
   ).slice(-12);
 
   let eanSum = 0;
@@ -96,7 +94,10 @@ export function generateZplScript(
   const fabDateStr = formatDateBR(today);
 
   for (const item of items) {
-    const descricao = (item.product.description || '').replace(/[\r\n]/g, ' ').trim();
+    const descricao = (item.product.description || '')
+      .replace(/[\r\n]/g, ' ')
+      .replace(/[\^~]/g, '')
+      .trim();
     const quantidade = Math.max(1, Math.floor(item.quantity || 1));
     const isKg = (item.product.unit || '').trim().toUpperCase() === 'KG';
     const itemQty = isKg ? (item.itemQuantity ?? 1) : 1;
@@ -128,22 +129,23 @@ export function generateZplScript(
       let intermediateLines = '';
 
       if (isKg && hasValidity) {
-        intermediateLines = `^A0,23,20^FO10,63^FDPreço/Kg: R$ ${precoKgFormatado}^FS
-^A0,23,20^FO175,63^FDPeso(Kg): ${pesoFormatado}^FS
+        intermediateLines = `^FO10,63^A0,23,20^FDPreço/Kg: R$ ${precoKgFormatado}^FS
+^FO175,63^A0,23,20^FDPeso(Kg): ${pesoFormatado}^FS
 
-^A0,23,20^FO10,95^FDFab: ${fabDateStr}^FS
-^A0,23,20^FO175,95^FDVal: ${valDateStr}^FS`;
+^FO10,95^A0,23,20^FDFab: ${fabDateStr}^FS
+^FO175,95^A0,23,20^FDVal: ${valDateStr}^FS`;
       } else if (isKg && !hasValidity) {
-        intermediateLines = `^A0,23,20^FO10,75^FDPreço/Kg: R$ ${precoKgFormatado}^FS
-^A0,23,20^FO175,75^FDPeso(Kg): ${pesoFormatado}^FS`;
+        intermediateLines = `^FO10,75^A0,23,20^FDPreço/Kg: R$ ${precoKgFormatado}^FS
+^FO175,75^A0,23,20^FDPeso(Kg): ${pesoFormatado}^FS`;
       } else if (!isKg && hasValidity) {
-        intermediateLines = `^A0,23,20^FO10,75^FDFab: ${fabDateStr}^FS
-^A0,23,20^FO175,75^FDVal: ${valDateStr}^FS`;
+        intermediateLines = `^FO10,75^A0,23,20^FDFab: ${fabDateStr}^FS
+^FO175,75^A0,23,20^FDVal: ${valDateStr}^FS`;
       }
 
       const barcodeValue = generateLabelBarcode(item.product, itemQty);
 
       zplScript += `^XA
+^POI
 ^PW320
 ^LL320
 ^CI28
@@ -154,11 +156,11 @@ ${mdCommand}
 ^MNY
 ^MMT
 
-^A0,50,28^FO10,10^FD${descricao}^FS
-${intermediateLines ? '\n' + intermediateLines + '\n' : ''}
-^A0,40,35^FO45,160^FDR$^FS
+^FO10,10^A0,50,28^FD${descricao}^FS
+${intermediateLines ? `\n${intermediateLines}\n` : ''}
+^FO45,160^A0,40,35^FDR$^FS
 
-^A0,80,80^FO95,130^FD${precoTotalFormatado}^FS
+^FO95,130^A0,80,80^FD${precoTotalFormatado}^FS
 
 ^FO10,200^GB300,3,3^FS
 
@@ -166,7 +168,7 @@ ${intermediateLines ? '\n' + intermediateLines + '\n' : ''}
 ^BEN,40,Y,N
 ^FD${barcodeValue}^FS
 
-^A0,25,22^FO55,285^FDPadaria Trem de Minas^FS
+^FO55,285^A0,25,22^FDPadaria Trem de Minas^FS
 ^PQ${quantidade}
 ^XZ
 `;
@@ -180,6 +182,7 @@ ${intermediateLines ? '\n' + intermediateLines + '\n' : ''}
       const precoFormatado = formatLabelPrice(item.product.price);
 
       zplScript += `^XA
+^POI
 ^PW800
 ^LL240
 ^CI28
@@ -190,13 +193,10 @@ ${mdCommand}
 ^MNY
 ^MMT
 
-^CF0,30,30
-^A0,45,45^FO15,15^FD${descricao}^FS
+^FO15,15^A0,45,40^FD${descricao}^FS
 
-^CF0,40,35
-^FO430,120^FDR$^FS
-^CF0,50,45
-^A0,90,90^FO510,75^FD${precoFormatado}^FS
+^FO430,120^A0,40,35^FDR$^FS
+^FO510,75^A0,90,90^FD${precoFormatado}^FS
 
 ^FO40,105^BY3
 ^BEN,65,Y,N
@@ -204,7 +204,7 @@ ${mdCommand}
 
 ^FO430,170^GB320,2,2^FS
 
-^A0,25,25^FO430,180^FDPADARIA TREM DE MINAS^FS
+^FO430,180^A0,25,25^FDPADARIA TREM DE MINAS^FS
 ^PQ${quantidade}
 ^XZ
 `;
