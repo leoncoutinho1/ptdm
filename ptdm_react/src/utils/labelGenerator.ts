@@ -150,7 +150,7 @@ export function generateZplScript(
 ^LL320
 ^CI28
 ${mdCommand}
-^LH0,0
+^LH5,5
 ^LS0
 ^LT0
 ^MNY
